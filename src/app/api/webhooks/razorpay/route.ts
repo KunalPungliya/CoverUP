@@ -193,8 +193,7 @@ export async function POST(request: NextRequest) {
       .select()
       .single();
 
-    const batchId = batch?.id || '00000000-0000-0000-0000-000000000000';
-
+    const batchId = batch?.id || null;
     const executeStart = Date.now();
     const execResults = await executeRecoveryActions(decisions, batchId);
     const executeDuration = Date.now() - executeStart;

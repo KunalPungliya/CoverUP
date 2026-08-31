@@ -9,7 +9,8 @@ export function DemoBanner() {
   useEffect(() => {
     const hasSeenDemo = localStorage.getItem('coverup-demo-banner-dismissed');
     if (!hasSeenDemo) {
-      setIsVisible(true);
+      const timer = setTimeout(() => setIsVisible(true), 0);
+      return () => clearTimeout(timer);
     }
   }, []);
 

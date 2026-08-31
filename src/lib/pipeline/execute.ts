@@ -1,7 +1,7 @@
 import { supabase } from '../supabase';
 import { DecisionResult } from './decide';
 import { RECOVERY_PROBABILITIES, NUDGE_RESPONSE_RATES, STOPPING_RULES, MESSAGE_TEMPLATES } from '../constants';
-import { ActionOutcome, RecoveryAction, AiDecision } from '../types';
+import { ActionOutcome, AiDecision } from '../types';
 
 export interface ExecutionResult {
   subscriptionId: string;
@@ -21,7 +21,7 @@ export interface ExecutionResult {
 
 export async function executeRecoveryActions(
   decisions: DecisionResult[],
-  batchId: string
+  batchId: string | null
 ): Promise<ExecutionResult[]> {
   const results: ExecutionResult[] = [];
 

@@ -5,9 +5,9 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/utils';
-import { Calculator, TrendingUp, ShieldCheck, DollarSign, ArrowRight, Sparkles, PieChart as PieIcon, Layers } from 'lucide-react';
+import { Calculator, ArrowRight, Sparkles } from 'lucide-react';
 import Link from 'next/link';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid, Legend } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 
 export default function RoiCalculatorPage() {
   const mrrSliderId = useId();

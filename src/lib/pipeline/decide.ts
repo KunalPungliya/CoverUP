@@ -43,9 +43,9 @@ export async function decideRecoveryActions(
 function applyStoppingRules(atRisk: AtRiskSubscription): {
   decision: AiDecision;
   skipped: boolean;
-  skipReason: string;
+  skipReason?: string;
 } | null {
-  const { latestAttempt, failureCount, daysSinceFailure, previousActions } = atRisk;
+  const { latestAttempt, daysSinceFailure, previousActions } = atRisk;
   const reason = latestAttempt.failure_reason;
 
   // Rule 1: Immediate unrecoverable (account_closed)

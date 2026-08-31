@@ -5,7 +5,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { MESSAGE_TEMPLATES } from '@/lib/constants';
-import { Mail, Smartphone, Send, Copy, Check, Sparkles, ExternalLink, ShieldCheck } from 'lucide-react';
+import { Mail, Smartphone, Send, Copy, Check, ShieldCheck } from 'lucide-react';
 
 export default function TemplatesPage() {
   const [activeTemplateKey, setActiveTemplateKey] = useState<string>('gentle_reminder');
@@ -268,7 +268,7 @@ export default function TemplatesPage() {
                         {renderedBody}
                       </p>
                       <p className="text-[11px] text-blue-600 underline font-medium">
-                        https://coverup.app/pay/sub_{Math.random().toString(36).substring(2, 7)}
+                        https://coverup.app/pay/sub_preview89
                       </p>
                       <p className="text-[9px] text-slate-400 text-right">Delivered</p>
                     </div>

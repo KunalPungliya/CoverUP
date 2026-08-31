@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatCurrency } from '@/lib/utils';
-import { Zap, Send, ShieldAlert, CheckCircle2, Clock, Brain, ArrowRight, RefreshCw, AlertTriangle, Radio } from 'lucide-react';
+import { Zap, Send, ShieldAlert, Brain, ArrowRight, AlertTriangle, Radio } from 'lucide-react';
 import Link from 'next/link';
 
 interface WebhookPreset {
@@ -461,7 +461,7 @@ export default function SimulatorPage() {
                     payload: {
                       payment: {
                         entity: {
-                          id: 'pay_live_sample_' + activePreset.id,
+                          id: 'pay_live_' + activePreset.id,
                           amount: customAmount,
                           currency: 'INR',
                           status: 'failed',
@@ -472,7 +472,7 @@ export default function SimulatorPage() {
                         },
                       },
                     },
-                    created_at: Math.floor(Date.now() / 1000),
+                    created_at: 1740825600,
                   },
                   null,
                   2

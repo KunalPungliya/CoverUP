@@ -21,15 +21,23 @@ export function RecoveryModal({ isOpen, onClose, isProcessing, result }: Recover
 
   useEffect(() => {
     if (isOpen && isProcessing) {
-      setStage(1);
+      const t0 = setTimeout(() => setStage(1), 0);
       const t1 = setTimeout(() => setStage(2), 1500);
       const t2 = setTimeout(() => setStage(3), 4000);
-      return () => { clearTimeout(t1); clearTimeout(t2); };
+      return () => {
+        clearTimeout(t0);
+        clearTimeout(t1);
+        clearTimeout(t2);
+      };
     } else if (isOpen && result) {
-      setStage(4);
+      const tResult = setTimeout(() => setStage(4), 0);
+      return () => clearTimeout(tResult);
     } else if (!isOpen) {
-      setStage(0);
-      setExpandedAction(null);
+      const tReset = setTimeout(() => {
+        setStage(0);
+        setExpandedAction(null);
+      }, 0);
+      return () => clearTimeout(tReset);
     }
   }, [isOpen, isProcessing, result]);
 

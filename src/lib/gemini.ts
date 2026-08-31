@@ -74,7 +74,7 @@ Respond ONLY with this JSON structure:
 export async function getAiDecision(atRisk: AtRiskSubscription): Promise<AiDecision> {
   try {
     const model = genAI.getGenerativeModel({
-      model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+      model: process.env.GEMINI_MODEL || 'gemini-1.5-flash',
     });
 
     const paymentMethodType = atRisk.subscription.payment_method?.type || 'unknown';

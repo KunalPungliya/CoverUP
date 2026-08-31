@@ -171,7 +171,12 @@ export async function seedDatabase(): Promise<{ customers: number; subscriptions
   }
 
   // Insert subscriptions (strip temp fields)
-  const cleanSubsData = subscriptionsData.map(({ _failure_reason, _failure_days_ago, ...rest }) => rest);
+  const cleanSubsData = subscriptionsData.map((item) => {
+    const copy = { ...item };
+    delete (copy as Record<string, unknown>)._failure_reason;
+    delete (copy as Record<string, unknown>)._failure_days_ago;
+    return copy;
+  });
   const { data: subscriptions, error: subError } = await supabase
     .from('subscriptions')
     .insert(cleanSubsData)
