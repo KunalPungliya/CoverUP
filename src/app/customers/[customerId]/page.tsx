@@ -140,7 +140,15 @@ export default function CustomerDetailPage() {
           ) : (
             subscriptions.map((sub: any) => (
               <Card key={sub.id} className="border-slate-200 overflow-hidden">
-                <div className={`h-1 w-full bg-${STATUS_VARIANTS[sub.status] === 'success' ? 'emerald' : STATUS_VARIANTS[sub.status] === 'warning' ? 'amber' : STATUS_VARIANTS[sub.status] === 'destructive' ? 'red' : 'blue'}-500`}></div>
+                <div className={`h-1 w-full ${
+                  sub.status === 'active' || sub.status === 'recovered' 
+                    ? 'bg-emerald-500' 
+                    : sub.status === 'past_due' 
+                    ? 'bg-amber-500' 
+                    : sub.status === 'failed' || sub.status === 'unrecoverable' 
+                    ? 'bg-red-500' 
+                    : 'bg-blue-500'
+                }`}></div>
                 <CardContent className="p-5">
                   <div className="flex justify-between items-start mb-4">
                     <div>
@@ -203,7 +211,7 @@ export default function CustomerDetailPage() {
                         <p className="font-medium text-blue-800 text-xs mb-1 uppercase tracking-wider">AI Reasoning</p>
                         {action.ai_reasoning}
                         <div className="mt-2 text-xs font-medium text-blue-600">
-                          Confidence: {action.ai_confidence}%
+                          Confidence: {(action.ai_confidence > 1 ? action.ai_confidence : action.ai_confidence * 100).toFixed(0)}%
                         </div>
                       </div>
                     )}

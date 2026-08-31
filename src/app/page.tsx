@@ -426,13 +426,13 @@ export default function DashboardPage() {
           <div className="bg-blue-50 p-6 rounded-full mb-6">
             <Database className="h-16 w-16 text-blue-600" />
           </div>
-          <h2 className="text-2xl font-bold text-slate-900 mb-2">No data yet!</h2>
-          <p className="text-slate-500 max-w-md mb-8">
-            Click 'Seed Data' above to generate test subscriptions, then 'Run Recovery' to see the AI agent in action.
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">No subscription data yet!</h2>
+          <p className="text-slate-500 max-w-md mb-6">
+            Click &apos;Seed Data&apos; to generate 200 synthetic subscriptions with realistic failure profiles, then watch the AI recovery agent in action.
           </p>
-          <div className="flex items-center gap-2 text-sm font-medium text-blue-600 animate-pulse">
-            <span>↑ Arrow pointing to the Seed Data button</span>
-          </div>
+          <Button variant="default" onClick={handleSeed} loading={seeding} className="gap-2 shadow-sm">
+            <Database className="h-4 w-4" /> Seed 200 Subscriptions Now
+          </Button>
         </div>
       )}
 
