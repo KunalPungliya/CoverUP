@@ -17,14 +17,23 @@ export interface RecoveryPipelineResult {
     amountAtRisk: number;
     recoveryRate: number;
   };
+  timings: {
+    detect: number;
+    decide: number;
+    execute: number;
+    total: number;
+  };
 }
 
 export async function runRecoveryPipeline(): Promise<RecoveryPipelineResult> {
+  const pipelineStart = Date.now();
   console.log('[CoverUP] Starting recovery pipeline...');
 
   // Step 1: DETECT
   console.log('[CoverUP] Stage 1: Detecting at-risk subscriptions...');
+  const detectStart = Date.now();
   const atRiskSubscriptions = await detectAtRiskSubscriptions();
+  const detectDuration = Date.now() - detectStart;
   console.log(`[CoverUP] Found ${atRiskSubscriptions.length} at-risk subscriptions`);
 
   if (atRiskSubscriptions.length === 0) {
@@ -56,6 +65,12 @@ export async function runRecoveryPipeline(): Promise<RecoveryPipelineResult> {
         amountAtRisk: 0,
         recoveryRate: 0,
       },
+      timings: {
+        detect: detectDuration,
+        decide: 0,
+        execute: 0,
+        total: Date.now() - pipelineStart,
+      }
     };
   }
 
@@ -75,12 +90,16 @@ export async function runRecoveryPipeline(): Promise<RecoveryPipelineResult> {
 
   // Step 2: DECIDE
   console.log('[CoverUP] Stage 2: AI deciding recovery actions...');
+  const decideStart = Date.now();
   const decisions = await decideRecoveryActions(atRiskSubscriptions);
+  const decideDuration = Date.now() - decideStart;
   console.log(`[CoverUP] Decisions made for ${decisions.length} subscriptions`);
 
   // Step 3: EXECUTE
   console.log('[CoverUP] Stage 3: Executing recovery actions...');
+  const executeStart = Date.now();
   const results = await executeRecoveryActions(decisions, batch.id);
+  const executeDuration = Date.now() - executeStart;
   console.log(`[CoverUP] Execution complete for ${results.length} subscriptions`);
 
   // Calculate summary
@@ -128,5 +147,11 @@ export async function runRecoveryPipeline(): Promise<RecoveryPipelineResult> {
     batch: (updatedBatch || batch) as RecoveryBatch,
     results,
     summary,
+    timings: {
+      detect: detectDuration,
+      decide: decideDuration,
+      execute: executeDuration,
+      total: Date.now() - pipelineStart,
+    }
   };
 }

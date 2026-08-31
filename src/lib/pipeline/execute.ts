@@ -5,6 +5,11 @@ import { ActionOutcome, RecoveryAction, AiDecision } from '../types';
 
 export interface ExecutionResult {
   subscriptionId: string;
+  customerName: string;
+  customerEmail: string;
+  planName: string;
+  amount: number;
+  failureReason: string;
   actionType: string;
   outcome: ActionOutcome;
   amountRecovered: number;
@@ -40,6 +45,11 @@ export async function executeRecoveryActions(
 
       results.push({
         subscriptionId: sub.id,
+        customerName: sub.customers?.name || 'Unknown Customer',
+        customerEmail: sub.customers?.email || 'Unknown Email',
+        planName: sub.plan_name,
+        amount: sub.amount,
+        failureReason: atRisk.latestAttempt.failure_reason || 'unknown',
         actionType: aiDecision.action,
         outcome: 'skipped',
         amountRecovered: 0,
@@ -110,6 +120,11 @@ export async function executeRecoveryActions(
 
     results.push({
       subscriptionId: sub.id,
+      customerName: sub.customers?.name || 'Unknown Customer',
+      customerEmail: sub.customers?.email || 'Unknown Email',
+      planName: sub.plan_name,
+      amount: sub.amount,
+      failureReason: atRisk.latestAttempt.failure_reason || 'unknown',
       actionType: finalAction,
       outcome,
       amountRecovered,

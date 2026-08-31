@@ -33,6 +33,7 @@ export default function BatchDetailPage() {
   const [batch, setBatch] = useState<RecoveryBatch | null>(null);
   const [actions, setActions] = useState<RecoveryAction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<string>('all');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -121,15 +122,75 @@ export default function BatchDetailPage() {
         </Card>
       </div>
 
+      {/* Visual Pipeline Summary */}
+      <div className="mb-8">
+        <h3 className="text-lg font-bold mb-4">Pipeline Summary</h3>
+        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+          <div className="flex justify-between items-end mb-2">
+            <div>
+              <p className="text-sm text-slate-500">Recovery Progress</p>
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl font-bold text-emerald-600">{formatCurrency(batch.total_amount_recovered)}</span>
+                <span className="text-sm text-slate-500">/ {formatCurrency(batch.total_amount_at_risk || 0)}</span>
+              </div>
+            </div>
+            <div className="text-right">
+              <span className={`text-2xl font-bold ${Number(recoveryRate) > 50 ? 'text-emerald-600' : Number(recoveryRate) > 25 ? 'text-amber-600' : 'text-red-600'}`}>
+                {recoveryRate}%
+              </span>
+            </div>
+          </div>
+          <div className="h-4 bg-slate-100 rounded-full overflow-hidden w-full">
+            <div 
+              className={`h-full ${Number(recoveryRate) > 50 ? 'bg-emerald-500' : Number(recoveryRate) > 25 ? 'bg-amber-500' : 'bg-red-500'}`}
+              style={{ width: `${Math.min(100, Math.max(0, Number(recoveryRate)))}%` }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Action Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-6">
+        {Object.entries(ACTION_LABELS).map(([key, label]) => {
+          const typeActions = actions.filter(a => a.action_type === key);
+          if (typeActions.length === 0) return null;
+          const success = typeActions.filter(a => a.outcome === 'success').length;
+          const pending = typeActions.filter(a => a.outcome === 'pending').length;
+          const failed = typeActions.filter(a => a.outcome === 'failed').length;
+          return (
+            <Card key={key}>
+              <CardContent className="p-3">
+                <p className="text-sm font-bold truncate">{label}</p>
+                <p className="text-xs text-slate-500 mt-1">Total: {typeActions.length}</p>
+                <div className="flex gap-2 mt-2 text-[10px]">
+                  {success > 0 && <span className="text-emerald-600 font-medium">{success} success</span>}
+                  {pending > 0 && <span className="text-amber-600 font-medium">{pending} pending</span>}
+                  {failed > 0 && <span className="text-red-600 font-medium">{failed} failed</span>}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
       {/* Actions Timeline */}
       <Card>
-        <CardHeader>
-          <CardTitle>Recovery Actions ({actions.length})</CardTitle>
-          <CardDescription>Detailed AI reasoning and actions for each subscription</CardDescription>
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-4">
+          <div>
+            <CardTitle>Recovery Actions ({filter === 'all' ? actions.length : actions.filter(a => a.outcome === filter).length})</CardTitle>
+            <CardDescription>Detailed AI reasoning and actions for each subscription</CardDescription>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant={filter === 'all' ? 'default' : 'outline'} onClick={() => setFilter('all')}>All</Button>
+            <Button size="sm" variant={filter === 'success' ? 'default' : 'outline'} onClick={() => setFilter('success')}>Success</Button>
+            <Button size="sm" variant={filter === 'pending' ? 'default' : 'outline'} onClick={() => setFilter('pending')}>Pending</Button>
+            <Button size="sm" variant={filter === 'failed' ? 'default' : 'outline'} onClick={() => setFilter('failed')}>Failed</Button>
+            <Button size="sm" variant={filter === 'skipped' ? 'default' : 'outline'} onClick={() => setFilter('skipped')}>Skipped</Button>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           <div className="divide-y divide-slate-100">
-            {actions.map((action) => {
+            {(filter === 'all' ? actions : actions.filter(a => a.outcome === filter)).map((action) => {
               const config = OUTCOME_CONFIG[action.outcome] || OUTCOME_CONFIG.pending;
               const sub = action.subscriptions;
               const customer = sub?.customers;
@@ -169,11 +230,29 @@ export default function BatchDetailPage() {
 
                       {/* AI Reasoning */}
                       {action.ai_reasoning && (
-                        <div className="flex items-start gap-2 bg-blue-50 rounded-lg p-3 border border-blue-100">
-                          <Brain className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                          <div>
-                            <p className="text-xs font-medium text-blue-700">AI Reasoning (Confidence: {(action.ai_confidence * 100).toFixed(0)}%)</p>
-                            <p className="text-sm text-blue-900 mt-1">{action.ai_reasoning}</p>
+                        <div className="flex items-start gap-3 bg-blue-50/50 rounded-lg p-4 border border-blue-100">
+                          <Brain className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                          <div className="w-full">
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-sm font-bold text-blue-900">AI Reasoning</p>
+                              <div className="flex items-center gap-2 w-32">
+                                <span className="text-xs font-medium text-slate-500">Confidence</span>
+                                <div className="h-1.5 flex-1 bg-slate-200 rounded-full overflow-hidden">
+                                  <div 
+                                    className={`h-full ${action.ai_confidence > 0.75 ? 'bg-emerald-500' : action.ai_confidence > 0.5 ? 'bg-blue-500' : action.ai_confidence > 0.25 ? 'bg-amber-500' : 'bg-red-500'}`}
+                                    style={{ width: `${action.ai_confidence * 100}%` }}
+                                  />
+                                </div>
+                                <span className="text-xs font-bold">{Math.round(action.ai_confidence * 100)}%</span>
+                              </div>
+                            </div>
+                            <p className="text-sm text-blue-800">{action.ai_reasoning}</p>
+                            
+                            {action.action_detail && typeof action.action_detail === 'object' && (action.action_detail as any).body && (
+                              <div className="mt-3 p-3 bg-white border border-slate-200 rounded text-xs text-slate-700 font-mono whitespace-pre-wrap">
+                                {(action.action_detail as any).body}
+                              </div>
+                            )}
                           </div>
                         </div>
                       )}
