@@ -1,6 +1,6 @@
 import { AtRiskSubscription, AiDecision } from '../types';
 import { STOPPING_RULES } from '../constants';
-import { getAiDecision } from '../gemini';
+import { getAiDecision, getFallbackDecision } from '../gemini';
 
 export interface DecisionResult {
   subscription: AtRiskSubscription;
@@ -13,9 +13,10 @@ export async function decideRecoveryActions(
   atRiskSubscriptions: AtRiskSubscription[]
 ): Promise<DecisionResult[]> {
   const results: DecisionResult[] = [];
+  const needsAi: AtRiskSubscription[] = [];
 
+  // Stage 1: Immediate Stopping Rules Evaluation (Synchronous, 0ms)
   for (const atRisk of atRiskSubscriptions) {
-    // Apply stopping rules BEFORE calling AI
     const stopResult = applyStoppingRules(atRisk);
     if (stopResult) {
       results.push({
@@ -24,17 +25,43 @@ export async function decideRecoveryActions(
         skipped: stopResult.skipped,
         skipReason: stopResult.skipReason,
       });
-      continue;
+    } else {
+      needsAi.push(atRisk);
     }
+  }
 
-    // Call Gemini AI for decision
-    const aiDecision = await getAiDecision(atRisk);
+  // Stage 2: Parallelized AI Decisions in Concurrent Batches (4 at a time)
+  // Each call has a timeout safeguard so the pipeline never hangs
+  const CHUNK_SIZE = 4;
+  for (let i = 0; i < needsAi.length; i += CHUNK_SIZE) {
+    const chunk = needsAi.slice(i, i + CHUNK_SIZE);
+    const chunkPromises = chunk.map(async (atRisk) => {
+      try {
+        // 4-second timeout promise for fast responsiveness
+        const aiPromise = getAiDecision(atRisk);
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('AI decision timeout')), 4000)
+        );
 
-    results.push({
-      subscription: atRisk,
-      decision: aiDecision,
-      skipped: false,
+        const aiDecision = await Promise.race([aiPromise, timeoutPromise]);
+        return {
+          subscription: atRisk,
+          decision: aiDecision,
+          skipped: false,
+        };
+      } catch (err) {
+        console.warn(`[CoverUP] AI call skipped/timed out for sub ${atRisk.subscription.id}, using calibrated fallback rule.`, err);
+        const fallbackDecision = getFallbackDecision(atRisk);
+        return {
+          subscription: atRisk,
+          decision: fallbackDecision,
+          skipped: false,
+        };
+      }
     });
+
+    const chunkResults = await Promise.all(chunkPromises);
+    results.push(...chunkResults);
   }
 
   return results;
@@ -119,8 +146,6 @@ function applyStoppingRules(atRisk: AtRiskSubscription): {
   // Rule 5: Max retries exceeded — escalate instead of retry
   const retryActions = previousActions.filter(a => a.action_type === 'retry_payment');
   if (retryActions.length >= STOPPING_RULES.MAX_RETRY_COUNT) {
-    // Don't skip, but constrain AI to not suggest retry_payment
-    // We'll let AI decide but override if it suggests retry
     return null; // Let AI decide, but we'll post-process in execute
   }
 

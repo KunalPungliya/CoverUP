@@ -144,7 +144,7 @@ Decide the single best recovery action. Respond with JSON only.`;
   }
 }
 
-function getFallbackDecision(atRisk: AtRiskSubscription): AiDecision {
+export function getFallbackDecision(atRisk: AtRiskSubscription): AiDecision {
   const { latestAttempt, failureCount, daysSinceFailure } = atRisk;
   const reason = latestAttempt.failure_reason;
 

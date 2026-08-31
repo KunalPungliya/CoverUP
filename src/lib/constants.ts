@@ -26,19 +26,19 @@ export const NUDGE_RESPONSE_RATES = {
   payment_update_request: 0.35,
 } as const;
 
-// Plan definitions for synthetic data
+// Plan definitions for synthetic data with realistic, diverse pricing
 export const PLANS = [
-  { name: 'Starter Monthly', amount: 49900, cycle: 'monthly' as const },
-  { name: 'Growth Monthly', amount: 99900, cycle: 'monthly' as const },
-  { name: 'Pro Monthly', amount: 149900, cycle: 'monthly' as const },
-  { name: 'Business Monthly', amount: 299900, cycle: 'monthly' as const },
-  { name: 'Enterprise Monthly', amount: 999900, cycle: 'monthly' as const },
-  { name: 'Starter Quarterly', amount: 129900, cycle: 'quarterly' as const },
-  { name: 'Pro Quarterly', amount: 399900, cycle: 'quarterly' as const },
-  { name: 'Business Quarterly', amount: 799900, cycle: 'quarterly' as const },
-  { name: 'Pro Annual', amount: 1499900, cycle: 'annual' as const },
-  { name: 'Business Annual', amount: 2999900, cycle: 'annual' as const },
-  { name: 'Enterprise Annual', amount: 9999900, cycle: 'annual' as const },
+  { name: 'Essential Starter', amount: 65000, cycle: 'monthly' as const },      // ₹650/mo
+  { name: 'Developer Pro', amount: 185000, cycle: 'monthly' as const },         // ₹1,850/mo
+  { name: 'Growth Scale', amount: 340000, cycle: 'monthly' as const },          // ₹3,400/mo
+  { name: 'Business Prime', amount: 780000, cycle: 'monthly' as const },        // ₹7,800/mo
+  { name: 'Enterprise Dedicated', amount: 2850000, cycle: 'monthly' as const }, // ₹28,500/mo
+  { name: 'Startup Tier', amount: 495000, cycle: 'quarterly' as const },        // ₹4,950/qtr
+  { name: 'Growth Team', amount: 960000, cycle: 'quarterly' as const },         // ₹9,600/qtr
+  { name: 'Scale Infrastructure', amount: 2140000, cycle: 'quarterly' as const }, // ₹21,400/qtr
+  { name: 'Professional Suite', amount: 1890000, cycle: 'annual' as const },    // ₹18,900/yr
+  { name: 'Commercial Fleet', amount: 4250000, cycle: 'annual' as const },      // ₹42,500/yr
+  { name: 'Custom Enterprise', amount: 12400000, cycle: 'annual' as const },   // ₹1,24,000/yr
 ] as const;
 
 // Failure reason descriptions for realistic gateway responses

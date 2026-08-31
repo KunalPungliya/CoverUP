@@ -24,14 +24,17 @@ export async function executeRecoveryActions(
   batchId: string | null
 ): Promise<ExecutionResult[]> {
   const results: ExecutionResult[] = [];
+  const actionsToInsert: any[] = [];
+  const successfulSubIds: string[] = [];
+  const unrecoverableSubIds: string[] = [];
+  const successfulPaymentAttempts: any[] = [];
 
   for (const decision of decisions) {
     const { subscription: atRisk, decision: aiDecision, skipped, skipReason } = decision;
     const sub = atRisk.subscription;
 
     if (skipped) {
-      // Log the skipped action
-      await supabase.from('recovery_actions').insert({
+      actionsToInsert.push({
         subscription_id: sub.id,
         batch_id: batchId,
         action_type: aiDecision.action,
@@ -40,7 +43,7 @@ export async function executeRecoveryActions(
         ai_confidence: aiDecision.confidence,
         outcome: 'skipped',
         amount_recovered: 0,
-        retry_count: atRisk.previousActions.filter(a => a.action_type === 'retry_payment').length,
+        retry_count: atRisk.previousActions.filter((a) => a.action_type === 'retry_payment').length,
       });
 
       results.push({
@@ -62,7 +65,7 @@ export async function executeRecoveryActions(
     }
 
     // Check if AI suggested retry but max retries exceeded — override to escalate
-    const retryCount = atRisk.previousActions.filter(a => a.action_type === 'retry_payment').length;
+    const retryCount = atRisk.previousActions.filter((a) => a.action_type === 'retry_payment').length;
     let finalAction = aiDecision.action;
     let finalReasoning = aiDecision.reasoning;
 
@@ -81,8 +84,7 @@ export async function executeRecoveryActions(
     // Build action detail
     const actionDetail = buildActionDetail(finalAction, aiDecision, sub);
 
-    // Insert recovery action (audit trail)
-    await supabase.from('recovery_actions').insert({
+    actionsToInsert.push({
       subscription_id: sub.id,
       batch_id: batchId,
       action_type: finalAction,
@@ -94,28 +96,23 @@ export async function executeRecoveryActions(
       retry_count: retryCount + (finalAction === 'retry_payment' ? 1 : 0),
     });
 
-    // Update subscription status based on outcome
     if (outcome === 'success') {
-      await supabase
-        .from('subscriptions')
-        .update({ status: 'recovered' })
-        .eq('id', sub.id);
-
-      // Insert successful payment attempt
-      await supabase.from('payment_attempts').insert({
+      successfulSubIds.push(sub.id);
+      successfulPaymentAttempts.push({
         subscription_id: sub.id,
         amount: sub.amount,
         status: 'success',
         failure_reason: null,
         failure_description: null,
-        gateway_response: { transaction_id: `txn_recovered_${Date.now()}`, status: 'captured', recovery_batch: batchId },
+        gateway_response: {
+          transaction_id: `txn_rec_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+          status: 'captured',
+          recovery_batch: batchId,
+        },
         attempted_at: new Date().toISOString(),
       });
     } else if (finalAction === 'mark_unrecoverable') {
-      await supabase
-        .from('subscriptions')
-        .update({ status: 'unrecoverable' })
-        .eq('id', sub.id);
+      unrecoverableSubIds.push(sub.id);
     }
 
     results.push({
@@ -132,6 +129,37 @@ export async function executeRecoveryActions(
       aiConfidence: aiDecision.confidence,
       skipped: false,
     });
+  }
+
+  // High-performance batch writes to Supabase
+  // 1. Bulk insert all recovery actions in ONE query
+  if (actionsToInsert.length > 0) {
+    const { error: actError } = await supabase.from('recovery_actions').insert(actionsToInsert);
+    if (actError) console.error('Failed to bulk insert recovery actions:', actError);
+  }
+
+  // 2. Bulk update recovered subscriptions in ONE query
+  if (successfulSubIds.length > 0) {
+    const { error: subUpError } = await supabase
+      .from('subscriptions')
+      .update({ status: 'recovered' })
+      .in('id', successfulSubIds);
+    if (subUpError) console.error('Failed to bulk update recovered subs:', subUpError);
+  }
+
+  // 3. Bulk insert successful payment attempts in ONE query
+  if (successfulPaymentAttempts.length > 0) {
+    const { error: payError } = await supabase.from('payment_attempts').insert(successfulPaymentAttempts);
+    if (payError) console.error('Failed to bulk insert payment attempts:', payError);
+  }
+
+  // 4. Bulk update unrecoverable subscriptions in ONE query
+  if (unrecoverableSubIds.length > 0) {
+    const { error: unrecError } = await supabase
+      .from('subscriptions')
+      .update({ status: 'unrecoverable' })
+      .in('id', unrecoverableSubIds);
+    if (unrecError) console.error('Failed to bulk update unrecoverable subs:', unrecError);
   }
 
   return results;
@@ -151,117 +179,98 @@ function simulateAction(
         amountRecovered: success ? amount : 0,
       };
     }
-
     case 'send_email_reminder': {
-      // Simulate customer responding to email and updating payment
-      const responded = Math.random() < NUDGE_RESPONSE_RATES.email_reminder;
-      if (responded) {
-        // Customer updated payment method, simulate retry
-        const retrySuccess = Math.random() < 0.75; // higher success after customer action
-        return {
-          outcome: retrySuccess ? 'success' : 'pending',
-          amountRecovered: retrySuccess ? amount : 0,
-        };
-      }
-      return { outcome: 'pending', amountRecovered: 0 };
+      const success = Math.random() < NUDGE_RESPONSE_RATES.email_reminder;
+      return {
+        outcome: success ? 'success' : 'pending',
+        amountRecovered: success ? amount : 0,
+      };
     }
-
     case 'send_sms_nudge': {
-      const responded = Math.random() < NUDGE_RESPONSE_RATES.sms_nudge;
-      if (responded) {
-        const retrySuccess = Math.random() < 0.70;
-        return {
-          outcome: retrySuccess ? 'success' : 'pending',
-          amountRecovered: retrySuccess ? amount : 0,
-        };
-      }
-      return { outcome: 'pending', amountRecovered: 0 };
+      const success = Math.random() < NUDGE_RESPONSE_RATES.sms_nudge;
+      return {
+        outcome: success ? 'success' : 'pending',
+        amountRecovered: success ? amount : 0,
+      };
     }
-
     case 'request_payment_update': {
-      const updated = Math.random() < NUDGE_RESPONSE_RATES.payment_update_request;
-      if (updated) {
-        const retrySuccess = Math.random() < 0.80;
-        return {
-          outcome: retrySuccess ? 'success' : 'pending',
-          amountRecovered: retrySuccess ? amount : 0,
-        };
-      }
-      return { outcome: 'pending', amountRecovered: 0 };
+      const success = Math.random() < NUDGE_RESPONSE_RATES.payment_update_request;
+      return {
+        outcome: success ? 'success' : 'pending',
+        amountRecovered: success ? amount : 0,
+      };
     }
-
     case 'escalate':
       return { outcome: 'pending', amountRecovered: 0 };
-
     case 'mark_unrecoverable':
       return { outcome: 'failed', amountRecovered: 0 };
-
     default:
       return { outcome: 'pending', amountRecovered: 0 };
   }
 }
 
-function buildActionDetail(
-  action: string,
-  aiDecision: AiDecision,
-  sub: { plan_name: string; amount: number; customers?: { name: string; email: string } | null }
-): Record<string, unknown> {
-  const customerName = sub.customers?.name || 'Customer';
-  const amount = `₹${(sub.amount / 100).toLocaleString('en-IN')}`;
+function buildActionDetail(action: string, aiDecision: AiDecision, subscription: any): Record<string, any> {
+  const customerName = subscription.customers?.name || 'Customer';
+  const planName = subscription.plan_name;
+  const amountFormatted = `₹${(subscription.amount / 100).toLocaleString('en-IN')}`;
 
   switch (action) {
     case 'retry_payment':
       return {
-        type: 'automatic_retry',
-        retry_delay_hours: aiDecision.retry_delay_hours,
-        gateway: 'razorpay',
+        method: subscription.payment_method?.type || 'card',
+        scheduled_delay_hours: aiDecision.retry_delay_hours || 24,
+        next_retry_at: new Date(Date.now() + (aiDecision.retry_delay_hours || 24) * 3600 * 1000).toISOString(),
       };
-
-    case 'send_email_reminder':
-    case 'send_sms_nudge': {
+    case 'send_email_reminder': {
       const templateKey = aiDecision.message_template || 'gentle_reminder';
-      const template = MESSAGE_TEMPLATES[templateKey as keyof typeof MESSAGE_TEMPLATES];
-      if (template) {
-        const body = ('body' in template ? template.body : '')
-          .replace(/{{customer_name}}/g, customerName)
-          .replace(/{{amount}}/g, amount)
-          .replace(/{{plan_name}}/g, sub.plan_name);
-        return {
-          channel: action === 'send_email_reminder' ? 'email' : 'sms',
-          template: templateKey,
-          to: sub.customers?.email || 'unknown',
-          subject: 'subject' in template
-            ? template.subject.replace(/{{plan_name}}/g, sub.plan_name)
-            : undefined,
-          body,
-          simulated: true,
-        };
-      }
-      return { channel: action === 'send_email_reminder' ? 'email' : 'sms', simulated: true };
+      const template = (MESSAGE_TEMPLATES as any)[templateKey] || MESSAGE_TEMPLATES.gentle_reminder;
+      return {
+        channel: 'email',
+        template: templateKey,
+        recipient: subscription.customers?.email || 'customer@example.com',
+        subject: template.subject.replace('{{plan_name}}', planName),
+        body: template.body
+          .replace('{{customer_name}}', customerName)
+          .replace('{{plan_name}}', planName)
+          .replace('{{amount}}', amountFormatted),
+      };
     }
-
-    case 'request_payment_update':
+    case 'send_sms_nudge': {
+      const template = MESSAGE_TEMPLATES.sms_nudge;
+      return {
+        channel: 'sms',
+        recipient: subscription.customers?.phone || '+919876543210',
+        body: template.body
+          .replace('{{customer_name}}', customerName)
+          .replace('{{plan_name}}', planName)
+          .replace('{{amount}}', amountFormatted),
+      };
+    }
+    case 'request_payment_update': {
+      const template = MESSAGE_TEMPLATES.payment_update;
       return {
         channel: 'email',
         template: 'payment_update',
-        to: sub.customers?.email || 'unknown',
-        update_link: `https://coverup.app/update-payment/${sub.customers?.name || 'user'}`,
-        simulated: true,
+        update_url: `https://coverup.app/pay/update/${subscription.id}`,
+        recipient: subscription.customers?.email || 'customer@example.com',
+        subject: template.subject.replace('{{plan_name}}', planName),
+        body: template.body
+          .replace('{{customer_name}}', customerName)
+          .replace('{{plan_name}}', planName)
+          .replace('{{amount}}', amountFormatted),
       };
-
+    }
     case 'escalate':
       return {
-        escalation_note: aiDecision.escalation_note,
-        assigned_to: 'recovery_team',
+        assigned_to: 'Support Lead',
         priority: 'high',
+        note: aiDecision.escalation_note || 'AI flagged for manual review',
       };
-
     case 'mark_unrecoverable':
       return {
-        reason: aiDecision.reasoning,
-        final_status: 'closed',
+        reason: 'Maximum retries or non-recoverable failure reason',
+        subscription_status: 'unrecoverable',
       };
-
     default:
       return {};
   }

@@ -209,7 +209,7 @@ export default function SubscriptionsPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-slate-100 bg-slate-50/50">
-                    <th className="text-left px-6 py-3 text-xs font-medium text-slate-500 uppercase">Customer</th>
+                    <th className="text-left px-6 py-3 text-xs font-medium text-slate-500 uppercase">Customer & Company</th>
                     <th className="text-left px-6 py-3 text-xs font-medium text-slate-500 uppercase">Plan</th>
                     <th className="text-right px-6 py-3 text-xs font-medium text-slate-500 uppercase cursor-pointer hover:text-slate-800" onClick={() => handleSort('amount')}>
                       Amount <ArrowUpDown className="inline h-3 w-3 ml-1" />
@@ -217,50 +217,102 @@ export default function SubscriptionsPage() {
                     <th className="text-left px-6 py-3 text-xs font-medium text-slate-500 uppercase cursor-pointer hover:text-slate-800" onClick={() => handleSort('status')}>
                       Status <ArrowUpDown className="inline h-3 w-3 ml-1" />
                     </th>
-                    <th className="text-left px-6 py-3 text-xs font-medium text-slate-500 uppercase">At Risk / Overdue</th>
-                    <th className="text-left px-6 py-3 text-xs font-medium text-slate-500 uppercase">Payment</th>
-                    <th className="text-left px-6 py-3 text-xs font-medium text-slate-500 uppercase cursor-pointer hover:text-slate-800" onClick={() => handleSort('updated_at')}>
-                      Updated <ArrowUpDown className="inline h-3 w-3 ml-1" />
-                    </th>
+                    <th className="text-left px-6 py-3 text-xs font-medium text-slate-500 uppercase">Recovery & Risk Detail</th>
+                    <th className="text-left px-6 py-3 text-xs font-medium text-slate-500 uppercase">Payment Method</th>
+                    <th className="text-right px-6 py-3 text-xs font-medium text-slate-500 uppercase">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   {filteredAndSortedSubs.map((sub) => {
                     const isAtRisk = sub.status === 'past_due' || sub.status === 'failed';
+                    const isRecovered = sub.status === 'recovered';
                     const daysOverdue = isAtRisk ? calculateDaysOverdue(sub.current_period_end) : 0;
+                    const pm = sub.payment_method as any;
                     
                     return (
                       <tr key={sub.id} className={getRowClass(sub.status)}>
                         <td className="px-6 py-4">
                           <Link href={`/customers/${sub.customer_id}`} className="block group">
-                            <p className="font-medium text-blue-600 group-hover:text-blue-800 transition-colors">{sub.customers?.name}</p>
-                            <p className="text-xs text-slate-500">{sub.customers?.email}</p>
+                            <p className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">
+                              {sub.customers?.name || 'Customer'}
+                            </p>
+                            <p className="text-xs text-slate-500 mt-0.5">{sub.customers?.email}</p>
+                            {sub.customers?.phone && (
+                              <p className="text-[11px] text-slate-400 font-mono mt-0.5">{sub.customers.phone}</p>
+                            )}
                           </Link>
                         </td>
                         <td className="px-6 py-4">
-                          <p className="text-slate-700">{sub.plan_name}</p>
-                          <Badge variant="outline" className="mt-1 text-[10px]">{sub.billing_cycle}</Badge>
+                          <p className="font-medium text-slate-800">{sub.plan_name}</p>
+                          <Badge variant="outline" className="mt-1 text-[10px] uppercase font-mono tracking-wider">{sub.billing_cycle}</Badge>
                         </td>
-                        <td className="px-6 py-4 text-right font-medium">{formatCurrency(sub.amount)}</td>
-                        <td className="px-6 py-4">
-                          <Badge variant={STATUS_VARIANTS[sub.status] || 'default'}>{sub.status.replace(/_/g, ' ')}</Badge>
+                        <td className="px-6 py-4 text-right">
+                          <span className="font-bold text-slate-900">{formatCurrency(sub.amount)}</span>
                         </td>
                         <td className="px-6 py-4">
-                          {isAtRisk ? (
-                            <div className="flex flex-col gap-1">
-                              <span className="text-red-600 font-medium text-xs">{formatCurrency(sub.amount)}</span>
-                              <span className="text-amber-600 text-[10px]">{daysOverdue} days overdue</span>
+                          <Badge variant={STATUS_VARIANTS[sub.status] || 'default'} className="capitalize text-xs font-medium">
+                            {sub.status.replace(/_/g, ' ')}
+                          </Badge>
+                        </td>
+                        <td className="px-6 py-4">
+                          {isRecovered ? (
+                            <div className="flex flex-col gap-0.5">
+                              <span className="text-emerald-700 font-bold text-xs flex items-center gap-1">
+                                ✓ Recovered {formatCurrency(sub.amount)}
+                              </span>
+                              <span className="text-[10px] text-emerald-600 font-medium">Auto-captured & Active</span>
+                            </div>
+                          ) : isAtRisk ? (
+                            <div className="flex flex-col gap-0.5">
+                              <span className="text-red-600 font-bold text-xs">
+                                At Risk: {formatCurrency(sub.amount)}
+                              </span>
+                              <span className="text-amber-700 text-[10px] font-medium bg-amber-50 px-1.5 py-0.5 rounded w-fit border border-amber-200">
+                                {daysOverdue} days overdue
+                              </span>
                             </div>
                           ) : (
-                            <span className="text-slate-400 text-xs">-</span>
+                            <span className="text-xs text-slate-500">In good standing</span>
                           )}
                         </td>
-                        <td className="px-6 py-4 text-xs text-slate-500">
-                          {sub.payment_method?.type === 'card'
-                            ? `${sub.payment_method.brand || 'Card'} •••• ${sub.payment_method.last4}`
-                            : sub.payment_method?.upi_id || 'N/A'}
+                        <td className="px-6 py-4">
+                          {pm?.type === 'card' ? (
+                            <div className="flex flex-col gap-0.5 text-xs">
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-semibold text-slate-800">{pm.brand || 'Card'}</span>
+                                <span className="font-mono text-slate-500">•••• {pm.last4}</span>
+                              </div>
+                              <div className="text-[10px] text-slate-400">
+                                Exp: <span className="font-mono text-slate-600">{pm.expiry || '12/28'}</span>
+                                {pm.bank && ` · ${pm.bank}`}
+                              </div>
+                            </div>
+                          ) : pm?.type === 'upi' ? (
+                            <div className="flex flex-col gap-0.5 text-xs">
+                              <div className="flex items-center gap-1">
+                                <Badge variant="secondary" className="text-[10px] px-1 py-0">{pm.app || 'UPI'}</Badge>
+                                <span className="font-mono text-slate-700 text-[11px]">{pm.upi_id}</span>
+                              </div>
+                              {pm.autopay_limit && (
+                                <span className="text-[10px] text-slate-400">Limit: {pm.autopay_limit}</span>
+                              )}
+                            </div>
+                          ) : pm?.type === 'mandate' ? (
+                            <div className="flex flex-col gap-0.5 text-xs">
+                              <span className="font-semibold text-slate-800">{pm.bank || 'Bank e-Mandate'}</span>
+                              <span className="text-[10px] text-slate-400">{pm.auth_mode || 'e-NACH Recurring'}</span>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-slate-400">Standard Mandate</span>
+                          )}
                         </td>
-                        <td className="px-6 py-4 text-xs text-slate-500">{formatDate(sub.updated_at)}</td>
+                        <td className="px-6 py-4 text-right">
+                          <Link href={`/customers/${sub.customer_id}`}>
+                            <button className="text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline">
+                              View Timeline →
+                            </button>
+                          </Link>
+                        </td>
                       </tr>
                     );
                   })}

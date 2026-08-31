@@ -68,11 +68,9 @@ export function RecoveryModal({ isOpen, onClose, isProcessing, result }: Recover
             <h2 className="text-2xl font-bold text-slate-900">Recovery Pipeline</h2>
             <p className="text-slate-500 mt-1">Live execution tracking</p>
           </div>
-          {!isProcessing && (
-            <Button variant="ghost" size="icon" onClick={onClose}>
-              <X className="h-5 w-5" />
-            </Button>
-          )}
+          <Button variant="ghost" size="icon" onClick={onClose} title="Close dialog">
+            <X className="h-5 w-5" />
+          </Button>
         </div>
 
         <div className="bg-slate-50 p-6 border-b border-slate-100 flex items-center justify-center gap-8">
