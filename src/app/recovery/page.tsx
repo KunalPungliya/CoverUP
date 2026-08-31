@@ -56,8 +56,8 @@ export default function RecoveryPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Recovery Batches</h1>
-          <p className="text-gray-500 mt-1">Run and review AI recovery batches</p>
+          <h1 className="text-3xl font-bold text-slate-900">Recovery Batches</h1>
+          <p className="text-slate-500 mt-1">Run and review AI recovery batches</p>
         </div>
         <Button variant="success" onClick={handleRecover} loading={recovering}>
           <Play className="h-4 w-4" />
@@ -76,7 +76,7 @@ export default function RecoveryPage() {
       ) : batches.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
-            <p className="text-gray-500">No recovery batches yet. Click &quot;Run Recovery Batch&quot; to start.</p>
+            <p className="text-slate-500">No recovery batches yet. Click &quot;Run Recovery Batch&quot; to start.</p>
           </CardContent>
         </Card>
       ) : (
@@ -87,11 +87,11 @@ export default function RecoveryPage() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-6">
                     <div>
-                      <p className="text-xs text-gray-500">Batch</p>
+                      <p className="text-xs text-slate-500">Batch</p>
                       <p className="font-mono text-sm font-medium">{batch.id.slice(0, 8)}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500">Started</p>
+                      <p className="text-xs text-slate-500">Started</p>
                       <p className="text-sm">{formatDate(batch.started_at)}</p>
                     </div>
                     <Badge variant={batch.status === 'completed' ? 'success' : 'warning'}>
@@ -100,15 +100,15 @@ export default function RecoveryPage() {
                   </div>
                   <div className="flex items-center gap-6">
                     <div className="text-right">
-                      <p className="text-xs text-gray-500">At Risk</p>
+                      <p className="text-xs text-slate-500">At Risk</p>
                       <p className="text-lg font-bold text-amber-600">{batch.total_at_risk}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs text-gray-500">Recovered</p>
+                      <p className="text-xs text-slate-500">Recovered</p>
                       <p className="text-lg font-bold text-emerald-600">{batch.total_recovered}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs text-gray-500">Amount</p>
+                      <p className="text-xs text-slate-500">Amount</p>
                       <p className="text-lg font-bold text-emerald-600">
                         {formatCurrency(batch.total_amount_recovered)}
                       </p>

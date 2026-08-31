@@ -95,8 +95,8 @@ export default function AuditPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Audit Log</h1>
-          <p className="text-gray-500 mt-1">{total} total actions logged</p>
+          <h1 className="text-3xl font-bold text-slate-900">Audit Log</h1>
+          <p className="text-slate-500 mt-1">{total} total actions logged</p>
         </div>
         <div className="flex items-center gap-3">
           <Button variant="outline" size="sm" onClick={exportCsv} disabled={actions.length === 0}>
@@ -135,11 +135,11 @@ export default function AuditPage() {
               {[...Array(10)].map((_, i) => <Skeleton key={i} className="h-16" />)}
             </div>
           ) : actions.length === 0 ? (
-            <div className="py-12 text-center text-gray-500">
+            <div className="py-12 text-center text-slate-500">
               No audit entries found. Run a recovery batch first.
             </div>
           ) : (
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-slate-100">
               {actions.map((action) => {
                 const sub = action.subscriptions;
                 const customer = sub?.customers;
@@ -148,7 +148,7 @@ export default function AuditPage() {
                 return (
                   <div
                     key={action.id}
-                    className="px-6 py-4 hover:bg-gray-50 cursor-pointer transition-colors"
+                    className="px-6 py-4 hover:bg-slate-50 cursor-pointer transition-colors"
                     onClick={() => toggleExpand(action.id)}
                   >
                     <div className="flex items-center justify-between">
@@ -159,18 +159,18 @@ export default function AuditPage() {
                         <span className="text-sm font-medium">
                           {action.action_type.replace(/_/g, ' ')}
                         </span>
-                        <span className="text-sm text-gray-500">
+                        <span className="text-sm text-slate-500">
                           {customer?.name || 'Unknown'}
                         </span>
                         {sub && (
-                          <span className="text-xs text-gray-400">{sub.plan_name}</span>
+                          <span className="text-xs text-slate-400">{sub.plan_name}</span>
                         )}
                       </div>
                       <div className="flex items-center gap-3">
                         {action.amount_recovered > 0 && (
                           <Badge variant="success">+{formatCurrency(action.amount_recovered)}</Badge>
                         )}
-                        <span className="text-xs text-gray-400">{formatDate(action.created_at)}</span>
+                        <span className="text-xs text-slate-400">{formatDate(action.created_at)}</span>
                       </div>
                     </div>
 
@@ -178,25 +178,25 @@ export default function AuditPage() {
                     {isExpanded && (
                       <div className="mt-4 space-y-3">
                         {action.ai_reasoning && (
-                          <div className="flex items-start gap-2 bg-violet-50 rounded-lg p-3">
-                            <Brain className="h-4 w-4 text-violet-600 mt-0.5" />
+                          <div className="flex items-start gap-2 bg-blue-50 rounded-lg p-3">
+                            <Brain className="h-4 w-4 text-blue-600 mt-0.5" />
                             <div>
-                              <p className="text-xs font-medium text-violet-700">
+                              <p className="text-xs font-medium text-blue-700">
                                 AI Reasoning · Confidence: {(action.ai_confidence * 100).toFixed(0)}%
                               </p>
-                              <p className="text-sm text-violet-900 mt-1">{action.ai_reasoning}</p>
+                              <p className="text-sm text-blue-900 mt-1">{action.ai_reasoning}</p>
                             </div>
                           </div>
                         )}
                         {action.action_detail && Object.keys(action.action_detail).length > 0 && (
-                          <div className="bg-gray-50 rounded-lg p-3">
-                            <p className="text-xs font-medium text-gray-500 mb-1">Action Detail</p>
-                            <pre className="text-xs text-gray-700 whitespace-pre-wrap">
+                          <div className="bg-slate-50 rounded-lg p-3">
+                            <p className="text-xs font-medium text-slate-500 mb-1">Action Detail</p>
+                            <pre className="text-xs text-slate-700 whitespace-pre-wrap">
                               {JSON.stringify(action.action_detail, null, 2)}
                             </pre>
                           </div>
                         )}
-                        <div className="flex gap-4 text-xs text-gray-500">
+                        <div className="flex gap-4 text-xs text-slate-500">
                           <span>Retry #{action.retry_count}</span>
                           <span>Batch: {action.batch_id?.slice(0, 8) || 'N/A'}</span>
                           <span>Sub: {action.subscription_id.slice(0, 8)}</span>
@@ -212,8 +212,8 @@ export default function AuditPage() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
-            <p className="text-sm text-gray-500">Page {page} of {totalPages} ({total} total)</p>
+          <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between">
+            <p className="text-sm text-slate-500">Page {page} of {totalPages} ({total} total)</p>
             <div className="flex gap-2">
               <button
                 className="px-3 py-1 text-sm border rounded-lg disabled:opacity-40"

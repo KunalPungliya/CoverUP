@@ -65,7 +65,7 @@ export default function BatchDetailPage() {
   }
 
   if (!batch) {
-    return <p className="text-gray-500">Batch not found.</p>;
+    return <p className="text-slate-500">Batch not found.</p>;
   }
 
   const recoveryRate = batch.total_at_risk > 0
@@ -82,8 +82,8 @@ export default function BatchDetailPage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Batch Detail</h1>
-          <p className="text-gray-500 font-mono text-sm">{batch.id}</p>
+          <h1 className="text-3xl font-bold text-slate-900">Batch Detail</h1>
+          <p className="text-slate-500 font-mono text-sm">{batch.id}</p>
         </div>
       </div>
 
@@ -91,32 +91,32 @@ export default function BatchDetailPage() {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card>
           <CardContent className="pt-4 pb-4 text-center">
-            <p className="text-xs text-gray-500">At Risk</p>
+            <p className="text-xs text-slate-500">At Risk</p>
             <p className="text-2xl font-bold text-amber-600">{batch.total_at_risk}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4 pb-4 text-center">
-            <p className="text-xs text-gray-500">Recovered</p>
+            <p className="text-xs text-slate-500">Recovered</p>
             <p className="text-2xl font-bold text-emerald-600">{batch.total_recovered}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4 pb-4 text-center">
-            <p className="text-xs text-gray-500">Unresolved</p>
+            <p className="text-xs text-slate-500">Unresolved</p>
             <p className="text-2xl font-bold text-red-600">{batch.total_unresolved}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4 pb-4 text-center">
-            <p className="text-xs text-gray-500">Amount Recovered</p>
+            <p className="text-xs text-slate-500">Amount Recovered</p>
             <p className="text-2xl font-bold text-emerald-600">{formatCurrency(batch.total_amount_recovered)}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4 pb-4 text-center">
-            <p className="text-xs text-gray-500">Recovery Rate</p>
-            <p className="text-2xl font-bold text-violet-600">{recoveryRate}%</p>
+            <p className="text-xs text-slate-500">Recovery Rate</p>
+            <p className="text-2xl font-bold text-blue-600">{recoveryRate}%</p>
           </CardContent>
         </Card>
       </div>
@@ -128,14 +128,14 @@ export default function BatchDetailPage() {
           <CardDescription>Detailed AI reasoning and actions for each subscription</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-slate-100">
             {actions.map((action) => {
               const config = OUTCOME_CONFIG[action.outcome] || OUTCOME_CONFIG.pending;
               const sub = action.subscriptions;
               const customer = sub?.customers;
 
               return (
-                <div key={action.id} className="p-6 hover:bg-gray-50 transition-colors">
+                <div key={action.id} className="p-6 hover:bg-slate-50 transition-colors">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 space-y-3">
                       {/* Customer & Sub Info */}
@@ -144,10 +144,10 @@ export default function BatchDetailPage() {
                           {config.icon}
                           <Badge variant={config.variant}>{action.outcome}</Badge>
                         </div>
-                        <span className="text-sm font-medium text-gray-900">
+                        <span className="text-sm font-medium text-slate-900">
                           {customer?.name || 'Unknown Customer'}
                         </span>
-                        <span className="text-xs text-gray-500">{customer?.email}</span>
+                        <span className="text-xs text-slate-500">{customer?.email}</span>
                         {sub && (
                           <Badge variant="outline">
                             {sub.plan_name} · {formatCurrency(sub.amount)}
@@ -169,18 +169,18 @@ export default function BatchDetailPage() {
 
                       {/* AI Reasoning */}
                       {action.ai_reasoning && (
-                        <div className="flex items-start gap-2 bg-violet-50 rounded-lg p-3 border border-violet-100">
-                          <Brain className="h-4 w-4 text-violet-600 mt-0.5 flex-shrink-0" />
+                        <div className="flex items-start gap-2 bg-blue-50 rounded-lg p-3 border border-blue-100">
+                          <Brain className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
                           <div>
-                            <p className="text-xs font-medium text-violet-700">AI Reasoning (Confidence: {(action.ai_confidence * 100).toFixed(0)}%)</p>
-                            <p className="text-sm text-violet-900 mt-1">{action.ai_reasoning}</p>
+                            <p className="text-xs font-medium text-blue-700">AI Reasoning (Confidence: {(action.ai_confidence * 100).toFixed(0)}%)</p>
+                            <p className="text-sm text-blue-900 mt-1">{action.ai_reasoning}</p>
                           </div>
                         </div>
                       )}
                     </div>
 
                     {/* Timestamp */}
-                    <p className="text-xs text-gray-400 whitespace-nowrap">{formatDate(action.created_at)}</p>
+                    <p className="text-xs text-slate-400 whitespace-nowrap">{formatDate(action.created_at)}</p>
                   </div>
                 </div>
               );

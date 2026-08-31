@@ -10,7 +10,7 @@ import { formatCurrency } from '@/lib/utils';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Database, Play, TrendingUp, AlertTriangle, CheckCircle2, XCircle, Banknote, Activity } from 'lucide-react';
 
-const COLORS = ['#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6', '#ec4899'];
+const COLORS = ['#2563eb', '#3b82f6', '#60a5fa', '#10b981', '#f59e0b', '#ef4444'];
 
 export default function DashboardPage() {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
@@ -132,9 +132,9 @@ export default function DashboardPage() {
         {
           title: 'Recovery Rate',
           value: `${(metrics.recoveryRate * 100).toFixed(1)}%`,
-          icon: <Banknote className="h-5 w-5 text-violet-600" />,
-          color: 'text-violet-600',
-          bg: 'bg-violet-50',
+          icon: <Banknote className="h-5 w-5 text-blue-600" />,
+          color: 'text-blue-600',
+          bg: 'bg-blue-50',
         },
       ]
     : [];
@@ -144,8 +144,8 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-500 mt-1">AI-powered subscription revenue recovery</p>
+          <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
+          <p className="text-slate-500 mt-1">AI-powered subscription revenue recovery</p>
         </div>
         <div className="flex gap-3">
           <Button variant="outline" onClick={handleSeed} loading={seeding}>
@@ -161,10 +161,10 @@ export default function DashboardPage() {
 
       {/* Status messages */}
       {seedMessage && (
-        <div className="p-4 rounded-lg bg-gray-50 border border-gray-200 text-sm">{seedMessage}</div>
+        <div className={`p-4 rounded-lg border text-sm ${seedMessage.includes('✅') ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>{seedMessage}</div>
       )}
       {recoverMessage && (
-        <div className="p-4 rounded-lg bg-emerald-50 border border-emerald-200 text-sm">{recoverMessage}</div>
+        <div className={`p-4 rounded-lg border text-sm ${recoverMessage.includes('✅') ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>{recoverMessage}</div>
       )}
 
       {/* Metrics Grid */}
@@ -174,10 +174,10 @@ export default function DashboardPage() {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-500">{card.title}</p>
+                  <p className="text-sm font-medium text-slate-500">{card.title}</p>
                   <p className={`text-3xl font-bold mt-1 ${card.color}`}>{card.value}</p>
                   {card.subtitle && (
-                    <p className="text-sm text-gray-500 mt-1">{card.subtitle}</p>
+                    <p className="text-sm text-slate-500 mt-1">{card.subtitle}</p>
                   )}
                 </div>
                 <div className={`p-3 rounded-xl ${card.bg}`}>{card.icon}</div>
@@ -241,20 +241,20 @@ export default function DashboardPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-100">
-                    <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Batch ID</th>
-                    <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Started</th>
-                    <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Status</th>
-                    <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase">At Risk</th>
-                    <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase">Recovered</th>
-                    <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase">Amount Recovered</th>
+                  <tr className="border-b border-slate-100">
+                    <th className="text-left px-6 py-3 text-xs font-medium text-slate-500 uppercase">Batch ID</th>
+                    <th className="text-left px-6 py-3 text-xs font-medium text-slate-500 uppercase">Started</th>
+                    <th className="text-left px-6 py-3 text-xs font-medium text-slate-500 uppercase">Status</th>
+                    <th className="text-right px-6 py-3 text-xs font-medium text-slate-500 uppercase">At Risk</th>
+                    <th className="text-right px-6 py-3 text-xs font-medium text-slate-500 uppercase">Recovered</th>
+                    <th className="text-right px-6 py-3 text-xs font-medium text-slate-500 uppercase">Amount Recovered</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50">
+                <tbody className="divide-y divide-slate-50">
                   {metrics.recentBatches.map((batch) => (
-                    <tr key={batch.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 font-mono text-xs text-gray-600">{batch.id.slice(0, 8)}...</td>
-                      <td className="px-6 py-4 text-gray-600">
+                    <tr key={batch.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-6 py-4 font-mono text-xs text-slate-600">{batch.id.slice(0, 8)}...</td>
+                      <td className="px-6 py-4 text-slate-600">
                         {new Date(batch.started_at).toLocaleString('en-IN')}
                       </td>
                       <td className="px-6 py-4">

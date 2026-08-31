@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select } from '@/components/ui/select';
@@ -56,8 +57,8 @@ export default function SubscriptionsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Subscriptions</h1>
-          <p className="text-gray-500 mt-1">{total} total subscriptions</p>
+          <h1 className="text-3xl font-bold text-slate-900">Subscriptions</h1>
+          <p className="text-slate-500 mt-1">{total} total subscriptions</p>
         </div>
         <Select
           value={statusFilter}
@@ -85,26 +86,26 @@ export default function SubscriptionsPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-100">
-                    <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Customer</th>
-                    <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Plan</th>
-                    <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase">Amount</th>
-                    <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Cycle</th>
-                    <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Status</th>
-                    <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Payment</th>
-                    <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Updated</th>
+                  <tr className="border-b border-slate-100">
+                    <th className="text-left px-6 py-3 text-xs font-medium text-slate-500 uppercase">Customer</th>
+                    <th className="text-left px-6 py-3 text-xs font-medium text-slate-500 uppercase">Plan</th>
+                    <th className="text-right px-6 py-3 text-xs font-medium text-slate-500 uppercase">Amount</th>
+                    <th className="text-left px-6 py-3 text-xs font-medium text-slate-500 uppercase">Cycle</th>
+                    <th className="text-left px-6 py-3 text-xs font-medium text-slate-500 uppercase">Status</th>
+                    <th className="text-left px-6 py-3 text-xs font-medium text-slate-500 uppercase">Payment</th>
+                    <th className="text-left px-6 py-3 text-xs font-medium text-slate-500 uppercase">Updated</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50">
+                <tbody className="divide-y divide-slate-50">
                   {subscriptions.map((sub) => (
-                    <tr key={sub.id} className="hover:bg-gray-50 transition-colors">
+                    <tr key={sub.id} className="hover:bg-blue-50/50 transition-colors">
                       <td className="px-6 py-4">
-                        <div>
-                          <p className="font-medium text-gray-900">{sub.customers?.name}</p>
+                        <Link href={`/customers/${sub.customer_id}`} className="block group">
+                          <p className="font-medium text-blue-600 group-hover:text-blue-800 transition-colors">{sub.customers?.name}</p>
                           <p className="text-xs text-gray-500">{sub.customers?.email}</p>
-                        </div>
+                        </Link>
                       </td>
-                      <td className="px-6 py-4 text-gray-700">{sub.plan_name}</td>
+                      <td className="px-6 py-4 text-slate-700">{sub.plan_name}</td>
                       <td className="px-6 py-4 text-right font-medium">{formatCurrency(sub.amount)}</td>
                       <td className="px-6 py-4">
                         <Badge variant="outline">{sub.billing_cycle}</Badge>
@@ -112,12 +113,12 @@ export default function SubscriptionsPage() {
                       <td className="px-6 py-4">
                         <Badge variant={STATUS_VARIANTS[sub.status] || 'default'}>{sub.status.replace(/_/g, ' ')}</Badge>
                       </td>
-                      <td className="px-6 py-4 text-xs text-gray-500">
+                      <td className="px-6 py-4 text-xs text-slate-500">
                         {sub.payment_method?.type === 'card'
                           ? `${sub.payment_method.brand || 'Card'} •••• ${sub.payment_method.last4}`
                           : sub.payment_method?.upi_id || 'N/A'}
                       </td>
-                      <td className="px-6 py-4 text-xs text-gray-500">{formatDate(sub.updated_at)}</td>
+                      <td className="px-6 py-4 text-xs text-slate-500">{formatDate(sub.updated_at)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -127,8 +128,8 @@ export default function SubscriptionsPage() {
         </CardContent>
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
-            <p className="text-sm text-gray-500">Page {page} of {totalPages}</p>
+          <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between">
+            <p className="text-sm text-slate-500">Page {page} of {totalPages}</p>
             <div className="flex gap-2">
               <button
                 className="px-3 py-1 text-sm border rounded-lg disabled:opacity-40"
