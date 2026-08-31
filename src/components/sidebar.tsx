@@ -1,10 +1,11 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { Shield, LayoutDashboard, CreditCard, RefreshCw, ClipboardList, BarChart3, Menu, X } from 'lucide-react';
+import { Shield, LayoutDashboard, CreditCard, RefreshCw, ClipboardList, BarChart3, Menu, X, Presentation } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
+import { DemoBanner } from './demo-banner';
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -12,6 +13,7 @@ const navItems = [
   { href: '/recovery', label: 'Recovery', icon: RefreshCw },
   { href: '/audit', label: 'Audit Log', icon: ClipboardList },
   { href: '/analytics', label: 'Analytics', icon: BarChart3 },
+  { href: '/demo', label: 'Demo Guide', icon: Presentation },
 ];
 
 export function Sidebar({ children }: { children: React.ReactNode }) {
@@ -91,6 +93,7 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto pt-16 md:pt-0 w-full h-full">
         <div className="max-w-7xl mx-auto p-4 md:p-8">
+          <DemoBanner />
           {children}
         </div>
       </main>

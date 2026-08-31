@@ -7,14 +7,20 @@ const FIRST_NAMES = [
   'Ananya', 'Diya', 'Myra', 'Sara', 'Aadhya', 'Isha', 'Anvi', 'Priya', 'Riya', 'Neha',
   'Rohan', 'Karan', 'Rahul', 'Amit', 'Vikram', 'Suresh', 'Raj', 'Dev', 'Manish', 'Nikhil',
   'Pooja', 'Sneha', 'Kavita', 'Meera', 'Sunita', 'Lakshmi', 'Geeta', 'Deepa', 'Rekha', 'Suman',
+  'Rishabh', 'Siddharth', 'Pranav', 'Ravi', 'Anil', 'Ashok', 'Sanjay', 'Vijay', 'Prakash', 'Ajay',
+  'Kishore', 'Mukesh', 'Gaurav', 'Tarun', 'Anand', 'Mahesh', 'Ramesh', 'Raju', 'Satish', 'Subhash',
+  'Shalini', 'Nandini', 'Kriti', 'Swati', 'Preeti', 'Priyanka', 'Simran', 'Tanvi', 'Vandana', 'Madhu',
+  'Radhika', 'Kajal', 'Ankita', 'Divya', 'Shikha', 'Jyoti', 'Kiran', 'Nisha', 'Aarti', 'Komal'
 ];
 
 const LAST_NAMES = [
   'Sharma', 'Patel', 'Singh', 'Kumar', 'Gupta', 'Verma', 'Joshi', 'Reddy', 'Iyer', 'Nair',
   'Das', 'Mehta', 'Shah', 'Rao', 'Pillai', 'Menon', 'Chauhan', 'Yadav', 'Mishra', 'Pandey',
+  'Choudhary', 'Bhat', 'Bose', 'Chatterjee', 'Desai', 'Garg', 'Jain', 'Kapoor', 'Kaur', 'Malhotra',
+  'Mukherjee', 'Natarajan', 'Sen', 'Shukla', 'Thakur', 'Tiwari', 'Ahluwalia', 'Bansal', 'Agarwal', 'Srivastava'
 ];
 
-const DOMAINS = ['gmail.com', 'yahoo.in', 'outlook.com', 'hotmail.com', 'company.co.in'];
+const DOMAINS = ['gmail.com', 'yahoo.in', 'outlook.com', 'hotmail.com', 'rediffmail.com', 'company.co.in', 'protonmail.com'];
 
 function randomElement<T>(arr: readonly T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -35,13 +41,18 @@ function generatePhone(): string {
   return `+91${randomInt(7000000000, 9999999999)}`;
 }
 
-function generatePaymentMethod(): { type: string; last4?: string; brand?: string; upi_id?: string } {
-  const type = Math.random() > 0.3 ? 'card' : 'upi';
-  if (type === 'card') {
-    const brands = ['Visa', 'Mastercard', 'RuPay'];
+function generatePaymentMethod(): { type: string; last4?: string; brand?: string; upi_id?: string; bank?: string } {
+  const rand = Math.random();
+  if (rand < 0.5) {
+    const brands = ['Visa', 'Mastercard', 'RuPay', 'Amex'];
     return { type: 'card', last4: String(randomInt(1000, 9999)), brand: randomElement(brands) };
+  } else if (rand < 0.8) {
+    const upiProviders = ['@paytm', '@ybl', '@oksbi', '@okhdfcbank', '@okicici', '@apl'];
+    return { type: 'upi', upi_id: `user${randomInt(100, 9999)}${randomElement(upiProviders)}` };
+  } else {
+    const banks = ['HDFC', 'ICICI', 'SBI', 'Axis', 'Kotak'];
+    return { type: 'mandate', bank: randomElement(banks) };
   }
-  return { type: 'upi', upi_id: `user${randomInt(100, 999)}@paytm` };
 }
 
 type FailureProfile = {
@@ -50,12 +61,12 @@ type FailureProfile = {
 };
 
 const FAILURE_PROFILES: FailureProfile[] = [
-  { reason: 'insufficient_funds', weight: 12 },
-  { reason: 'card_expired', weight: 8 },
-  { reason: 'bank_declined', weight: 6 },
-  { reason: 'network_error', weight: 4 },
-  { reason: 'authentication_required', weight: 4 },
-  { reason: 'fraud_suspected', weight: 3 },
+  { reason: 'insufficient_funds', weight: 30 },
+  { reason: 'card_expired', weight: 25 },
+  { reason: 'bank_declined', weight: 15 },
+  { reason: 'authentication_required', weight: 12 },
+  { reason: 'network_error', weight: 10 },
+  { reason: 'fraud_suspected', weight: 5 },
   { reason: 'account_closed', weight: 3 },
 ];
 
@@ -77,8 +88,8 @@ export async function seedDatabase(): Promise<{ customers: number; subscriptions
   await supabase.from('subscriptions').delete().neq('id', '00000000-0000-0000-0000-000000000000');
   await supabase.from('customers').delete().neq('id', '00000000-0000-0000-0000-000000000000');
 
-  const TOTAL_CUSTOMERS = 80;
-  const TOTAL_SUBSCRIPTIONS = 100;
+  const TOTAL_CUSTOMERS = 150;
+  const TOTAL_SUBSCRIPTIONS = 200;
   const AT_RISK_RATIO = 0.40;
 
   // Generate customers
@@ -87,7 +98,7 @@ export async function seedDatabase(): Promise<{ customers: number; subscriptions
     const lastName = randomElement(LAST_NAMES);
     return {
       name: `${firstName} ${lastName}`,
-      email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}${randomInt(1, 99)}@${randomElement(DOMAINS)}`,
+      email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}${randomInt(1, 999)}@${randomElement(DOMAINS)}`,
       phone: generatePhone(),
       created_at: randomDate(randomInt(90, 365)),
     };
@@ -109,7 +120,7 @@ export async function seedDatabase(): Promise<{ customers: number; subscriptions
 
   const subscriptionsData = [];
 
-  // Healthy subscriptions (60%)
+  // Healthy subscriptions
   for (let i = 0; i < healthyCount; i++) {
     const plan = randomElement(PLANS);
     const createdDaysAgo = randomInt(30, 300);
@@ -131,7 +142,7 @@ export async function seedDatabase(): Promise<{ customers: number; subscriptions
     });
   }
 
-  // At-risk subscriptions (40%)
+  // At-risk subscriptions
   for (let i = 0; i < atRiskCount; i++) {
     const plan = randomElement(PLANS);
     const createdDaysAgo = randomInt(30, 300);
@@ -175,6 +186,7 @@ export async function seedDatabase(): Promise<{ customers: number; subscriptions
   for (let i = 0; i < TOTAL_SUBSCRIPTIONS; i++) {
     const sub = subscriptions[i];
     const originalData = subscriptionsData[i];
+    const methodType = originalData.payment_method.type;
 
     if (i < healthyCount) {
       // Healthy: 1-3 successful payments
@@ -186,7 +198,13 @@ export async function seedDatabase(): Promise<{ customers: number; subscriptions
           status: 'success' as const,
           failure_reason: null,
           failure_description: null,
-          gateway_response: { transaction_id: `txn_${Date.now()}_${randomInt(1000, 9999)}`, status: 'captured' },
+          gateway_response: {
+            transaction_id: `txn_${Date.now()}_${randomInt(1000, 9999)}`,
+            razorpay_payment_id: `pay_${randomInt(100000000, 999999999)}`,
+            method: methodType,
+            status: 'captured',
+            acquirer_data: { auth_code: String(randomInt(100000, 999999)) }
+          },
           attempted_at: randomDate(randomInt(1, 60)),
         });
       }
@@ -202,7 +220,13 @@ export async function seedDatabase(): Promise<{ customers: number; subscriptions
         status: 'success' as const,
         failure_reason: null,
         failure_description: null,
-        gateway_response: { transaction_id: `txn_${Date.now()}_${randomInt(1000, 9999)}`, status: 'captured' },
+        gateway_response: {
+          transaction_id: `txn_${Date.now()}_${randomInt(1000, 9999)}`,
+          razorpay_payment_id: `pay_${randomInt(100000000, 999999999)}`,
+          method: methodType,
+          status: 'captured',
+          acquirer_data: { auth_code: String(randomInt(100000, 999999)) }
+        },
         attempted_at: randomDate(failureDaysAgo + randomInt(20, 40)),
       });
 
@@ -217,9 +241,12 @@ export async function seedDatabase(): Promise<{ customers: number; subscriptions
           failure_reason: failureReason,
           failure_description: randomElement(descriptions),
           gateway_response: {
-            error_code: `ERR_${failureReason.toUpperCase()}`,
-            gateway: randomElement(['razorpay', 'stripe', 'paytm']),
-            attempt: j + 1,
+            error_code: `BAD_REQUEST_ERROR`,
+            error_description: randomElement(descriptions),
+            error_source: 'issuer',
+            error_step: 'payment_authentication',
+            error_reason: failureReason,
+            razorpay_payment_id: `pay_${randomInt(100000000, 999999999)}`
           },
           attempted_at: randomDate(failureDaysAgo - j * randomInt(1, 3)),
         });

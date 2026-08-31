@@ -29,11 +29,16 @@ export const NUDGE_RESPONSE_RATES = {
 // Plan definitions for synthetic data
 export const PLANS = [
   { name: 'Starter Monthly', amount: 49900, cycle: 'monthly' as const },
+  { name: 'Growth Monthly', amount: 99900, cycle: 'monthly' as const },
   { name: 'Pro Monthly', amount: 149900, cycle: 'monthly' as const },
   { name: 'Business Monthly', amount: 299900, cycle: 'monthly' as const },
   { name: 'Enterprise Monthly', amount: 999900, cycle: 'monthly' as const },
+  { name: 'Starter Quarterly', amount: 129900, cycle: 'quarterly' as const },
   { name: 'Pro Quarterly', amount: 399900, cycle: 'quarterly' as const },
+  { name: 'Business Quarterly', amount: 799900, cycle: 'quarterly' as const },
+  { name: 'Pro Annual', amount: 1499900, cycle: 'annual' as const },
   { name: 'Business Annual', amount: 2999900, cycle: 'annual' as const },
+  { name: 'Enterprise Annual', amount: 9999900, cycle: 'annual' as const },
 ] as const;
 
 // Failure reason descriptions for realistic gateway responses
@@ -42,36 +47,50 @@ export const FAILURE_DESCRIPTIONS: Record<string, string[]> = {
     'Transaction declined: Insufficient balance in account',
     'Payment failed: Account balance too low for the requested amount',
     'Declined by issuer: NSF (Non-Sufficient Funds)',
+    'Payment declined due to insufficient funds in the linked bank account',
+    'Transaction failed: Not enough funds available',
   ],
   card_expired: [
     'Card expired: Please update your payment method',
     'Transaction declined: Card has passed its expiration date',
     'Payment failed: Expired card on file',
+    'Card issuer declined the transaction as the card is expired',
+    'Failed to charge the card due to expiration',
   ],
   bank_declined: [
     'Transaction declined by issuing bank',
     'Payment blocked: Bank-side restriction on recurring transactions',
     'Declined: Bank policy does not allow this transaction',
+    'Issuer declined the authorization request',
+    'Bank returned a generic decline response',
   ],
   network_error: [
     'Gateway timeout: Unable to reach payment processor',
     'Network error: Connection to bank server timed out',
     'Transaction failed: Temporary connectivity issue',
+    'Error communicating with the payment gateway',
+    'Network failure during transaction processing',
   ],
   authentication_required: [
     '3D Secure authentication required but not completed',
     'Strong Customer Authentication (SCA) challenge failed',
     'Payment requires additional verification from cardholder',
+    'Mandatory multi-factor authentication was not completed',
+    'Authentication rejected by the issuer',
   ],
   fraud_suspected: [
     'Transaction flagged by fraud detection system',
     'Payment blocked: Suspicious activity detected on account',
     'Declined: Risk assessment score exceeded threshold',
+    'Transaction stopped due to high risk profile',
+    'Fraud prevention system blocked this charge',
   ],
   account_closed: [
     'Account has been permanently closed by the bank',
     'Card account is no longer active',
     'Payment method associated with a closed account',
+    'The bank account linked to this payment method is closed',
+    'Issuer indicated the account is closed',
   ],
 };
 

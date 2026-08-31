@@ -23,6 +23,44 @@ Consider these factors:
 - amount: Higher amounts deserve more recovery effort
 - customer_history: Tenure and past payment reliability
 
+## Few-Shot Examples
+
+Example 1 - Network error, first failure:
+\`\`\`json
+{
+  "action": "retry_payment",
+  "reasoning": "This is a transient network error on the first attempt. Gateway timeout errors typically resolve on retry. The customer has been active for 6 months with no prior payment issues, suggesting a healthy account. Immediate retry with a 1-hour delay is the optimal approach.",
+  "confidence": 0.88,
+  "retry_delay_hours": 1,
+  "escalation_note": null,
+  "message_template": null
+}
+\`\`\`
+
+Example 2 - Card expired, 2 failures:
+\`\`\`json
+{
+  "action": "request_payment_update",
+  "reasoning": "The card on file has expired. Retrying will not succeed — the customer must update their payment method. Sending a payment update request with a direct link is the most effective approach. The ₹1,499 Pro Monthly plan is a mid-tier subscription worth recovering.",
+  "confidence": 0.92,
+  "retry_delay_hours": null,
+  "escalation_note": null,
+  "message_template": "payment_update"
+}
+\`\`\`
+
+Example 3 - Insufficient funds, 3 failures, 12 days:
+\`\`\`json
+{
+  "action": "send_sms_nudge",
+  "reasoning": "Three consecutive failures due to insufficient funds over 12 days suggests the customer may not be aware of the issue. Email reminders have already been sent. An SMS nudge is more immediate and has a 30% response rate. If this doesn't work, the next step would be escalation.",
+  "confidence": 0.65,
+  "retry_delay_hours": null,
+  "escalation_note": null,
+  "message_template": "sms_nudge"
+}
+\`\`\`
+
 Respond ONLY with this JSON structure:
 {
   "action": "one_of_the_6_actions_above",
@@ -39,6 +77,15 @@ export async function getAiDecision(atRisk: AtRiskSubscription): Promise<AiDecis
       model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
     });
 
+    const paymentMethodType = atRisk.subscription.payment_method?.type || 'unknown';
+    const createdAt = new Date(atRisk.subscription.created_at);
+    const tenureDays = Math.floor((new Date().getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
+    
+    // Estimate billing cycles paid so far (very rough approximation based on tenure)
+    const cycleLengthDays = atRisk.subscription.billing_cycle === 'monthly' ? 30 : (atRisk.subscription.billing_cycle === 'quarterly' ? 90 : 365);
+    const cyclesPaid = Math.max(0, Math.floor(tenureDays / cycleLengthDays));
+    const totalValue = formatCurrency(atRisk.subscription.amount * cyclesPaid);
+
     const prompt = `Analyze this failed subscription and decide the best recovery action:
 
 ## Subscription Details
@@ -46,6 +93,7 @@ export async function getAiDecision(atRisk: AtRiskSubscription): Promise<AiDecis
 - Amount: ${formatCurrency(atRisk.subscription.amount)}
 - Billing Cycle: ${atRisk.subscription.billing_cycle}
 - Status: ${atRisk.subscription.status}
+- Payment Method Type: ${paymentMethodType}
 
 ## Failure Details
 - Failure Reason: ${atRisk.latestAttempt.failure_reason}
@@ -57,9 +105,11 @@ export async function getAiDecision(atRisk: AtRiskSubscription): Promise<AiDecis
 - Name: ${atRisk.subscription.customers?.name || 'Unknown'}
 - Email: ${atRisk.subscription.customers?.email || 'Unknown'}
 - Customer Since: ${atRisk.subscription.created_at}
+- Tenure: ${tenureDays} days
+- Estimated Lifetime Value: ${totalValue}
 
 ## Previous Recovery Actions
-${atRisk.previousActions.length === 0 ? 'No previous recovery actions taken.' : atRisk.previousActions.map(a => `- ${a.action_type} (${a.outcome}) on ${a.created_at}`).join('\n')}
+${atRisk.previousActions.length === 0 ? 'No previous recovery actions taken.' : atRisk.previousActions.map(a => `- ${a.action_type} (Outcome: ${a.outcome || 'unknown'}) on ${a.created_at}`).join('\n')}
 
 ## Risk Score: ${atRisk.riskScore.toFixed(2)} (higher = more urgent)
 
@@ -70,7 +120,7 @@ Decide the single best recovery action. Respond with JSON only.`;
       systemInstruction: { role: 'system', parts: [{ text: SYSTEM_PROMPT }] },
       generationConfig: {
         responseMimeType: 'application/json',
-        temperature: 0.3,
+        temperature: 0.2,
       },
     });
 

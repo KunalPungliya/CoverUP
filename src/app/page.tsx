@@ -275,6 +275,21 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       )}
+      
+      {metrics && metrics.totalSubscriptions === 0 && (
+        <div className="flex flex-col items-center justify-center p-12 bg-white rounded-2xl border border-dashed border-slate-300 shadow-sm text-center">
+          <div className="bg-blue-50 p-6 rounded-full mb-6">
+            <Database className="h-16 w-16 text-blue-600" />
+          </div>
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">No data yet!</h2>
+          <p className="text-slate-500 max-w-md mb-8">
+            Click 'Seed Data' above to generate test subscriptions, then 'Run Recovery' to see the AI agent in action.
+          </p>
+          <div className="flex items-center gap-2 text-sm font-medium text-blue-600 animate-pulse">
+            <span>↑ Arrow pointing to the Seed Data button</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
