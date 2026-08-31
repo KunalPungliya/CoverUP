@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { Shield, LayoutDashboard, CreditCard, RefreshCw, ClipboardList, BarChart3, Menu, X, Presentation } from 'lucide-react';
+import { Shield, LayoutDashboard, CreditCard, RefreshCw, ClipboardList, BarChart3, Menu, X, Presentation, Zap, Calculator, Mail, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
@@ -10,9 +10,13 @@ import { DemoBanner } from './demo-banner';
 const navItems = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/subscriptions', label: 'Subscriptions', icon: CreditCard },
-  { href: '/recovery', label: 'Recovery', icon: RefreshCw },
+  { href: '/recovery', label: 'Recovery Batches', icon: RefreshCw },
+  { href: '/simulator', label: 'Razorpay Simulator', icon: Zap },
+  { href: '/roi', label: 'ROI Calculator', icon: Calculator },
+  { href: '/templates', label: 'Message Previews', icon: Mail },
   { href: '/audit', label: 'Audit Log', icon: ClipboardList },
   { href: '/analytics', label: 'Analytics', icon: BarChart3 },
+  { href: '/settings', label: 'Pipeline Settings', icon: Settings },
   { href: '/demo', label: 'Demo Guide', icon: Presentation },
 ];
 
