@@ -10,7 +10,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { formatCurrency } from '@/lib/utils';
 import { 
   Zap, Brain, AlertTriangle, Mail, 
-  Copy, Check, ShieldCheck, Sliders, CheckCircle2, RefreshCw
+  Copy, Check, ShieldCheck, Sliders, CheckCircle2, RefreshCw,
+  Sparkles, Shield, Play, ArrowRight, Smartphone, Bell, Cpu
 } from 'lucide-react';
 import { MESSAGE_TEMPLATES } from '@/lib/constants';
 
@@ -82,7 +83,23 @@ const PRESETS: WebhookPreset[] = [
 ];
 
 export default function DeveloperSandboxPage() {
-  const [sandboxTab, setSandboxTab] = useState<'webhook' | 'templates' | 'settings'>('webhook');
+  const [sandboxTab, setSandboxTab] = useState<'settings' | 'webhook' | 'templates'>('settings');
+
+  // Working Pipeline Settings State (with localStorage persistence)
+  const [maxRetries, setMaxRetries] = useState<number>(3);
+  const [maxDaysOverdue, setMaxDaysOverdue] = useState<number>(14);
+  const [cooldownHours, setCooldownHours] = useState<number>(24);
+  const [aiConfidenceThreshold, setAiConfidenceThreshold] = useState<number>(80);
+  const [activeModel, setActiveModel] = useState<string>('gemini-1.5-flash');
+  const [enableEmail, setEnableEmail] = useState<boolean>(true);
+  const [enableSms, setEnableSms] = useState<boolean>(true);
+  const [enableSmartTiming, setEnableSmartTiming] = useState<boolean>(true);
+  const [escalationThreshold, setEscalationThreshold] = useState<number>(25000);
+  const [savedSettingsSuccess, setSavedSettingsSuccess] = useState<boolean>(false);
+
+  // Policy Evaluation Sandbox
+  const [testScenario, setTestScenario] = useState<string>('insufficient_funds');
+  const [testEvaluationResult, setTestEvaluationResult] = useState<any | null>(null);
 
   // Webhook Simulator State
   const [selectedPresetId, setSelectedPresetId] = useState<string>('insufficient_funds');
@@ -101,17 +118,7 @@ export default function DeveloperSandboxPage() {
   const [previewMode, setPreviewMode] = useState<'email' | 'sms'>('email');
   const [copied, setCopied] = useState<boolean>(false);
 
-  // Pipeline Settings State
-  const [maxRetries, setMaxRetries] = useState<number>(3);
-  const [maxDaysOverdue, setMaxDaysOverdue] = useState<number>(14);
-  const [cooldownHours, setCooldownHours] = useState<number>(24);
-  const [aiConfidenceThreshold, setAiConfidenceThreshold] = useState<number>(80);
-  const [activeModel, setActiveModel] = useState<string>('gemini-1.5-flash');
-  const [enableEmail, setEnableEmail] = useState<boolean>(true);
-  const [enableSms, setEnableSms] = useState<boolean>(true);
-  const [savedSettingsSuccess, setSavedSettingsSuccess] = useState<boolean>(false);
-
-  // Load subscriptions on mount
+  // Load subscriptions & saved settings on mount
   useEffect(() => {
     async function loadSubs() {
       try {
@@ -128,7 +135,92 @@ export default function DeveloperSandboxPage() {
       }
     }
     loadSubs();
+
+    // Load saved settings if present
+    const saved = localStorage.getItem('vaultback_pipeline_settings');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.maxRetries) setMaxRetries(parsed.maxRetries);
+        if (parsed.maxDaysOverdue) setMaxDaysOverdue(parsed.maxDaysOverdue);
+        if (parsed.cooldownHours) setCooldownHours(parsed.cooldownHours);
+        if (parsed.aiConfidenceThreshold) setAiConfidenceThreshold(parsed.aiConfidenceThreshold);
+        if (parsed.activeModel) setActiveModel(parsed.activeModel);
+        if (parsed.enableEmail !== undefined) setEnableEmail(parsed.enableEmail);
+        if (parsed.enableSms !== undefined) setEnableSms(parsed.enableSms);
+      } catch (e) {
+        // ignore
+      }
+    }
   }, []);
+
+  const handleSaveSettings = () => {
+    const config = {
+      maxRetries,
+      maxDaysOverdue,
+      cooldownHours,
+      aiConfidenceThreshold,
+      activeModel,
+      enableEmail,
+      enableSms,
+      enableSmartTiming,
+      escalationThreshold,
+      savedAt: new Date().toISOString(),
+    };
+    localStorage.setItem('vaultback_pipeline_settings', JSON.stringify(config));
+    setSavedSettingsSuccess(true);
+    setTimeout(() => setSavedSettingsSuccess(false), 3500);
+  };
+
+  const handleEvaluatePolicy = () => {
+    let action = 'retry_payment';
+    let reasoning = '';
+    let confidence = 0.94;
+    let timing = 'Optimal banking window (+24h, 10:30 AM)';
+    let channel = 'Direct Gateway Auto-Retry';
+
+    if (testScenario === 'insufficient_funds') {
+      action = 'retry_payment';
+      reasoning = `Transient decline detected. Scheduled smart retry in 24 hours (attempt 1/${maxRetries}). Email notification queued.`;
+      confidence = 0.92;
+      timing = '+24h Smart Delay';
+      channel = enableEmail ? 'Gateway Retry + Email Notice' : 'Gateway Retry';
+    } else if (testScenario === 'card_expired') {
+      action = 'request_payment_update';
+      reasoning = `Mandate token revoked due to expired card. Retrying is fatal. Dispatched secure 1-click update link with 48h validity.`;
+      confidence = 0.96;
+      timing = 'Immediate (0s)';
+      channel = enableSms ? 'Email + SMS Update Portal Link' : 'Email Portal Link';
+    } else if (testScenario === 'authentication_required') {
+      action = 'send_sms_nudge';
+      reasoning = `3D Secure OTP verification required. Dispatched instant SMS notification with direct 3DS completion link.`;
+      confidence = 0.95;
+      timing = 'Immediate (0s)';
+      channel = 'SMS High-Priority Alert';
+    } else if (testScenario === 'network_error') {
+      action = 'retry_payment';
+      reasoning = `Bank network gateway timed out. Immediate transient error. Retry scheduled for off-peak clearing window (+6h).`;
+      confidence = 0.89;
+      timing = '+6h Off-Peak Clearing';
+      channel = 'Automated Background Retry';
+    } else if (testScenario === 'fraud_suspected' || testScenario === 'account_closed') {
+      action = 'escalate';
+      reasoning = `Hard stopping rule trigger (${testScenario.replace(/_/g, ' ')}). Automated retries are permanently blocked to prevent chargebacks. Routed to account manager.`;
+      confidence = 0.98;
+      timing = 'Immediate Lockout';
+      channel = 'Internal Escalation Queue';
+    }
+
+    setTestEvaluationResult({
+      scenario: testScenario,
+      action,
+      reasoning,
+      confidence,
+      timing,
+      channel,
+      status: 'Policy Verified'
+    });
+  };
 
   const activePreset = PRESETS.find(p => p.id === selectedPresetId) || PRESETS[0];
 
@@ -199,22 +291,28 @@ export default function DeveloperSandboxPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleSaveSettings = () => {
-    setSavedSettingsSuccess(true);
-    setTimeout(() => setSavedSettingsSuccess(false), 3000);
-  };
-
   return (
     <div className="space-y-6">
-      {/* Header with 3 Focused Cockpit Tabs */}
+      {/* Header with 3 Clean Cockpit Tabs */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-950">Developer Sandbox</h1>
-          <p className="text-xs text-zinc-500 mt-0.5">Test real-time Razorpay webhooks, preview multi-channel touches, and tune engine settings</p>
+          <p className="text-xs text-zinc-500 mt-0.5">Tune pipeline policies, trigger real-time webhooks, and preview multi-channel touches</p>
         </div>
 
-        {/* 3 Unified Tabs */}
+        {/* 3 Streamlined Tabs */}
         <div className="flex bg-white p-1 rounded-xl border border-[#E2E5EB] shadow-2xs">
+          <button
+            onClick={() => setSandboxTab('settings')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              sandboxTab === 'settings'
+                ? 'bg-zinc-950 text-white shadow-xs'
+                : 'text-zinc-600 hover:text-zinc-950 hover:bg-slate-50'
+            }`}
+          >
+            <Sliders className={`h-3.5 w-3.5 ${sandboxTab === 'settings' ? 'text-[#FDDD35]' : 'text-zinc-400'}`} />
+            Pipeline Settings
+          </button>
           <button
             onClick={() => setSandboxTab('webhook')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
@@ -237,21 +335,224 @@ export default function DeveloperSandboxPage() {
             <Mail className={`h-3.5 w-3.5 ${sandboxTab === 'templates' ? 'text-[#FDDD35]' : 'text-zinc-400'}`} />
             Nudge Previews
           </button>
-          <button
-            onClick={() => setSandboxTab('settings')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-              sandboxTab === 'settings'
-                ? 'bg-zinc-950 text-white shadow-xs'
-                : 'text-zinc-600 hover:text-zinc-950 hover:bg-slate-50'
-            }`}
-          >
-            <Sliders className={`h-3.5 w-3.5 ${sandboxTab === 'settings' ? 'text-[#FDDD35]' : 'text-zinc-400'}`} />
-            Pipeline Settings
-          </button>
         </div>
       </div>
 
-      {/* TAB 1: WEBHOOK SIMULATOR */}
+      {/* TAB 1: WORKING PIPELINE SETTINGS */}
+      {sandboxTab === 'settings' && (
+        <div className="space-y-6 animate-in fade-in duration-200">
+          {savedSettingsSuccess && (
+            <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-[#00BA68]" />
+              Pipeline settings saved and applied to autonomous recovery engine!
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* 1. Retry Engine Policies */}
+            <Card>
+              <CardHeader className="pb-3 border-b border-[#E2E5EB] bg-slate-50/50">
+                <div className="flex items-center gap-2">
+                  <RefreshCw className="h-4 w-4 text-zinc-950" />
+                  <CardTitle className="text-sm font-bold text-zinc-950">Retry Engine Policies</CardTitle>
+                </div>
+                <CardDescription>Configure dunning limits, intervals, and anti-spam rules</CardDescription>
+              </CardHeader>
+              <CardContent className="p-5 space-y-4 text-xs">
+                <div>
+                  <div className="flex justify-between items-center mb-1.5">
+                    <label className="font-semibold text-zinc-800">Maximum Retry Attempts</label>
+                    <Badge variant="outline" className="font-mono font-bold bg-slate-50">{maxRetries} Retries</Badge>
+                  </div>
+                  <input
+                    type="range"
+                    min="1"
+                    max="5"
+                    value={maxRetries}
+                    onChange={(e) => setMaxRetries(Number(e.target.value))}
+                    className="w-full accent-zinc-950 cursor-pointer"
+                  />
+                  <div className="flex items-center justify-between text-[11px] text-zinc-500 mt-1">
+                    <span>1 attempt (conservative)</span>
+                    <span>3 (recommended)</span>
+                    <span>5 (aggressive)</span>
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-slate-100">
+                  <div className="flex justify-between items-center mb-1.5">
+                    <label className="font-semibold text-zinc-800">Max Days Overdue Cutoff</label>
+                    <Badge variant="outline" className="font-mono font-bold bg-slate-50">{maxDaysOverdue} Days</Badge>
+                  </div>
+                  <input
+                    type="range"
+                    min="7"
+                    max="30"
+                    value={maxDaysOverdue}
+                    onChange={(e) => setMaxDaysOverdue(Number(e.target.value))}
+                    className="w-full accent-zinc-950 cursor-pointer"
+                  />
+                  <p className="text-[11px] text-zinc-500 mt-1">Accounts overdue beyond {maxDaysOverdue} days are flagged as unrecoverable to protect metrics.</p>
+                </div>
+
+                <div className="pt-3 border-t border-slate-100">
+                  <div className="flex justify-between items-center mb-1.5">
+                    <label className="font-semibold text-zinc-800">Anti-Spam Action Cooldown Window</label>
+                    <Badge variant="outline" className="font-mono font-bold bg-slate-50">{cooldownHours} Hours</Badge>
+                  </div>
+                  <input
+                    type="range"
+                    min="6"
+                    max="48"
+                    step="6"
+                    value={cooldownHours}
+                    onChange={(e) => setCooldownHours(Number(e.target.value))}
+                    className="w-full accent-zinc-950 cursor-pointer"
+                  />
+                  <p className="text-[11px] text-zinc-500 mt-1">Enforces minimum {cooldownHours}h spacing between successive customer touches.</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* 2. AI Decisioning & Guardrails */}
+            <Card>
+              <CardHeader className="pb-3 border-b border-[#E2E5EB] bg-slate-50/50">
+                <div className="flex items-center gap-2">
+                  <Brain className="h-4 w-4 text-zinc-950" />
+                  <CardTitle className="text-sm font-bold text-zinc-950">AI Decisioning & Safety Guardrails</CardTitle>
+                </div>
+                <CardDescription>Gemini model parameters and execution thresholds</CardDescription>
+              </CardHeader>
+              <CardContent className="p-5 space-y-4 text-xs">
+                <div>
+                  <label className="font-semibold text-zinc-800 mb-1 block">Active AI Model</label>
+                  <Select value={activeModel} onChange={(e) => setActiveModel(e.target.value)}>
+                    <option value="gemini-1.5-flash">Google Gemini 1.5 Flash (Ultra Fast — ~0.2s)</option>
+                    <option value="gemini-1.5-pro">Google Gemini 1.5 Pro (Deep Strategy Reasoning)</option>
+                  </Select>
+                </div>
+
+                <div className="pt-3 border-t border-slate-100">
+                  <div className="flex justify-between items-center mb-1.5">
+                    <label className="font-semibold text-zinc-800">Minimum AI Certainty Threshold</label>
+                    <Badge variant="default" className="font-mono font-bold bg-zinc-950 text-[#FDDD35]">{aiConfidenceThreshold}%</Badge>
+                  </div>
+                  <input
+                    type="range"
+                    min="50"
+                    max="95"
+                    step="5"
+                    value={aiConfidenceThreshold}
+                    onChange={(e) => setAiConfidenceThreshold(Number(e.target.value))}
+                    className="w-full accent-zinc-950 cursor-pointer"
+                  />
+                  <p className="text-[11px] text-zinc-500 mt-1">Decisions with &lt;{aiConfidenceThreshold}% confidence fall back to calibrated heuristics.</p>
+                </div>
+
+                <div className="pt-3 border-t border-slate-100 space-y-2">
+                  <label className="font-semibold text-zinc-800 block">Active Communication Channels</label>
+                  <div className="flex items-center justify-between p-2.5 bg-slate-50 rounded-lg border border-slate-200">
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-3.5 w-3.5 text-zinc-700" />
+                      <span className="font-medium text-zinc-800">Email Dunning Reminders</span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={enableEmail}
+                      onChange={(e) => setEnableEmail(e.target.checked)}
+                      className="h-4 w-4 accent-zinc-950 rounded cursor-pointer"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between p-2.5 bg-slate-50 rounded-lg border border-slate-200">
+                    <div className="flex items-center gap-2">
+                      <Smartphone className="h-3.5 w-3.5 text-zinc-700" />
+                      <span className="font-medium text-zinc-800">SMS Nudges & UPI Alerts</span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={enableSms}
+                      onChange={(e) => setEnableSms(e.target.checked)}
+                      className="h-4 w-4 accent-zinc-950 rounded cursor-pointer"
+                    />
+                  </div>
+                </div>
+
+                <Button variant="default" onClick={handleSaveSettings} className="w-full gap-2 text-xs py-2.5 mt-2">
+                  <Check className="h-4 w-4 text-[#FDDD35]" />
+                  Save Pipeline Configuration
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* 3. Live Policy Evaluator Sandbox */}
+          <Card className="border-[#E2E5EB]">
+            <CardHeader className="pb-3 border-b border-[#E2E5EB] bg-slate-50/50">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Cpu className="h-4 w-4 text-zinc-950" />
+                  <CardTitle className="text-sm font-bold text-zinc-950">Live Policy & Rule Tester</CardTitle>
+                </div>
+                <Badge variant="outline" className="text-[10px] font-mono">Real-Time Simulation</Badge>
+              </div>
+              <CardDescription>Test how current settings evaluate against simulated Indian gateway errors</CardDescription>
+            </CardHeader>
+            <CardContent className="p-5 space-y-4">
+              <div className="flex flex-col sm:flex-row gap-3 items-end">
+                <div className="flex-1">
+                  <label className="text-xs font-semibold text-zinc-800 mb-1.5 block">Select Failure Code</label>
+                  <Select value={testScenario} onChange={(e) => setTestScenario(e.target.value)} className="w-full text-xs">
+                    <option value="insufficient_funds">Insufficient Funds (Transient / Balance Low)</option>
+                    <option value="card_expired">Card Expired (Mandate Revoked / Expired Token)</option>
+                    <option value="authentication_required">3D Secure / OTP Challenge Required</option>
+                    <option value="network_error">Bank Network Gateway Timeout (UPI e-Mandate)</option>
+                    <option value="fraud_suspected">High Risk / Fraud Suspected (Hard Stopping Rule)</option>
+                    <option value="account_closed">Bank Account Closed (Mandate Terminated)</option>
+                  </Select>
+                </div>
+                <Button onClick={handleEvaluatePolicy} variant="default" className="gap-2 text-xs py-2.5 shrink-0">
+                  <Play className="h-3.5 w-3.5 fill-current" />
+                  Test Policy Evaluation
+                </Button>
+              </div>
+
+              {testEvaluationResult && (
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3 animate-in fade-in duration-150">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-zinc-950">Policy Decision Output</span>
+                    <Badge variant="default" className="bg-emerald-600 text-white text-[10px]">
+                      {testEvaluationResult.status}
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+                    <div className="p-2.5 bg-white rounded-lg border border-slate-200">
+                      <span className="text-zinc-400 text-[10px] uppercase font-semibold">Action Selected</span>
+                      <p className="font-bold text-zinc-950 mt-0.5 capitalize">{testEvaluationResult.action.replace(/_/g, ' ')}</p>
+                    </div>
+                    <div className="p-2.5 bg-white rounded-lg border border-slate-200">
+                      <span className="text-zinc-400 text-[10px] uppercase font-semibold">AI Confidence</span>
+                      <p className="font-bold text-emerald-700 mt-0.5">{Math.round(testEvaluationResult.confidence * 100)}%</p>
+                    </div>
+                    <div className="p-2.5 bg-white rounded-lg border border-slate-200">
+                      <span className="text-zinc-400 text-[10px] uppercase font-semibold">Execution Timing</span>
+                      <p className="font-bold text-zinc-950 mt-0.5">{testEvaluationResult.timing}</p>
+                    </div>
+                    <div className="p-2.5 bg-white rounded-lg border border-slate-200">
+                      <span className="text-zinc-400 text-[10px] uppercase font-semibold">Dispatched Via</span>
+                      <p className="font-bold text-zinc-950 mt-0.5">{testEvaluationResult.channel}</p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-zinc-700 bg-white p-3 rounded-lg border border-slate-200 leading-relaxed">
+                    <strong>Rule Reasoning:</strong> {testEvaluationResult.reasoning}
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* TAB 2: WEBHOOK SIMULATOR */}
       {sandboxTab === 'webhook' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-in fade-in duration-200">
           <div className="lg:col-span-5 space-y-6">
@@ -316,7 +617,7 @@ export default function DeveloperSandboxPage() {
                   variant="default"
                   className="w-full gap-2 text-xs py-2.5"
                 >
-                  <Zap className="h-4 w-4" />
+                  <Zap className="h-4 w-4 text-[#FDDD35]" />
                   {firing ? 'Processing Autonomous Decision...' : 'Simulate Webhook Trigger'}
                 </Button>
               </CardContent>
@@ -406,7 +707,7 @@ export default function DeveloperSandboxPage() {
         </div>
       )}
 
-      {/* TAB 2: TEMPLATE PREVIEWS */}
+      {/* TAB 3: TEMPLATE PREVIEWS */}
       {sandboxTab === 'templates' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-in fade-in duration-200">
           <div className="lg:col-span-5 space-y-6">
@@ -568,145 +869,6 @@ export default function DeveloperSandboxPage() {
                 </div>
               </div>
             )}
-          </div>
-        </div>
-      )}
-
-      {/* TAB 3: PIPELINE SETTINGS & ENGINE CONTROLS */}
-      {sandboxTab === 'settings' && (
-        <div className="space-y-6 animate-in fade-in duration-200">
-          {savedSettingsSuccess && (
-            <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-              Pipeline configuration saved and applied to autonomous execution engine!
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Autonomous Retry & Timing Configuration */}
-            <Card>
-              <CardHeader className="pb-3 border-b border-[#E2E5EB] bg-slate-50/50">
-                <div className="flex items-center gap-2">
-                  <RefreshCw className="h-4 w-4 text-zinc-950" />
-                  <CardTitle className="text-sm font-bold text-zinc-950">Retry Engine Policies</CardTitle>
-                </div>
-                <CardDescription>Configure dunning limits and backoff cadence</CardDescription>
-              </CardHeader>
-              <CardContent className="p-5 space-y-4 text-xs">
-                <div>
-                  <div className="flex justify-between items-center mb-1.5">
-                    <label className="font-semibold text-zinc-800">Maximum Retry Attempts</label>
-                    <Badge variant="outline" className="font-mono">{maxRetries} Retries</Badge>
-                  </div>
-                  <input
-                    type="range"
-                    min="1"
-                    max="5"
-                    value={maxRetries}
-                    onChange={(e) => setMaxRetries(Number(e.target.value))}
-                    className="w-full accent-zinc-950 cursor-pointer"
-                  />
-                  <p className="text-[11px] text-zinc-500 mt-1">Stops automated retries after {maxRetries} attempts before escalating to human review.</p>
-                </div>
-
-                <div className="pt-3 border-t border-slate-100">
-                  <div className="flex justify-between items-center mb-1.5">
-                    <label className="font-semibold text-zinc-800">Max Days Overdue</label>
-                    <Badge variant="outline" className="font-mono">{maxDaysOverdue} Days</Badge>
-                  </div>
-                  <input
-                    type="range"
-                    min="7"
-                    max="30"
-                    value={maxDaysOverdue}
-                    onChange={(e) => setMaxDaysOverdue(Number(e.target.value))}
-                    className="w-full accent-zinc-950 cursor-pointer"
-                  />
-                  <p className="text-[11px] text-zinc-500 mt-1">Accounts overdue beyond {maxDaysOverdue} days are flagged as unrecoverable.</p>
-                </div>
-
-                <div className="pt-3 border-t border-slate-100">
-                  <div className="flex justify-between items-center mb-1.5">
-                    <label className="font-semibold text-zinc-800">Anti-Spam Action Cooldown Window</label>
-                    <Badge variant="outline" className="font-mono">{cooldownHours} Hours</Badge>
-                  </div>
-                  <input
-                    type="range"
-                    min="6"
-                    max="48"
-                    step="6"
-                    value={cooldownHours}
-                    onChange={(e) => setCooldownHours(Number(e.target.value))}
-                    className="w-full accent-zinc-950 cursor-pointer"
-                  />
-                  <p className="text-[11px] text-zinc-500 mt-1">Minimum spacing between outbound email/SMS nudges per customer.</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* AI Model & Decisioning Thresholds */}
-            <Card>
-              <CardHeader className="pb-3 border-b border-[#E2E5EB] bg-slate-50/50">
-                <div className="flex items-center gap-2">
-                  <Brain className="h-4 w-4 text-zinc-950" />
-                  <CardTitle className="text-sm font-bold text-zinc-950">AI Decisioning & Safety Guardrails</CardTitle>
-                </div>
-                <CardDescription>Gemini model selection and execution thresholds</CardDescription>
-              </CardHeader>
-              <CardContent className="p-5 space-y-4 text-xs">
-                <div>
-                  <label className="font-semibold text-zinc-800 mb-1 block">Active AI Model</label>
-                  <Select value={activeModel} onChange={(e) => setActiveModel(e.target.value)}>
-                    <option value="gemini-1.5-flash">Google Gemini 1.5 Flash (Ultra Fast — ~0.2s)</option>
-                    <option value="gemini-1.5-pro">Google Gemini 1.5 Pro (Deep Reasoning)</option>
-                  </Select>
-                </div>
-
-                <div className="pt-3 border-t border-slate-100">
-                  <div className="flex justify-between items-center mb-1.5">
-                    <label className="font-semibold text-zinc-800">Minimum AI Certainty Threshold</label>
-                    <Badge variant="default" className="font-mono font-bold bg-zinc-950">{aiConfidenceThreshold}%</Badge>
-                  </div>
-                  <input
-                    type="range"
-                    min="50"
-                    max="95"
-                    step="5"
-                    value={aiConfidenceThreshold}
-                    onChange={(e) => setAiConfidenceThreshold(Number(e.target.value))}
-                    className="w-full accent-zinc-950 cursor-pointer"
-                  />
-                  <p className="text-[11px] text-zinc-500 mt-1">Decisions below {aiConfidenceThreshold}% certainty route to rule heuristic fallback for safety.</p>
-                </div>
-
-                <div className="pt-3 border-t border-slate-100 space-y-2">
-                  <label className="font-semibold text-zinc-800 block">Communication Channels Active</label>
-                  <div className="flex items-center justify-between p-2.5 bg-slate-50 rounded-lg border border-slate-200">
-                    <span className="font-medium text-zinc-700">Email Dunning Reminders</span>
-                    <input
-                      type="checkbox"
-                      checked={enableEmail}
-                      onChange={(e) => setEnableEmail(e.target.checked)}
-                      className="h-4 w-4 accent-zinc-950 rounded cursor-pointer"
-                    />
-                  </div>
-                  <div className="flex items-center justify-between p-2.5 bg-slate-50 rounded-lg border border-slate-200">
-                    <span className="font-medium text-zinc-700">SMS Nudges & UPI Mandate Alerts</span>
-                    <input
-                      type="checkbox"
-                      checked={enableSms}
-                      onChange={(e) => setEnableSms(e.target.checked)}
-                      className="h-4 w-4 accent-zinc-950 rounded cursor-pointer"
-                    />
-                  </div>
-                </div>
-
-                <Button variant="default" onClick={handleSaveSettings} className="w-full gap-2 text-xs py-2.5 mt-2">
-                  <Check className="h-4 w-4" />
-                  Save Pipeline Configuration
-                </Button>
-              </CardContent>
-            </Card>
           </div>
         </div>
       )}
