@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatCurrency } from '@/lib/utils';
-import { Zap, Send, ShieldAlert, Brain, ArrowRight, AlertTriangle, Radio } from 'lucide-react';
+import { Zap, Send, Brain, ArrowRight, AlertTriangle, Radio } from 'lucide-react';
 import Link from 'next/link';
 
 interface WebhookPreset {
@@ -28,7 +28,7 @@ const PRESETS: WebhookPreset[] = [
     error_code: 'BAD_REQUEST_ERROR',
     error_description: 'Payment failed: Account balance too low for the requested transaction.',
     payment_method: 'card',
-    amount: 149900,
+    amount: 185000,
   },
   {
     id: 'card_expired',
@@ -37,7 +37,7 @@ const PRESETS: WebhookPreset[] = [
     error_code: 'GATEWAY_ERROR',
     error_description: 'Card has passed its expiration date. Payment cannot be authorized.',
     payment_method: 'card',
-    amount: 399900,
+    amount: 495000,
   },
   {
     id: 'authentication_required',
@@ -46,7 +46,7 @@ const PRESETS: WebhookPreset[] = [
     error_code: 'AUTHENTICATION_REQUIRED',
     error_description: '3D Secure OTP verification was not completed by the cardholder.',
     payment_method: 'card',
-    amount: 299900,
+    amount: 340000,
   },
   {
     id: 'network_error',
@@ -55,98 +55,47 @@ const PRESETS: WebhookPreset[] = [
     error_code: 'GATEWAY_TIMEOUT',
     error_description: 'Issuer bank server timed out while processing automated UPI debit.',
     payment_method: 'upi',
-    amount: 99900,
+    amount: 960000,
   },
   {
     id: 'fraud_suspected',
-    name: '5. Fraud Risk Detection Alert (Immediate Escalate)',
+    name: '5. High Risk / Fraud Flagged (Stopping Rule Trigger)',
     failure_reason: 'fraud_suspected',
-    error_code: 'RISK_THRESHOLD_EXCEEDED',
-    error_description: 'Transaction flagged by automated fraud intelligence system.',
+    error_code: 'PAYMENT_RISK_CHECK_FAILED',
+    error_description: 'Transaction triggered risk heuristics. Automated retries prohibited.',
     payment_method: 'card',
-    amount: 999900,
+    amount: 12400000,
   },
   {
     id: 'account_closed',
-    name: '6. Bank Account Closed (Unrecoverable)',
+    name: '6. Bank Account Closed / Revoked Mandate',
     failure_reason: 'account_closed',
     error_code: 'ACCOUNT_CLOSED',
-    error_description: 'Bank reports customer account permanently closed. No further charges allowed.',
+    error_description: 'Account has been closed. Instant termination of recurring mandate.',
     payment_method: 'mandate',
-    amount: 149900,
+    amount: 2850000,
   },
 ];
 
-interface SubscriptionOption {
-  id: string;
-  plan_name: string;
-  amount: number;
-  customer_name: string;
-  customer_email: string;
-  status: string;
-}
-
-interface WebhookResult {
-  success: boolean;
-  event: string;
-  razorpay_payment_id: string;
-  subscription: {
-    id: string;
-    plan_name: string;
-    amount: number;
-    customer_name: string;
-    customer_email: string;
-  };
-  failure_reason: string;
-  error_description: string;
-  ai_intervention: {
-    action: string;
-    reasoning: string;
-    confidence: number;
-    outcome: string;
-    amount_recovered: number;
-    skipped: boolean;
-    skip_reason?: string;
-  };
-  performance: {
-    decide_ms: number;
-    execute_ms: number;
-    total_ms: number;
-  };
-  batch_id: string;
-}
-
 export default function SimulatorPage() {
-  const [selectedPresetId, setSelectedPresetId] = useState<string>(PRESETS[0].id);
-  const [subscriptions, setSubscriptions] = useState<SubscriptionOption[]>([]);
+  const [selectedPresetId, setSelectedPresetId] = useState<string>('insufficient_funds');
+  const [subscriptions, setSubscriptions] = useState<any[]>([]);
   const [selectedSubId, setSelectedSubId] = useState<string>('');
-  const [loadingSubs, setLoadingSubs] = useState(true);
-  const [firing, setFiring] = useState(false);
-  const [result, setResult] = useState<WebhookResult | null>(null);
-  const [errorMsg, setErrorMsg] = useState<string>('');
-  const [customAmount, setCustomAmount] = useState<number>(149900);
+  const [loadingSubs, setLoadingSubs] = useState<boolean>(true);
+  const [firing, setFiring] = useState<boolean>(false);
+  const [result, setResult] = useState<any | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const activePreset = PRESETS.find((p) => p.id === selectedPresetId) || PRESETS[0];
+  const selectedPreset = PRESETS.find((p) => p.id === selectedPresetId) || PRESETS[0];
 
   useEffect(() => {
     async function loadSubs() {
       try {
-        const res = await fetch('/api/subscriptions?limit=25');
+        const res = await fetch('/api/subscriptions?limit=50');
         const json = await res.json();
-        if (json.success && json.data.subscriptions) {
-          const formatted: SubscriptionOption[] = json.data.subscriptions.map((s: any) => ({
-            id: s.id,
-            plan_name: s.plan_name,
-            amount: s.amount,
-            customer_name: s.customers?.name || 'Customer',
-            customer_email: s.customers?.email || 'user@example.com',
-            status: s.status,
-          }));
-          setSubscriptions(formatted);
-          if (formatted.length > 0) {
-            setSelectedSubId(formatted[0].id);
-            setCustomAmount(formatted[0].amount);
-          }
+        if (json.success && json.data.subscriptions?.length > 0) {
+          setSubscriptions(json.data.subscriptions);
+          setSelectedSubId(json.data.subscriptions[0].id);
         }
       } catch (err) {
         console.error('Failed to load subscriptions for simulator:', err);
@@ -157,46 +106,44 @@ export default function SimulatorPage() {
     loadSubs();
   }, []);
 
+  const activeSub = subscriptions.find((s) => s.id === selectedSubId);
+
   const handleSubChange = (subId: string) => {
     setSelectedSubId(subId);
-    const sub = subscriptions.find((s) => s.id === subId);
-    if (sub) {
-      setCustomAmount(sub.amount);
-    }
   };
 
   const handleFireWebhook = async () => {
+    if (!selectedSubId) {
+      setErrorMsg('Please select a target subscription first.');
+      return;
+    }
+
     setFiring(true);
-    setErrorMsg('');
+    setErrorMsg(null);
     setResult(null);
 
     const payload = {
-      entity: 'event',
-      account_id: 'acc_rzp_live_2025',
       event: 'payment.failed',
-      subscription_id: selectedSubId || undefined,
+      account_id: 'acc_coverup_live',
       contains: ['payment'],
       payload: {
         payment: {
           entity: {
-            id: `pay_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-            amount: customAmount,
+            id: `pay_sim_${Date.now()}`,
+            amount: activeSub?.amount || selectedPreset.amount,
             currency: 'INR',
             status: 'failed',
-            order_id: `order_${Date.now().toString(36)}`,
-            invoice_id: `inv_${Date.now().toString(36)}`,
-            method: activePreset.payment_method,
-            card: {
-              last4: '5424',
-              network: 'Mastercard',
-              type: 'credit',
-              issuer: 'HDFC',
-            },
-            error_code: activePreset.error_code,
-            error_description: activePreset.error_description,
-            error_source: 'bank',
+            order_id: `order_${selectedSubId.substring(0, 8)}`,
+            method: selectedPreset.payment_method,
+            error_code: selectedPreset.error_code,
+            error_description: selectedPreset.error_description,
+            error_source: 'gateway',
             error_step: 'payment_authorization',
-            error_reason: activePreset.failure_reason,
+            error_reason: selectedPreset.failure_reason,
+            notes: {
+              subscription_id: selectedSubId,
+              customer_email: activeSub?.customers?.email || 'customer@example.com',
+            },
           },
         },
       },
@@ -223,256 +170,149 @@ export default function SimulatorPage() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="p-2 rounded-lg bg-blue-100 text-blue-700">
+            <span className="p-2 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-600">
               <Zap className="h-5 w-5" />
             </span>
-            <h1 className="text-3xl font-bold text-slate-900">Razorpay Webhook Simulator</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">Webhook Simulator</h1>
           </div>
-          <p className="text-slate-500 mt-1">
-            Simulate real-time Razorpay <code className="text-xs bg-slate-100 px-1.5 py-0.5 rounded text-blue-700">payment.failed</code> events and observe CoverUP's autonomous AI agent react in sub-seconds.
+          <p className="text-xs text-gray-500 mt-1">
+            Simulate incoming <code className="bg-gray-100 px-1 py-0.5 rounded font-mono text-indigo-600">payment.failed</code> events and test real-time AI decision-making.
           </p>
         </div>
-        <Badge variant="secondary" className="px-3 py-1 text-sm gap-1.5 self-start sm:self-auto">
-          <Radio className="h-3.5 w-3.5 text-blue-600 animate-pulse" /> Live Event Ingestion
+        <Badge variant="secondary" className="px-2.5 py-1 text-xs gap-1.5 self-start sm:self-auto">
+          <Radio className="h-3 w-3 text-indigo-600 animate-pulse" /> Live Ingestion
         </Badge>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Preset & Target Selection */}
-        <div className="lg:col-span-5 space-y-6">
+        <div className="lg:col-span-5 space-y-4">
           <Card>
-            <CardHeader>
-              <CardTitle className="text-base font-semibold">1. Select Failure Scenario</CardTitle>
-              <CardDescription>Choose an authentic payment decline pattern to test</CardDescription>
+            <CardHeader className="pb-3 border-b border-gray-100">
+              <CardTitle className="text-sm font-bold text-gray-900">1. Select Failure Scenario</CardTitle>
+              <CardDescription>Choose an authentic decline code</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                {PRESETS.map((preset) => {
-                  const isSelected = preset.id === selectedPresetId;
-                  return (
-                    <div
-                      key={preset.id}
-                      onClick={() => setSelectedPresetId(preset.id)}
-                      className={`p-3 rounded-lg border cursor-pointer transition-all ${
-                        isSelected
-                          ? 'border-blue-500 bg-blue-50/60 shadow-sm ring-1 ring-blue-500'
-                          : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium text-sm text-slate-900">{preset.name}</span>
-                        <Badge variant={isSelected ? 'info' : 'outline'} className="text-[10px]">
-                          {preset.failure_reason}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-slate-500 mt-1 line-clamp-1">{preset.error_description}</p>
+            <CardContent className="pt-3 space-y-2">
+              {PRESETS.map((preset) => {
+                const isSelected = preset.id === selectedPresetId;
+                return (
+                  <div
+                    key={preset.id}
+                    onClick={() => setSelectedPresetId(preset.id)}
+                    className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                      isSelected
+                        ? 'border-indigo-600 bg-indigo-50/40 ring-1 ring-indigo-600 shadow-2xs'
+                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-xs text-gray-900">{preset.name}</span>
+                      <Badge variant={isSelected ? 'info' : 'outline'} className="text-[9px]">
+                        {preset.failure_reason}
+                      </Badge>
                     </div>
-                  );
-                })}
-              </div>
+                    <p className="text-[11px] text-gray-500 mt-1 line-clamp-1">{preset.error_description}</p>
+                  </div>
+                );
+              })}
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle className="text-base font-semibold">2. Target Subscription</CardTitle>
-              <CardDescription>Select which customer subscription receives this webhook</CardDescription>
+            <CardHeader className="pb-3 border-b border-gray-100">
+              <CardTitle className="text-sm font-bold text-gray-900">2. Target Subscription</CardTitle>
+              <CardDescription>Select customer account to target</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="pt-3 space-y-3">
               {loadingSubs ? (
-                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-9 w-full rounded-lg" />
               ) : subscriptions.length === 0 ? (
-                <div className="p-4 rounded-lg bg-amber-50 text-amber-800 text-xs flex items-center gap-2">
+                <div className="p-3 rounded-lg bg-amber-50 text-amber-800 text-xs flex items-center gap-2 border border-amber-200">
                   <AlertTriangle className="h-4 w-4 shrink-0" />
-                  <span>No subscriptions found. Click "Seed Data" on Dashboard first.</span>
+                  <span>No subscriptions found. Click &quot;Seed Data&quot; on Dashboard first.</span>
                 </div>
               ) : (
                 <div className="space-y-3">
                   <div>
-                    <label className="text-xs font-medium text-slate-700 mb-1 block">Customer & Plan</label>
+                    <label className="text-xs font-semibold text-gray-700 mb-1 block">Customer & Plan</label>
                     <Select
                       value={selectedSubId}
                       onChange={(e) => handleSubChange(e.target.value)}
                     >
-                      {subscriptions.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.customer_name} — {s.plan_name} ({formatCurrency(s.amount)})
+                      {subscriptions.map((sub) => (
+                        <option key={sub.id} value={sub.id}>
+                          {sub.customers?.name || 'Customer'} — {sub.plan_name} ({formatCurrency(sub.amount)})
                         </option>
                       ))}
                     </Select>
                   </div>
 
-                  <div className="flex items-center justify-between text-xs text-slate-500 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
-                    <span>Transaction Value:</span>
-                    <span className="font-semibold text-slate-900">{formatCurrency(customAmount)}</span>
-                  </div>
+                  {activeSub && (
+                    <div className="p-3 rounded-lg bg-gray-50 border border-gray-200 text-xs space-y-1">
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Current Status:</span>
+                        <Badge variant="outline" className="text-[10px] capitalize">{activeSub.status}</Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Customer Email:</span>
+                        <span className="font-mono text-gray-800 text-[11px]">{activeSub.customers?.email}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Billing Amount:</span>
+                        <span className="font-bold text-gray-900">{formatCurrency(activeSub.amount)}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  <Button
+                    variant="default"
+                    className="w-full gap-2"
+                    onClick={handleFireWebhook}
+                    loading={firing}
+                  >
+                    <Send className="h-4 w-4" /> Simulate Webhook Trigger
+                  </Button>
                 </div>
               )}
-
-              <Button
-                variant="default"
-                className="w-full h-11 text-base shadow-sm gap-2"
-                onClick={handleFireWebhook}
-                loading={firing}
-                disabled={loadingSubs || subscriptions.length === 0}
-              >
-                <Send className="h-4 w-4" />
-                Dispatch Razorpay Webhook
-              </Button>
             </CardContent>
           </Card>
         </div>
 
-        {/* Right Column: Webhook Payload & Agent Live Response */}
-        <div className="lg:col-span-7 space-y-6">
-          {errorMsg && (
-            <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm flex items-center gap-3">
-              <ShieldAlert className="h-5 w-5 shrink-0" />
-              <span>{errorMsg}</span>
-            </div>
-          )}
-
-          {/* Autonomous Reaction Card */}
-          {result ? (
-            <Card className="border-blue-200 bg-gradient-to-b from-white to-blue-50/20 shadow-md">
-              <CardHeader className="pb-3 border-b border-blue-100">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-ping" />
-                    <CardTitle className="text-lg font-bold text-slate-900">
-                      Autonomous Agent Intervention
-                    </CardTitle>
-                  </div>
-                  <Badge variant="success" className="text-xs">
-                    HTTP 200 Processed in {result.performance.total_ms}ms
-                  </Badge>
-                </div>
-                <CardDescription>
-                  CoverUP intercepted the webhook, evaluated stopping rules, queried Google Gemini AI, and executed intervention.
-                </CardDescription>
-              </CardHeader>
-
-              <CardContent className="pt-4 space-y-4">
-                {/* 3 Step Pipeline Summary */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div className="p-3 rounded-lg bg-white border border-slate-200 shadow-2xs">
-                    <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Step 1: Ingestion</p>
-                    <p className="text-sm font-bold text-slate-900 mt-1 capitalize">{result.failure_reason.replace(/_/g, ' ')}</p>
-                    <p className="text-xs text-slate-500 truncate">{result.error_description}</p>
-                  </div>
-
-                  <div className="p-3 rounded-lg bg-blue-50 border border-blue-200 shadow-2xs">
-                    <p className="text-[11px] font-semibold text-blue-700 uppercase tracking-wider">Step 2: AI Decision</p>
-                    <p className="text-sm font-bold text-blue-900 mt-1 capitalize">{result.ai_intervention.action.replace(/_/g, ' ')}</p>
-                    <p className="text-xs text-blue-700">Confidence: {(result.ai_intervention.confidence * 100).toFixed(0)}%</p>
-                  </div>
-
-                  <div className="p-3 rounded-lg bg-white border border-slate-200 shadow-2xs">
-                    <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Step 3: Outcome</p>
-                    <div className="flex items-center gap-1.5 mt-1">
-                      <span className="capitalize font-bold text-sm text-slate-900">{result.ai_intervention.outcome}</span>
-                      {result.ai_intervention.outcome === 'success' && (
-                        <Badge variant="success" className="text-[10px]">+{formatCurrency(result.ai_intervention.amount_recovered)}</Badge>
-                      )}
-                    </div>
-                    <p className="text-xs text-slate-500">{result.performance.total_ms}ms total turnaround</p>
-                  </div>
-                </div>
-
-                {/* AI Reasoning Box */}
-                <div className="p-4 rounded-xl bg-blue-50 border border-blue-200 space-y-2">
-                  <div className="flex items-center gap-2 text-blue-800 text-xs font-semibold">
-                    <Brain className="h-4 w-4" />
-                    <span>Gemini AI Autonomous Reasoning:</span>
-                  </div>
-                  <p className="text-sm text-slate-800 leading-relaxed italic">
-                    "{result.ai_intervention.reasoning}"
-                  </p>
-                  {result.ai_intervention.skipped && (
-                    <div className="mt-2 text-xs text-amber-700 font-medium">
-                      ⚠️ Stopping Rule Triggered: {result.ai_intervention.skip_reason}
-                    </div>
-                  )}
-                </div>
-
-                {/* Subscription & Customer context */}
-                <div className="flex flex-wrap items-center justify-between p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-600 gap-2">
-                  <div>
-                    <span className="font-semibold text-slate-900">{result.subscription.customer_name}</span> ({result.subscription.customer_email})
-                  </div>
-                  <div>
-                    <span>Plan: <strong>{result.subscription.plan_name}</strong></span> · 
-                    <span className="ml-1 text-emerald-700 font-medium">{formatCurrency(result.subscription.amount)}</span>
-                  </div>
-                </div>
-
-                {/* Action Links */}
-                <div className="flex items-center justify-end gap-3 pt-2">
-                  <Link href={`/recovery/${result.batch_id}`}>
-                    <Button variant="outline" size="sm" className="gap-1.5 text-xs">
-                      View Batch Record <ArrowRight className="h-3.5 w-3.5" />
-                    </Button>
-                  </Link>
-                  <Link href="/audit">
-                    <Button variant="default" size="sm" className="gap-1.5 text-xs">
-                      Inspect Audit Trail <ArrowRight className="h-3.5 w-3.5" />
-                    </Button>
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card className="border-dashed border-2 border-slate-200 bg-slate-50/50">
-              <CardContent className="py-16 text-center space-y-3">
-                <div className="h-12 w-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mx-auto">
-                  <Zap className="h-6 w-6" />
-                </div>
-                <h3 className="text-base font-semibold text-slate-900">Ready for Live Webhook Dispatch</h3>
-                <p className="text-sm text-slate-500 max-w-md mx-auto">
-                  Select a failure scenario on the left and click <strong>"Dispatch Razorpay Webhook"</strong> to trigger real-time AI recovery.
-                </p>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Simulated Razorpay JSON Payload Card */}
+        {/* Right Column: Payload & Execution Outcome */}
+        <div className="lg:col-span-7 space-y-4">
           <Card>
-            <CardHeader className="py-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-xs font-mono font-semibold text-slate-600 uppercase tracking-wider">
-                  Raw Razorpay Webhook Payload (POST /api/webhooks/razorpay)
-                </CardTitle>
-                <Badge variant="outline" className="text-[10px] font-mono">application/json</Badge>
-              </div>
+            <CardHeader className="pb-3 border-b border-gray-100">
+              <CardTitle className="text-sm font-bold text-gray-900">3. JSON Webhook Payload</CardTitle>
+              <CardDescription>Simulated webhook body dispatched to CoverUP</CardDescription>
             </CardHeader>
-            <CardContent className="pt-0">
-              <pre className="p-4 rounded-lg bg-slate-950 text-slate-200 font-mono text-xs overflow-x-auto max-h-64 border border-slate-800">
+            <CardContent className="pt-3">
+              <pre className="p-3.5 rounded-lg bg-gray-900 text-gray-100 font-mono text-[11px] overflow-x-auto max-h-64 border border-gray-800">
                 {JSON.stringify(
                   {
-                    entity: 'event',
-                    account_id: 'acc_rzp_live_2025',
                     event: 'payment.failed',
-                    subscription_id: selectedSubId || 'sub_demo_123',
                     payload: {
                       payment: {
                         entity: {
-                          id: 'pay_live_' + activePreset.id,
-                          amount: customAmount,
+                          id: 'pay_sim_98412894',
+                          amount: activeSub?.amount || selectedPreset.amount,
                           currency: 'INR',
                           status: 'failed',
-                          method: activePreset.payment_method,
-                          error_code: activePreset.error_code,
-                          error_description: activePreset.error_description,
-                          error_reason: activePreset.failure_reason,
+                          method: selectedPreset.payment_method,
+                          error_code: selectedPreset.error_code,
+                          error_description: selectedPreset.error_description,
+                          error_reason: selectedPreset.failure_reason,
+                          notes: {
+                            subscription_id: selectedSubId || 'sub_demo_id',
+                            customer_email: activeSub?.customers?.email || 'customer@example.com',
+                          },
                         },
                       },
                     },
-                    created_at: 1740825600,
                   },
                   null,
                   2
@@ -480,6 +320,65 @@ export default function SimulatorPage() {
               </pre>
             </CardContent>
           </Card>
+
+          {errorMsg && (
+            <div className="p-3.5 rounded-xl border border-rose-200 bg-rose-50 text-xs font-semibold text-rose-800">
+              {errorMsg}
+            </div>
+          )}
+
+          {result && (
+            <Card className="border-indigo-200 bg-indigo-50/20 shadow-xs animate-in fade-in duration-200">
+              <CardHeader className="pb-3 border-b border-indigo-100">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Brain className="h-5 w-5 text-indigo-600" />
+                    <CardTitle className="text-sm font-bold text-indigo-950">
+                      Autonomous Decision Result
+                    </CardTitle>
+                  </div>
+                  <Badge variant={result.action_executed?.outcome === 'success' ? 'success' : 'warning'}>
+                    {result.action_executed?.outcome}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-3 text-xs">
+                <div className="p-3 bg-white rounded-lg border border-indigo-100 space-y-1">
+                  <p className="font-bold text-indigo-950">AI Strategic Reasoning:</p>
+                  <p className="text-gray-700 leading-relaxed">{result.action_executed?.ai_reasoning}</p>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <div className="p-2.5 bg-white rounded-lg border border-gray-200 text-center">
+                    <p className="text-gray-400 text-[10px]">Action</p>
+                    <p className="font-bold text-gray-900 mt-0.5 truncate">{result.action_executed?.action_type}</p>
+                  </div>
+                  <div className="p-2.5 bg-white rounded-lg border border-gray-200 text-center">
+                    <p className="text-gray-400 text-[10px]">Confidence</p>
+                    <p className="font-bold text-indigo-600 mt-0.5">{Math.round((result.action_executed?.ai_confidence || 0) * 100)}%</p>
+                  </div>
+                  <div className="p-2.5 bg-white rounded-lg border border-gray-200 text-center">
+                    <p className="text-gray-400 text-[10px]">Outcome</p>
+                    <p className="font-bold text-emerald-700 mt-0.5 capitalize">{result.action_executed?.outcome}</p>
+                  </div>
+                  <div className="p-2.5 bg-white rounded-lg border border-gray-200 text-center">
+                    <p className="text-gray-400 text-[10px]">Recovered</p>
+                    <p className="font-bold text-emerald-700 mt-0.5">{formatCurrency(result.action_executed?.amount_recovered || 0)}</p>
+                  </div>
+                </div>
+
+                {selectedSubId && (
+                  <div className="pt-1 flex justify-end">
+                    <Link href={`/customers/${activeSub?.customer_id}`}>
+                      <Button variant="outline" size="sm" className="gap-1 text-xs">
+                        View Customer Timeline <ArrowRight className="h-3 w-3" />
+                      </Button>
+                    </Link>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>

@@ -28,7 +28,6 @@ export default function RoiCalculatorPage() {
   const annualAtRisk = monthlyAtRisk * 12;
   const ltvPreserved = monthlyRecovered * customerLifeMonths;
 
-  // Estimated platform cost for ROI ratio (~₹15,000/mo or 1% of recovered)
   const estimatedAnnualCost = Math.max(180000, annualRecovered * 0.05);
   const roiMultiplier = Math.max(1, Math.round(annualRecovered / estimatedAnnualCost));
 
@@ -55,75 +54,75 @@ export default function RoiCalculatorPage() {
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="p-2 rounded-lg bg-blue-100 text-blue-700">
+            <span className="p-2 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-600">
               <Calculator className="h-5 w-5" />
             </span>
-            <h1 className="text-3xl font-bold text-slate-900">Revenue Recovery ROI Calculator</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">ROI Calculator</h1>
           </div>
-          <p className="text-slate-500 mt-1">
-            Quantify the bottom-line financial impact of CoverUP's autonomous AI recovery agent on your subscription business.
+          <p className="text-xs text-gray-500 mt-1">
+            Calculate the bottom-line revenue saved with CoverUP&apos;s autonomous AI dunning agent.
           </p>
         </div>
-        <Badge variant="success" className="px-3 py-1 text-sm gap-1.5 self-start sm:self-auto">
+        <Badge variant="success" className="px-2.5 py-1 text-xs gap-1.5 self-start sm:self-auto">
           <Sparkles className="h-3.5 w-3.5" /> Estimated {roiMultiplier}x Net ROI
         </Badge>
       </div>
 
       {/* Top Highlight Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-blue-100 bg-gradient-to-br from-white to-blue-50/40">
-          <CardContent className="pt-6">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Monthly Recovered MRR</p>
-            <p className="text-3xl font-extrabold text-blue-600 mt-1">{formatCurrency(monthlyRecovered)}</p>
-            <p className="text-xs text-slate-500 mt-1">reserving {recoveryRate}% of failed debits</p>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <Card className="hover:border-gray-300 transition-all">
+          <CardContent className="p-4">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Monthly Recovered MRR</p>
+            <p className="text-2xl font-bold text-indigo-600 mt-1">{formatCurrency(monthlyRecovered)}</p>
+            <p className="text-[11px] text-gray-400 mt-0.5">at {recoveryRate}% capture rate</p>
           </CardContent>
         </Card>
 
-        <Card className="border-emerald-100 bg-gradient-to-br from-white to-emerald-50/40">
-          <CardContent className="pt-6">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Annual ARR Rescued</p>
-            <p className="text-3xl font-extrabold text-emerald-600 mt-1">{formatCurrency(annualRecovered)}</p>
-            <p className="text-xs text-slate-500 mt-1">direct ARR added back to cashflow</p>
+        <Card className="border-emerald-200 bg-emerald-50/20 hover:border-emerald-300 transition-all">
+          <CardContent className="p-4">
+            <p className="text-xs font-semibold text-emerald-800 uppercase tracking-wider">Annual ARR Rescued</p>
+            <p className="text-2xl font-bold text-emerald-700 mt-1">{formatCurrency(annualRecovered)}</p>
+            <p className="text-[11px] text-emerald-600 mt-0.5">direct ARR back to cashflow</p>
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200">
-          <CardContent className="pt-6">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Preserved Customer LTV</p>
-            <p className="text-3xl font-extrabold text-slate-900 mt-1">{formatCurrency(ltvPreserved)}</p>
-            <p className="text-xs text-slate-500 mt-1">over avg {customerLifeMonths} month lifetime</p>
+        <Card className="hover:border-gray-300 transition-all">
+          <CardContent className="p-4">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Preserved Customer LTV</p>
+            <p className="text-2xl font-bold text-gray-900 mt-1">{formatCurrency(ltvPreserved)}</p>
+            <p className="text-[11px] text-gray-400 mt-0.5">over {customerLifeMonths} month avg lifetime</p>
           </CardContent>
         </Card>
 
-        <Card className="border-violet-100 bg-gradient-to-br from-white to-violet-50/40">
-          <CardContent className="pt-6">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">ROI Multiplier</p>
-            <p className="text-3xl font-extrabold text-violet-600 mt-1">{roiMultiplier}x</p>
-            <p className="text-xs text-slate-500 mt-1">vs cost of recovery operations</p>
+        <Card className="hover:border-gray-300 transition-all">
+          <CardContent className="p-4">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">ROI Multiplier</p>
+            <p className="text-2xl font-bold text-indigo-600 mt-1">{roiMultiplier}x</p>
+            <p className="text-[11px] text-gray-400 mt-0.5">vs traditional recovery ops</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Main interactive section */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      {/* Main Interactive Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Sliders on Left */}
-        <div className="lg:col-span-6 space-y-6">
+        <div className="lg:col-span-6 space-y-4">
           <Card>
-            <CardHeader>
-              <CardTitle className="text-base font-semibold">Business Variables</CardTitle>
-              <CardDescription>Adjust sliders to match your current recurring revenue metrics</CardDescription>
+            <CardHeader className="pb-3 border-b border-gray-100">
+              <CardTitle className="text-sm font-bold text-gray-900">Business Variables</CardTitle>
+              <CardDescription>Adjust sliders to match recurring metrics</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="pt-4 space-y-5">
               {/* Slider 1: MRR */}
-              <div className="space-y-2">
-                <div className="flex justify-between items-center text-sm">
-                  <label htmlFor={mrrSliderId} className="font-medium text-slate-700">Monthly Recurring Revenue (MRR)</label>
-                  <span className="font-bold text-blue-600 text-base">{formatCurrency(mrr)}</span>
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-center text-xs">
+                  <label htmlFor={mrrSliderId} className="font-semibold text-gray-700">Monthly Recurring Revenue (MRR)</label>
+                  <span className="font-bold text-indigo-600 text-sm">{formatCurrency(mrr)}</span>
                 </div>
                 <input
                   id={mrrSliderId}
@@ -133,9 +132,9 @@ export default function RoiCalculatorPage() {
                   step={100000}
                   value={mrr}
                   onChange={(e) => setMrr(Number(e.target.value))}
-                  className="w-full accent-blue-600 cursor-pointer"
+                  className="w-full accent-indigo-600 cursor-pointer"
                 />
-                <div className="flex justify-between text-[11px] text-slate-400 font-mono">
+                <div className="flex justify-between text-[10px] text-gray-400 font-mono">
                   <span>₹1 Lakh</span>
                   <span>₹1 Crore</span>
                   <span>₹2 Crore</span>
@@ -143,10 +142,10 @@ export default function RoiCalculatorPage() {
               </div>
 
               {/* Slider 2: Involuntary Failure Rate */}
-              <div className="space-y-2">
-                <div className="flex justify-between items-center text-sm">
-                  <label htmlFor={churnSliderId} className="font-medium text-slate-700">Involuntary Payment Failure Rate</label>
-                  <span className="font-bold text-amber-600 text-base">{failureRate}%</span>
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-center text-xs">
+                  <label htmlFor={churnSliderId} className="font-semibold text-gray-700">Payment Failure Rate</label>
+                  <span className="font-bold text-amber-600 text-sm">{failureRate}%</span>
                 </div>
                 <input
                   id={churnSliderId}
@@ -158,18 +157,18 @@ export default function RoiCalculatorPage() {
                   onChange={(e) => setFailureRate(Number(e.target.value))}
                   className="w-full accent-amber-500 cursor-pointer"
                 />
-                <div className="flex justify-between text-[11px] text-slate-400 font-mono">
-                  <span>2% (Industry Low)</span>
+                <div className="flex justify-between text-[10px] text-gray-400 font-mono">
+                  <span>2% (Low)</span>
                   <span>8% (Average SaaS)</span>
-                  <span>20% (High Volatility)</span>
+                  <span>20% (High)</span>
                 </div>
               </div>
 
               {/* Slider 3: Recovery Rate */}
-              <div className="space-y-2">
-                <div className="flex justify-between items-center text-sm">
-                  <label htmlFor={recoverySliderId} className="font-medium text-slate-700">CoverUP Autonomous Recovery Rate</label>
-                  <span className="font-bold text-emerald-600 text-base">{recoveryRate}%</span>
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-center text-xs">
+                  <label htmlFor={recoverySliderId} className="font-semibold text-gray-700">CoverUP Autonomous Recovery Rate</label>
+                  <span className="font-bold text-emerald-600 text-sm">{recoveryRate}%</span>
                 </div>
                 <input
                   id={recoverySliderId}
@@ -181,98 +180,75 @@ export default function RoiCalculatorPage() {
                   onChange={(e) => setRecoveryRate(Number(e.target.value))}
                   className="w-full accent-emerald-600 cursor-pointer"
                 />
-                <div className="flex justify-between text-[11px] text-slate-400 font-mono">
-                  <span>30% (Conservative)</span>
-                  <span>65% (CoverUP Benchmark)</span>
-                  <span>85% (Optimized)</span>
+                <div className="flex justify-between text-[10px] text-gray-400 font-mono">
+                  <span>30% (Standard retry)</span>
+                  <span>65% (AI Multi-Channel)</span>
+                  <span>85% (Optimal)</span>
                 </div>
               </div>
 
               {/* Slider 4: Customer Lifetime */}
-              <div className="space-y-2">
-                <div className="flex justify-between items-center text-sm">
-                  <label htmlFor={ltvSliderId} className="font-medium text-slate-700">Average Customer Lifetime</label>
-                  <span className="font-bold text-slate-900 text-base">{customerLifeMonths} Months</span>
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-center text-xs">
+                  <label htmlFor={ltvSliderId} className="font-semibold text-gray-700">Average Customer Lifetime</label>
+                  <span className="font-bold text-gray-900 text-sm">{customerLifeMonths} months</span>
                 </div>
                 <input
                   id={ltvSliderId}
                   type="range"
-                  min={3}
+                  min={6}
                   max={36}
                   step={1}
                   value={customerLifeMonths}
                   onChange={(e) => setCustomerLifeMonths(Number(e.target.value))}
-                  className="w-full accent-slate-700 cursor-pointer"
+                  className="w-full accent-indigo-600 cursor-pointer"
                 />
-                <div className="flex justify-between text-[11px] text-slate-400 font-mono">
-                  <span>3 Months</span>
-                  <span>14 Months</span>
-                  <span>36 Months</span>
+                <div className="flex justify-between text-[10px] text-gray-400 font-mono">
+                  <span>6 mos</span>
+                  <span>14 mos</span>
+                  <span>36 mos</span>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Right Column: Comparative Chart & Breakdown */}
-        <div className="lg:col-span-6 space-y-6">
+        {/* Chart on Right */}
+        <div className="lg:col-span-6 space-y-4">
           <Card>
-            <CardHeader>
-              <CardTitle className="text-base font-semibold">Revenue Retention Comparison</CardTitle>
-              <CardDescription>Lost Revenue (Without CoverUP) vs Recovered Cashflow</CardDescription>
+            <CardHeader className="pb-3 border-b border-gray-100">
+              <CardTitle className="text-sm font-bold text-gray-900">Cumulative Revenue Impact</CardTitle>
+              <CardDescription>Revenue lost without recovery vs recaptured by CoverUP (₹ Thousands)</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-4">
               <div className="h-64 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={comparisonData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                    <XAxis dataKey="period" tick={{ fontSize: 12 }} stroke="#64748b" />
-                    <YAxis
-                      tick={{ fontSize: 11 }}
-                      stroke="#64748b"
-                      tickFormatter={(val) => `₹${(val / 1000).toFixed(0)}k`}
-                    />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
+                    <XAxis dataKey="period" tick={{ fontSize: 11, fill: '#6B7280' }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: '#6B7280' }} axisLine={false} tickLine={false} />
                     <Tooltip
-                      formatter={(val) => [`₹${Number(val).toLocaleString('en-IN')}`, '']}
-                      contentStyle={{ backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0' }}
+                      formatter={(val: any) => [`₹${Number(val).toLocaleString('en-IN')}k`, '']}
+                      contentStyle={{ backgroundColor: '#FFFFFF', borderRadius: '8px', border: '1px solid #E5E7EB' }}
+                      cursor={{ fill: '#F9FAFB' }}
                     />
-                    <Legend wrapperStyle={{ fontSize: 12, paddingTop: 10 }} />
-                    <Bar dataKey="withoutCoverUP" name="Lost Without Agent" fill="#ef4444" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="recovered" name="Recovered by CoverUP" fill="#10b981" radius={[4, 4, 0, 0]} />
+                    <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
+                    <Bar dataKey="withoutCoverUP" name="Lost Revenue" fill="#EF4444" radius={[4, 4, 0, 0]} barSize={24} />
+                    <Bar dataKey="recovered" name="CoverUP Recaptured" fill="#10B981" radius={[4, 4, 0, 0]} barSize={24} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
 
-              {/* Breakdown Table */}
-              <div className="mt-4 border-t border-slate-100 pt-4 space-y-2 text-xs">
-                <div className="flex justify-between py-1 text-slate-600">
-                  <span>Monthly Involuntary Churn at Risk:</span>
-                  <span className="font-semibold text-red-600">{formatCurrency(monthlyAtRisk)}</span>
-                </div>
-                <div className="flex justify-between py-1 text-slate-600">
-                  <span>Net Revenue Saved Monthly:</span>
-                  <span className="font-semibold text-emerald-600">+{formatCurrency(monthlyRecovered)}</span>
-                </div>
-                <div className="flex justify-between py-1 text-slate-600">
-                  <span>Annualized Churn Reduction:</span>
-                  <span className="font-semibold text-slate-900">{(failureRate * (recoveryRate / 100)).toFixed(1)}% absolute churn drop</span>
-                </div>
+              <div className="pt-3 mt-3 border-t border-gray-100 flex items-center justify-between">
+                <span className="text-xs text-gray-500">Ready to test recovery live?</span>
+                <Link href="/">
+                  <Button variant="default" size="sm" className="gap-1.5 text-xs">
+                    Run Recovery Batch <ArrowRight className="h-3.5 w-3.5" />
+                  </Button>
+                </Link>
               </div>
             </CardContent>
           </Card>
-
-          {/* Quick CTA */}
-          <div className="p-5 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white flex items-center justify-between shadow-md">
-            <div>
-              <p className="font-bold text-base">Test Recovery on Your Data</p>
-              <p className="text-xs text-blue-100 mt-0.5">Run an autonomous batch on your simulated subscriptions now.</p>
-            </div>
-            <Link href="/">
-              <Button variant="outline" className="bg-white text-blue-700 hover:bg-blue-50 border-0 gap-1 text-xs">
-                Open Dashboard <ArrowRight className="h-3.5 w-3.5" />
-              </Button>
-            </Link>
-          </div>
         </div>
       </div>
     </div>

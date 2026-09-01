@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { RecoveryAction } from '@/lib/types';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { Brain, Download, Search, Mail, MessageSquare } from 'lucide-react';
+import { Brain, Download, Search, Mail, MessageSquare, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const OUTCOME_VARIANTS: Record<string, 'success' | 'warning' | 'destructive' | 'default'> = {
@@ -21,8 +21,8 @@ const OUTCOME_VARIANTS: Record<string, 'success' | 'warning' | 'destructive' | '
 const BORDER_VARIANTS: Record<string, string> = {
   success: 'border-l-4 border-l-emerald-500',
   pending: 'border-l-4 border-l-amber-500',
-  failed: 'border-l-4 border-l-red-500',
-  skipped: 'border-l-4 border-l-slate-300',
+  failed: 'border-l-4 border-l-rose-500',
+  skipped: 'border-l-4 border-l-gray-300',
 };
 
 export default function AuditPage() {
@@ -44,7 +44,7 @@ export default function AuditPage() {
           action_type: actionFilter,
           outcome: outcomeFilter,
           page: page.toString(),
-          limit: '100', // Increased for client-side search in hackathon
+          limit: '100',
         });
         const res = await fetch(`/api/audit?${params}`);
         const json = await res.json();
@@ -82,7 +82,6 @@ export default function AuditPage() {
     });
   }, [actions, searchQuery]);
 
-  // Compute stats
   const stats = useMemo(() => {
     if (actions.length === 0) return { total: 0, successRate: 0, avgConfidence: 0, totalRecovered: 0 };
     const successCount = actions.filter(a => a.outcome === 'success').length;
@@ -127,14 +126,14 @@ export default function AuditPage() {
 
     if (action.action_type === 'send_email_reminder' && detail.body) {
       return (
-        <div className="mt-3 border rounded-lg bg-white overflow-hidden shadow-sm">
-          <div className="bg-slate-50 border-b px-4 py-2 flex items-center gap-2">
-            <Mail className="h-4 w-4 text-slate-500" />
-            <span className="text-xs font-medium text-slate-700">Email Preview</span>
+        <div className="mt-3 border border-gray-200 rounded-lg bg-white overflow-hidden shadow-2xs">
+          <div className="bg-gray-50 border-b border-gray-100 px-3.5 py-2 flex items-center gap-2">
+            <Mail className="h-3.5 w-3.5 text-gray-500" />
+            <span className="text-[11px] font-semibold text-gray-700">Email Dispatched</span>
           </div>
-          <div className="p-4 text-sm text-slate-800 whitespace-pre-wrap font-sans">
-            <div className="mb-2 text-xs text-slate-500"><strong>Subject:</strong> {detail.subject || 'Action Required: Update Payment Method'}</div>
-            <div className="pt-2 border-t">{detail.body}</div>
+          <div className="p-3.5 text-xs text-gray-800 whitespace-pre-wrap font-sans">
+            <div className="mb-2 text-[11px] text-gray-500"><strong>Subject:</strong> {detail.subject || 'Action Required: Update Payment Method'}</div>
+            <div className="pt-2 border-t border-gray-100">{detail.body}</div>
           </div>
         </div>
       );
@@ -142,12 +141,12 @@ export default function AuditPage() {
     
     if (action.action_type === 'send_sms_nudge' && detail.body) {
       return (
-        <div className="mt-3 border rounded-lg bg-white overflow-hidden shadow-sm max-w-sm">
-          <div className="bg-blue-50 border-b px-4 py-2 flex items-center gap-2">
-            <MessageSquare className="h-4 w-4 text-blue-600" />
-            <span className="text-xs font-medium text-blue-800">SMS Preview</span>
+        <div className="mt-3 border border-gray-200 rounded-lg bg-white overflow-hidden shadow-2xs max-w-sm">
+          <div className="bg-indigo-50 border-b border-indigo-100 px-3.5 py-2 flex items-center gap-2">
+            <MessageSquare className="h-3.5 w-3.5 text-indigo-600" />
+            <span className="text-[11px] font-semibold text-indigo-900">SMS Nudge Dispatched</span>
           </div>
-          <div className="p-4 text-sm text-slate-800 whitespace-pre-wrap bg-slate-100 rounded-b-lg">
+          <div className="p-3.5 text-xs text-gray-800 whitespace-pre-wrap bg-gray-50">
             {detail.body}
           </div>
         </div>
@@ -155,13 +154,13 @@ export default function AuditPage() {
     }
 
     return (
-      <div className="bg-slate-50 rounded-lg p-3 mt-3">
-        <p className="text-xs font-medium text-slate-500 mb-2">Action Detail</p>
+      <div className="bg-gray-50 rounded-lg p-3 mt-3 border border-gray-200/80">
+        <p className="text-[11px] font-semibold text-gray-500 mb-1.5 uppercase">Action Detail Metadata</p>
         <div className="grid grid-cols-2 gap-2">
           {Object.entries(detail).map(([k, v]) => (
             <div key={k} className="text-xs">
-              <span className="font-medium text-slate-600">{k}: </span>
-              <span className="text-slate-800">{typeof v === 'object' ? JSON.stringify(v) : String(v)}</span>
+              <span className="font-semibold text-gray-600">{k}: </span>
+              <span className="text-gray-900 font-mono text-[11px]">{typeof v === 'object' ? JSON.stringify(v) : String(v)}</span>
             </div>
           ))}
         </div>
@@ -172,29 +171,30 @@ export default function AuditPage() {
   const getConfidenceColor = (conf: number) => {
     if (conf >= 0.8) return 'bg-emerald-500';
     if (conf >= 0.5) return 'bg-amber-500';
-    return 'bg-red-500';
+    return 'bg-rose-500';
   };
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Audit Log</h1>
-          <p className="text-slate-500 mt-1">{total} total actions logged</p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">Audit Trail</h1>
+          <p className="text-xs text-gray-500 mt-0.5">{total} autonomous AI interventions logged</p>
         </div>
-        <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
-          <div className="relative w-full sm:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+        <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full sm:w-auto">
+          <div className="w-full sm:w-56">
             <Input 
-              placeholder="Search by name, email, reasoning..." 
+              icon={<Search className="h-4 w-4" />}
+              placeholder="Search actions..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 w-full"
             />
           </div>
           <Select
             value={actionFilter}
             onChange={(e) => { setActionFilter(e.target.value); setPage(1); }}
+            className="w-full sm:w-36"
           >
             <option value="all">All Actions</option>
             <option value="retry_payment">Retry Payment</option>
@@ -207,6 +207,7 @@ export default function AuditPage() {
           <Select
             value={outcomeFilter}
             onChange={(e) => { setOutcomeFilter(e.target.value); setPage(1); }}
+            className="w-full sm:w-32"
           >
             <option value="all">All Outcomes</option>
             <option value="success">Success</option>
@@ -214,109 +215,112 @@ export default function AuditPage() {
             <option value="failed">Failed</option>
             <option value="skipped">Skipped</option>
           </Select>
-          <Button variant="outline" size="icon" onClick={exportCsv} disabled={actions.length === 0} title="Export CSV">
+          <Button variant="outline" size="icon" onClick={exportCsv} disabled={actions.length === 0} title="Export CSV" className="h-9 w-9 shrink-0">
             <Download className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* 4 Stats Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card>
-          <CardContent className="p-4 flex flex-col justify-center">
-            <p className="text-sm font-medium text-slate-500">Listed Actions</p>
-            <p className="text-2xl font-bold text-slate-900">{stats.total}</p>
+          <CardContent className="p-3.5">
+            <p className="text-xs font-medium text-gray-500">Listed Actions</p>
+            <p className="text-xl font-bold text-gray-900 mt-0.5">{stats.total}</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4 flex flex-col justify-center">
-            <p className="text-sm font-medium text-slate-500">Success Rate</p>
-            <p className="text-2xl font-bold text-emerald-600">{stats.successRate}%</p>
+          <CardContent className="p-3.5">
+            <p className="text-xs font-medium text-emerald-700">Success Rate</p>
+            <p className="text-xl font-bold text-emerald-700 mt-0.5">{stats.successRate}%</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4 flex flex-col justify-center">
-            <p className="text-sm font-medium text-slate-500">Avg Confidence</p>
-            <p className="text-2xl font-bold text-blue-600">{stats.avgConfidence}%</p>
+          <CardContent className="p-3.5">
+            <p className="text-xs font-medium text-indigo-700">Avg AI Confidence</p>
+            <p className="text-xl font-bold text-indigo-600 mt-0.5">{stats.avgConfidence}%</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4 flex flex-col justify-center">
-            <p className="text-sm font-medium text-slate-500">Recovered Here</p>
-            <p className="text-2xl font-bold text-emerald-600">{formatCurrency(stats.totalRecovered)}</p>
+          <CardContent className="p-3.5">
+            <p className="text-xs font-medium text-emerald-700">Recovered Amount</p>
+            <p className="text-xl font-bold text-emerald-700 mt-0.5">{formatCurrency(stats.totalRecovered)}</p>
           </CardContent>
         </Card>
       </div>
 
+      {/* Audit Action Log Table */}
       <Card>
         <CardContent className="p-0">
           {loading ? (
-            <div className="p-6 space-y-4">
-              {[...Array(10)].map((_, i) => <Skeleton key={i} className="h-16" />)}
+            <div className="p-6 space-y-3">
+              {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-14 rounded-lg" />)}
             </div>
           ) : filteredActions.length === 0 ? (
-            <div className="py-12 text-center text-slate-500">
-              No audit entries found. Try adjusting filters or search.
+            <div className="py-12 text-center text-xs text-gray-500">
+              No audit entries found matching filters.
             </div>
           ) : (
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-gray-100">
               {filteredActions.map((action) => {
                 const sub = action.subscriptions;
                 const customer = sub?.customers;
                 const isExpanded = expanded.has(action.id);
-                const borderClass = BORDER_VARIANTS[action.outcome] || 'border-l-4 border-l-slate-300';
+                const borderClass = BORDER_VARIANTS[action.outcome] || 'border-l-4 border-l-gray-300';
                 const failureReason = (action.action_detail as any)?.failure_reason;
 
                 return (
                   <div
                     key={action.id}
-                    className={`px-6 py-4 hover:bg-slate-50 cursor-pointer transition-colors ${borderClass}`}
+                    className={`px-5 py-3.5 hover:bg-gray-50/70 cursor-pointer transition-colors ${borderClass}`}
                     onClick={() => toggleExpand(action.id)}
                   >
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                      <div className="flex items-center gap-3 flex-wrap">
-                        <Badge variant={OUTCOME_VARIANTS[action.outcome] || 'default'}>
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5 flex-wrap">
+                        <Badge variant={OUTCOME_VARIANTS[action.outcome] || 'default'} className="text-[10px]">
                           {action.outcome}
                         </Badge>
-                        <span className="text-sm font-semibold text-slate-800">
-                          {action.action_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                        <span className="text-xs font-bold text-gray-900 capitalize">
+                          {action.action_type.replace(/_/g, ' ')}
                         </span>
-                        <span className="text-sm text-slate-500 font-medium">
-                          {customer?.name || 'Unknown'}
+                        <span className="text-xs text-gray-600">
+                          {customer?.name || 'Customer'}
                         </span>
                         {sub && (
-                          <span className="text-xs px-2 py-0.5 bg-slate-100 rounded text-slate-600">{sub.plan_name}</span>
+                          <span className="text-[10px] px-2 py-0.5 bg-gray-100 rounded-md text-gray-600 font-mono">
+                            {sub.plan_name}
+                          </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-3">
                         {action.amount_recovered > 0 && (
-                          <span className="text-sm font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                          <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
                             +{formatCurrency(action.amount_recovered)}
                           </span>
                         )}
-                        <span className="text-xs text-slate-400 whitespace-nowrap">{formatDate(action.created_at)}</span>
+                        <span className="text-[11px] text-gray-400 whitespace-nowrap">{formatDate(action.created_at)}</span>
+                        {isExpanded ? <ChevronUp className="h-3.5 w-3.5 text-gray-400" /> : <ChevronDown className="h-3.5 w-3.5 text-gray-400" />}
                       </div>
                     </div>
 
                     {/* Expanded detail */}
                     {isExpanded && (
-                      <div className="mt-4 pl-0 md:pl-4 space-y-4">
+                      <div className="mt-3 pl-0 md:pl-3 space-y-3">
                         {failureReason && (
-                          <div className="text-xs text-red-600 bg-red-50 p-2 rounded inline-block">
-                            <span className="font-semibold">Triggered by Failure:</span> {failureReason.replace(/_/g, ' ')}
+                          <div className="text-[11px] text-rose-700 bg-rose-50 p-2 rounded-lg border border-rose-200 inline-block font-medium">
+                            <span>Trigger:</span> {failureReason.replace(/_/g, ' ')}
                           </div>
                         )}
                         
                         {action.ai_reasoning && (
-                          <div className="flex items-start gap-3 bg-blue-50/50 rounded-xl p-4 border border-blue-100">
-                            <div className="bg-blue-100 p-2 rounded-lg">
-                              <Brain className="h-5 w-5 text-blue-600" />
-                            </div>
+                          <div className="flex items-start gap-2.5 bg-indigo-50/40 rounded-xl p-3.5 border border-indigo-100">
+                            <Brain className="h-4 w-4 text-indigo-600 shrink-0 mt-0.5" />
                             <div className="flex-1">
                               <div className="flex items-center justify-between mb-1">
-                                <p className="text-xs font-bold text-blue-800">AI Reasoning</p>
+                                <p className="text-xs font-bold text-indigo-950">AI Strategic Decision</p>
                                 <div className="flex items-center gap-2">
-                                  <span className="text-[10px] font-medium text-slate-500">Confidence: {(action.ai_confidence * 100).toFixed(0)}%</span>
-                                  <div className="w-16 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                                  <span className="text-[10px] font-medium text-gray-500">Confidence: {(action.ai_confidence * 100).toFixed(0)}%</span>
+                                  <div className="w-14 h-1.5 bg-gray-200 rounded-full overflow-hidden">
                                     <div 
                                       className={`h-full ${getConfidenceColor(action.ai_confidence)}`} 
                                       style={{ width: `${action.ai_confidence * 100}%` }}
@@ -324,17 +328,17 @@ export default function AuditPage() {
                                   </div>
                                 </div>
                               </div>
-                              <p className="text-sm text-slate-700 leading-relaxed">{action.ai_reasoning}</p>
+                              <p className="text-xs text-gray-700 leading-relaxed">{action.ai_reasoning}</p>
                             </div>
                           </div>
                         )}
                         
                         {action.action_detail && Object.keys(action.action_detail).length > 0 && renderActionDetail(action)}
                         
-                        <div className="flex gap-4 text-xs text-slate-400 pt-2 border-t border-slate-100">
-                          <span>Retry #{action.retry_count}</span>
-                          <span>Batch: <span className="font-mono">{action.batch_id?.slice(0, 8) || 'N/A'}</span></span>
-                          <span>Sub: <span className="font-mono">{action.subscription_id.slice(0, 8)}</span></span>
+                        <div className="flex gap-4 text-[10px] text-gray-400 pt-2 border-t border-gray-100 font-mono">
+                          <span>Retry Count: #{action.retry_count}</span>
+                          <span>Batch: {action.batch_id?.slice(0, 8) || 'Standalone Webhook'}</span>
+                          <span>Subscription ID: {action.subscription_id.slice(0, 8)}</span>
                         </div>
                       </div>
                     )}
@@ -347,23 +351,27 @@ export default function AuditPage() {
 
         {/* Pagination */}
         {totalPages > 1 && !searchQuery && (
-          <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between">
-            <p className="text-sm text-slate-500">Page {page} of {totalPages} ({total} total)</p>
+          <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between text-xs">
+            <p className="text-gray-500">Page {page} of {totalPages}</p>
             <div className="flex gap-2">
-              <button
-                className="px-3 py-1 text-sm border rounded-lg disabled:opacity-40"
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs"
                 onClick={(e) => { e.stopPropagation(); setPage(p => p - 1); }}
                 disabled={page <= 1}
               >
                 Previous
-              </button>
-              <button
-                className="px-3 py-1 text-sm border rounded-lg disabled:opacity-40"
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs"
                 onClick={(e) => { e.stopPropagation(); setPage(p => p + 1); }}
                 disabled={page >= totalPages}
               >
                 Next
-              </button>
+              </Button>
             </div>
           </div>
         )}

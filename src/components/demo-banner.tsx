@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Rocket } from 'lucide-react';
+import { X, Sparkles, ArrowRight } from 'lucide-react';
+import Link from 'next/link';
 
 export function DemoBanner() {
   const [isVisible, setIsVisible] = useState(false);
@@ -22,30 +23,36 @@ export function DemoBanner() {
   if (!isVisible) return null;
 
   return (
-    <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 rounded-xl mb-8 shadow-md relative overflow-hidden animate-in slide-in-from-top-4 duration-500">
-      <div className="flex items-center gap-4 pr-8 relative z-10">
-        <div className="bg-white/20 p-2 rounded-full shrink-0">
-          <Rocket className="h-6 w-6 text-white" />
+    <div className="relative mb-6 p-4 rounded-xl border border-gray-200 bg-gray-50/80 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex items-start sm:items-center gap-3">
+        <div className="p-2 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-600 shrink-0 mt-0.5 sm:mt-0">
+          <Sparkles className="h-4 w-4" />
         </div>
         <div>
-          <p className="font-semibold text-white">🚀 Welcome to CoverUP</p>
-          <p className="text-blue-50 text-sm mt-1">
-            Click 'Seed Data' to generate test subscriptions, then 'Run Recovery' to see the AI in action!
+          <h4 className="text-sm font-semibold text-gray-900">
+            Welcome to CoverUP — Autonomous AI Revenue Recovery
+          </h4>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Click <strong>&quot;Seed Data&quot;</strong> to populate curated at-risk subscriptions, then <strong>&quot;Run Recovery&quot;</strong> to watch the agent intercept failed payments in real-time.
           </p>
         </div>
       </div>
-      
-      <button 
-        onClick={handleDismiss}
-        className="absolute top-4 right-4 text-blue-100 hover:text-white transition-colors z-10 p-1 rounded-md hover:bg-white/20"
-        aria-label="Dismiss demo banner"
-      >
-        <X className="h-5 w-5" />
-      </button>
-      
-      {/* Decorative background elements */}
-      <div className="absolute -top-10 -right-10 w-32 h-32 bg-white opacity-5 rounded-full blur-2xl"></div>
-      <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-blue-400 opacity-20 rounded-full blur-2xl"></div>
+
+      <div className="flex items-center gap-3 self-end sm:self-auto shrink-0">
+        <Link
+          href="/demo"
+          className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 hover:underline"
+        >
+          View Demo Guide <ArrowRight className="h-3 w-3" />
+        </Link>
+        <button
+          onClick={handleDismiss}
+          className="p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-200/60 transition-colors"
+          aria-label="Dismiss banner"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
     </div>
   );
 }

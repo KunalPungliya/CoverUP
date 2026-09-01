@@ -17,8 +17,10 @@ const eslintConfig = defineConfig([
     rules: {
       "react/no-unescaped-entities": "off",
       "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/no-empty-object-type": "warn",
       "@typescript-eslint/no-unused-vars": ["warn", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }],
-      "react-hooks/set-state-in-effect": "warn"
+      "react-hooks/set-state-in-effect": "warn",
+      "react-hooks/purity": "warn"
     }
   }
 ]);
