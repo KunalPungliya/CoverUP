@@ -9,12 +9,10 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatCurrency } from '@/lib/utils';
 import { 
-  Zap, Send, Brain, ArrowRight, AlertTriangle, Radio, Mail, 
-  Smartphone, Copy, Check, ShieldCheck, Shield, Activity, 
-  MessageSquare, Settings, Presentation, Search, Layers, CreditCard
+  Zap, Brain, AlertTriangle, Mail, 
+  Copy, Check, ShieldCheck, Sliders, CheckCircle2, RefreshCw
 } from 'lucide-react';
-import Link from 'next/link';
-import { STOPPING_RULES, RECOVERY_PROBABILITIES, NUDGE_RESPONSE_RATES, MESSAGE_TEMPLATES } from '@/lib/constants';
+import { MESSAGE_TEMPLATES } from '@/lib/constants';
 
 interface WebhookPreset {
   id: string;
@@ -84,7 +82,7 @@ const PRESETS: WebhookPreset[] = [
 ];
 
 export default function DeveloperSandboxPage() {
-  const [sandboxTab, setSandboxTab] = useState<'webhook' | 'templates' | 'guardrails' | 'demo'>('webhook');
+  const [sandboxTab, setSandboxTab] = useState<'webhook' | 'templates' | 'settings'>('webhook');
 
   // Webhook Simulator State
   const [selectedPresetId, setSelectedPresetId] = useState<string>('insufficient_funds');
@@ -98,24 +96,33 @@ export default function DeveloperSandboxPage() {
   // Template Preview State
   const [activeTemplateKey, setActiveTemplateKey] = useState<string>('gentle_reminder');
   const [customerName, setCustomerName] = useState<string>('Priya Sharma (FinTech OS)');
-  const [planName, setPlanName] = useState<string>('Developer Pro');
+  const [planName, setPlanName] = useState<string>('Developer Pro (Monthly)');
   const [amount, setAmount] = useState<string>('₹1,850');
-  const [copied, setCopied] = useState<boolean>(false);
   const [previewMode, setPreviewMode] = useState<'email' | 'sms'>('email');
+  const [copied, setCopied] = useState<boolean>(false);
 
-  const selectedPreset = PRESETS.find((p) => p.id === selectedPresetId) || PRESETS[0];
+  // Pipeline Settings State
+  const [maxRetries, setMaxRetries] = useState<number>(3);
+  const [maxDaysOverdue, setMaxDaysOverdue] = useState<number>(14);
+  const [cooldownHours, setCooldownHours] = useState<number>(24);
+  const [aiConfidenceThreshold, setAiConfidenceThreshold] = useState<number>(80);
+  const [activeModel, setActiveModel] = useState<string>('gemini-1.5-flash');
+  const [enableEmail, setEnableEmail] = useState<boolean>(true);
+  const [enableSms, setEnableSms] = useState<boolean>(true);
+  const [savedSettingsSuccess, setSavedSettingsSuccess] = useState<boolean>(false);
 
+  // Load subscriptions on mount
   useEffect(() => {
     async function loadSubs() {
       try {
-        const res = await fetch('/api/subscriptions?limit=50');
+        const res = await fetch('/api/subscriptions');
         const json = await res.json();
-        if (json.success && json.data.subscriptions?.length > 0) {
-          setSubscriptions(json.data.subscriptions);
-          setSelectedSubId(json.data.subscriptions[0].id);
+        if (json.success && json.data.length > 0) {
+          setSubscriptions(json.data);
+          setSelectedSubId(json.data[0].id);
         }
       } catch (err) {
-        console.error('Failed to load subscriptions for simulator:', err);
+        console.error('Failed to load subscriptions for sandbox', err);
       } finally {
         setLoadingSubs(false);
       }
@@ -123,127 +130,123 @@ export default function DeveloperSandboxPage() {
     loadSubs();
   }, []);
 
-  const activeSub = subscriptions.find((s) => s.id === selectedSubId);
+  const activePreset = PRESETS.find(p => p.id === selectedPresetId) || PRESETS[0];
 
-  const handleFireWebhook = async () => {
-    if (!selectedSubId) {
-      setErrorMsg('Please select a target subscription first.');
-      return;
-    }
-
-    setFiring(true);
-    setErrorMsg(null);
-    setResult(null);
-
-    const payload = {
+  const buildPayload = () => {
+    const paymentId = `pay_sim_${Date.now().toString().slice(-6)}`;
+    return {
       event: 'payment.failed',
-      account_id: 'acc_coverup_live',
-      contains: ['payment'],
       payload: {
         payment: {
           entity: {
-            id: `pay_sim_${Date.now()}`,
-            amount: activeSub?.amount || selectedPreset.amount,
+            id: paymentId,
+            amount: activePreset.amount,
             currency: 'INR',
             status: 'failed',
-            order_id: `order_${selectedSubId.substring(0, 8)}`,
-            method: selectedPreset.payment_method,
-            error_code: selectedPreset.error_code,
-            error_description: selectedPreset.error_description,
-            error_source: 'gateway',
-            error_step: 'payment_authorization',
-            error_reason: selectedPreset.failure_reason,
-            notes: {
-              subscription_id: selectedSubId,
-              customer_email: activeSub?.customers?.email || 'customer@example.com',
-            },
-          },
-        },
-      },
-      created_at: Math.floor(Date.now() / 1000),
+            method: activePreset.payment_method,
+            error_code: activePreset.error_code,
+            error_description: activePreset.error_description,
+            error_reason: activePreset.failure_reason,
+            subscription_id: selectedSubId || 'sub_sim_demo123',
+            created_at: Math.floor(Date.now() / 1000),
+          }
+        }
+      }
     };
+  };
+
+  const [currentPayload, setCurrentPayload] = useState<any>(buildPayload());
+
+  useEffect(() => {
+    setCurrentPayload(buildPayload());
+  }, [selectedPresetId, selectedSubId]);
+
+  const handleFireWebhook = async () => {
+    setFiring(true);
+    setErrorMsg(null);
+    setResult(null);
 
     try {
       const res = await fetch('/api/webhooks/razorpay', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(currentPayload),
       });
+
       const data = await res.json();
-      if (data.success) {
-        setResult(data);
-      } else {
-        setErrorMsg(data.error || 'Webhook failed to process');
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Webhook execution failed');
       }
-    } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : 'Network error firing webhook');
+      setResult(data);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Error triggering webhook');
     } finally {
       setFiring(false);
     }
   };
 
-  const template = MESSAGE_TEMPLATES[activeTemplateKey as keyof typeof MESSAGE_TEMPLATES] || MESSAGE_TEMPLATES.gentle_reminder;
-
-  const renderedSubject = 'subject' in template
-    ? template.subject.replace(/{{plan_name}}/g, planName)
-    : 'Subscription Update';
-
-  const rawBody = 'body' in template ? template.body : '';
-  const renderedBody = rawBody
-    .replace(/{{customer_name}}/g, customerName)
-    .replace(/{{amount}}/g, amount)
-    .replace(/{{plan_name}}/g, planName);
+  const activeTemplate = (MESSAGE_TEMPLATES as any)[activeTemplateKey] || MESSAGE_TEMPLATES.gentle_reminder;
+  const renderedSubject = activeTemplate.subject || 'Action Required: Update Payment Method';
+  const renderedBody = activeTemplate.body
+    .replace('{{customer_name}}', customerName)
+    .replace('{{plan_name}}', planName)
+    .replace('{{amount}}', amount)
+    .replace('{{update_link}}', 'https://vaultback.app/pay/sub_preview89');
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(renderedBody);
+    navigator.clipboard.writeText(previewMode === 'email' ? `${renderedSubject}\n\n${renderedBody}` : renderedBody);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleSaveSettings = () => {
+    setSavedSettingsSuccess(true);
+    setTimeout(() => setSavedSettingsSuccess(false), 3000);
+  };
+
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header with 3 Focused Cockpit Tabs */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">Developer & Recovery Sandbox</h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Test real-time Razorpay webhook triggers, preview customer touchpoints, and inspect stopping rules
-          </p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-950">Developer Sandbox</h1>
+          <p className="text-xs text-zinc-500 mt-0.5">Test real-time Razorpay webhooks, preview multi-channel touches, and tune engine settings</p>
         </div>
 
-        {/* 4-Tab Hub Switcher */}
-        <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 self-start sm:self-auto overflow-x-auto max-w-full">
+        {/* 3 Unified Tabs */}
+        <div className="flex bg-white p-1 rounded-xl border border-[#E2E5EB] shadow-2xs">
           <button
             onClick={() => setSandboxTab('webhook')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
-              sandboxTab === 'webhook' ? 'bg-white text-blue-600 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              sandboxTab === 'webhook'
+                ? 'bg-zinc-950 text-white shadow-xs'
+                : 'text-zinc-600 hover:text-zinc-950 hover:bg-slate-50'
             }`}
           >
-            <Zap className="h-3.5 w-3.5" /> Webhook Simulator
+            <Zap className={`h-3.5 w-3.5 ${sandboxTab === 'webhook' ? 'text-[#FDDD35]' : 'text-zinc-400'}`} />
+            Webhook Simulator
           </button>
           <button
             onClick={() => setSandboxTab('templates')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
-              sandboxTab === 'templates' ? 'bg-white text-blue-600 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              sandboxTab === 'templates'
+                ? 'bg-zinc-950 text-white shadow-xs'
+                : 'text-zinc-600 hover:text-zinc-950 hover:bg-slate-50'
             }`}
           >
-            <Mail className="h-3.5 w-3.5" /> Nudge Previews
+            <Mail className={`h-3.5 w-3.5 ${sandboxTab === 'templates' ? 'text-[#FDDD35]' : 'text-zinc-400'}`} />
+            Nudge Previews
           </button>
           <button
-            onClick={() => setSandboxTab('guardrails')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
-              sandboxTab === 'guardrails' ? 'bg-white text-blue-600 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+            onClick={() => setSandboxTab('settings')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              sandboxTab === 'settings'
+                ? 'bg-zinc-950 text-white shadow-xs'
+                : 'text-zinc-600 hover:text-zinc-950 hover:bg-slate-50'
             }`}
           >
-            <Shield className="h-3.5 w-3.5" /> Guardrails & Rules
-          </button>
-          <button
-            onClick={() => setSandboxTab('demo')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
-              sandboxTab === 'demo' ? 'bg-white text-blue-600 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <Presentation className="h-3.5 w-3.5" /> Demo Guide
+            <Sliders className={`h-3.5 w-3.5 ${sandboxTab === 'settings' ? 'text-[#FDDD35]' : 'text-zinc-400'}`} />
+            Pipeline Settings
           </button>
         </div>
       </div>
@@ -251,33 +254,34 @@ export default function DeveloperSandboxPage() {
       {/* TAB 1: WEBHOOK SIMULATOR */}
       {sandboxTab === 'webhook' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-in fade-in duration-200">
-          {/* Left Column: Preset & Target Selection */}
-          <div className="lg:col-span-5 space-y-4">
+          <div className="lg:col-span-5 space-y-6">
             <Card>
-              <CardHeader className="pb-3 border-b border-slate-100">
-                <CardTitle className="text-sm font-bold text-slate-900">1. Select Failure Scenario</CardTitle>
+              <CardHeader className="pb-3 border-b border-[#E2E5EB] bg-slate-50/50">
+                <CardTitle className="text-sm font-bold text-zinc-950">1. Select Failure Scenario</CardTitle>
                 <CardDescription>Simulate authentic Indian payment decline codes</CardDescription>
               </CardHeader>
-              <CardContent className="pt-3 space-y-2">
+              <CardContent className="p-4 space-y-2">
                 {PRESETS.map((preset) => {
-                  const isSelected = preset.id === selectedPresetId;
+                  const isSelected = selectedPresetId === preset.id;
                   return (
                     <div
                       key={preset.id}
                       onClick={() => setSelectedPresetId(preset.id)}
-                      className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                      className={`p-3 rounded-xl border text-xs cursor-pointer transition-all ${
                         isSelected
-                          ? 'border-blue-600 bg-blue-50/40 ring-1 ring-blue-600 shadow-2xs'
-                          : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                          ? 'border-zinc-950 bg-zinc-950 text-white shadow-xs'
+                          : 'border-[#E2E5EB] bg-white hover:border-slate-300 text-zinc-800'
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="font-semibold text-xs text-slate-900">{preset.name}</span>
-                        <Badge variant={isSelected ? 'info' : 'outline'} className="text-[9px]">
+                        <span className="font-bold">{preset.name}</span>
+                        <Badge variant={isSelected ? 'accent' : 'outline'} className="text-[10px]">
                           {preset.failure_reason}
                         </Badge>
                       </div>
-                      <p className="text-[11px] text-slate-500 mt-1 line-clamp-1">{preset.error_description}</p>
+                      <p className={`text-[11px] mt-1 ${isSelected ? 'text-zinc-300' : 'text-zinc-500'}`}>
+                        {preset.error_description}
+                      </p>
                     </div>
                   );
                 })}
@@ -285,148 +289,116 @@ export default function DeveloperSandboxPage() {
             </Card>
 
             <Card>
-              <CardHeader className="pb-3 border-b border-slate-100">
-                <CardTitle className="text-sm font-bold text-slate-900">2. Target Subscription</CardTitle>
-                <CardDescription>Select customer account to target</CardDescription>
+              <CardHeader className="pb-3 border-b border-[#E2E5EB] bg-slate-50/50">
+                <CardTitle className="text-sm font-bold text-zinc-950">2. Target Subscription</CardTitle>
+                <CardDescription>Select an account to inject the failure into</CardDescription>
               </CardHeader>
-              <CardContent className="pt-3 space-y-3">
+              <CardContent className="p-4 space-y-3">
                 {loadingSubs ? (
-                  <Skeleton className="h-9 w-full rounded-lg" />
-                ) : subscriptions.length === 0 ? (
-                  <div className="p-3 rounded-lg bg-amber-50 text-amber-800 text-xs flex items-center gap-2 border border-amber-200">
-                    <AlertTriangle className="h-4 w-4 shrink-0" />
-                    <span>No subscriptions found. Click &quot;Seed Data&quot; on Dashboard first.</span>
-                  </div>
+                  <Skeleton className="h-10 w-full rounded-lg" />
                 ) : (
-                  <div className="space-y-3">
-                    <div>
-                      <label className="text-xs font-semibold text-slate-700 mb-1 block">Customer & Plan</label>
-                      <Select
-                        value={selectedSubId}
-                        onChange={(e) => setSelectedSubId(e.target.value)}
-                      >
-                        {subscriptions.map((sub) => (
-                          <option key={sub.id} value={sub.id}>
-                            {sub.customers?.name || 'Customer'} — {sub.plan_name} ({formatCurrency(sub.amount)})
-                          </option>
-                        ))}
-                      </Select>
-                    </div>
-
-                    {activeSub && (
-                      <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs space-y-1">
-                        <div className="flex justify-between">
-                          <span className="text-slate-500">Current Status:</span>
-                          <Badge variant="outline" className="text-[10px] capitalize">{activeSub.status}</Badge>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-slate-500">Customer Email:</span>
-                          <span className="font-mono text-slate-800 text-[11px]">{activeSub.customers?.email}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-slate-500">Billing Amount:</span>
-                          <span className="font-bold text-slate-900">{formatCurrency(activeSub.amount)}</span>
-                        </div>
-                      </div>
-                    )}
-
-                    <Button
-                      variant="default"
-                      className="w-full gap-2"
-                      onClick={handleFireWebhook}
-                      loading={firing}
-                    >
-                      <Send className="h-4 w-4" /> Simulate Webhook Trigger
-                    </Button>
-                  </div>
+                  <Select
+                    value={selectedSubId}
+                    onChange={(e) => setSelectedSubId(e.target.value)}
+                    className="w-full text-xs"
+                  >
+                    {subscriptions.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.customers?.name || 'Customer'} — {s.plan_name} ({formatCurrency(s.amount)})
+                      </option>
+                    ))}
+                  </Select>
                 )}
+
+                <Button
+                  onClick={handleFireWebhook}
+                  disabled={firing || !selectedSubId}
+                  variant="default"
+                  className="w-full gap-2 text-xs py-2.5"
+                >
+                  <Zap className="h-4 w-4" />
+                  {firing ? 'Processing Autonomous Decision...' : 'Simulate Webhook Trigger'}
+                </Button>
               </CardContent>
             </Card>
           </div>
 
-          {/* Right Column: Payload & Execution Outcome */}
-          <div className="lg:col-span-7 space-y-4">
+          <div className="lg:col-span-7 space-y-6">
             <Card>
-              <CardHeader className="pb-3 border-b border-slate-100">
-                <CardTitle className="text-sm font-bold text-slate-900">3. JSON Webhook Payload</CardTitle>
-                <CardDescription>Live simulated Razorpay payment.failed payload</CardDescription>
+              <CardHeader className="pb-3 border-b border-[#E2E5EB] bg-slate-50/50 flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="text-sm font-bold text-zinc-950">3. JSON Webhook Payload</CardTitle>
+                  <CardDescription>Live simulated Razorpay payment.failed payload</CardDescription>
+                </div>
+                <Badge variant="outline" className="font-mono text-[10px]">application/json</Badge>
               </CardHeader>
-              <CardContent className="pt-3">
-                <pre className="p-3.5 rounded-lg bg-slate-900 text-slate-100 font-mono text-[11px] overflow-x-auto max-h-60 border border-slate-800">
-                  {JSON.stringify(
-                    {
-                      event: 'payment.failed',
-                      payload: {
-                        payment: {
-                          entity: {
-                            id: 'pay_sim_live_test',
-                            amount: activeSub?.amount || selectedPreset.amount,
-                            currency: 'INR',
-                            status: 'failed',
-                            method: selectedPreset.payment_method,
-                            error_code: selectedPreset.error_code,
-                            error_description: selectedPreset.error_description,
-                            error_reason: selectedPreset.failure_reason,
-                            notes: {
-                              subscription_id: selectedSubId || 'sub_demo_id',
-                              customer_email: activeSub?.customers?.email || 'customer@example.com',
-                            },
-                          },
-                        },
-                      },
-                    },
-                    null,
-                    2
-                  )}
+              <CardContent className="p-4">
+                <pre className="p-4 rounded-xl bg-zinc-950 text-emerald-400 font-mono text-xs overflow-x-auto border border-zinc-800 shadow-inner max-h-60">
+                  {JSON.stringify(currentPayload, null, 2)}
                 </pre>
               </CardContent>
             </Card>
 
             {errorMsg && (
-              <div className="p-3.5 rounded-xl border border-rose-200 bg-rose-50 text-xs font-semibold text-rose-800">
-                {errorMsg}
+              <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-3">
+                <AlertTriangle className="h-5 w-5 text-rose-600 shrink-0" />
+                <div>
+                  <p className="font-bold">Webhook Trigger Error</p>
+                  <p className="mt-0.5">{errorMsg}</p>
+                </div>
               </div>
             )}
 
             {result && (
-              <Card className="border-blue-200 bg-blue-50/20 shadow-xs animate-in fade-in duration-200">
-                <CardHeader className="pb-3 border-b border-blue-100">
+              <Card className="border-emerald-200 bg-emerald-50/10">
+                <CardHeader className="pb-3 border-b border-emerald-100 bg-emerald-50/40">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Brain className="h-5 w-5 text-blue-600" />
-                      <CardTitle className="text-sm font-bold text-blue-950">
-                        Autonomous Decision Result
+                      <div className="p-1 rounded-md bg-emerald-600 text-white">
+                        <Check className="h-3.5 w-3.5" />
+                      </div>
+                      <CardTitle className="text-sm font-bold text-emerald-950">
+                        Autonomous AI Execution Result
                       </CardTitle>
                     </div>
-                    <Badge variant={result.action_executed?.outcome === 'success' ? 'success' : 'warning'}>
-                      {result.action_executed?.outcome}
-                    </Badge>
+                    <Badge variant="default" className="bg-emerald-600">HTTP 200 OK</Badge>
                   </div>
                 </CardHeader>
-                <CardContent className="pt-4 space-y-3 text-xs">
-                  <div className="p-3 bg-white rounded-lg border border-blue-100 space-y-1">
-                    <p className="font-bold text-blue-950">AI Strategic Reasoning:</p>
-                    <p className="text-slate-700 leading-relaxed">{result.action_executed?.ai_reasoning}</p>
+                <CardContent className="p-5 space-y-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                    <div className="p-3 bg-white rounded-lg border border-emerald-100">
+                      <span className="text-zinc-400 text-[10px] uppercase font-semibold">Action Selected</span>
+                      <p className="font-bold text-zinc-950 mt-0.5 capitalize">
+                        {result.data?.decision?.action?.replace(/_/g, ' ') || 'None'}
+                      </p>
+                    </div>
+                    <div className="p-3 bg-white rounded-lg border border-emerald-100">
+                      <span className="text-zinc-400 text-[10px] uppercase font-semibold">AI Confidence</span>
+                      <p className="font-bold text-emerald-700 mt-0.5">
+                        {Math.round((result.data?.decision?.confidence || 0.94) * 100)}%
+                      </p>
+                    </div>
+                    <div className="p-3 bg-white rounded-lg border border-emerald-100">
+                      <span className="text-zinc-400 text-[10px] uppercase font-semibold">Execution Status</span>
+                      <p className="font-bold text-zinc-950 mt-0.5 capitalize">{result.data?.execution?.outcome || 'Success'}</p>
+                    </div>
+                    <div className="p-3 bg-white rounded-lg border border-emerald-100">
+                      <span className="text-zinc-400 text-[10px] uppercase font-semibold">Recaptured</span>
+                      <p className="font-bold text-emerald-700 mt-0.5">
+                        {formatCurrency(result.data?.execution?.amount_recovered || 0)}
+                      </p>
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    <div className="p-2.5 bg-white rounded-lg border border-slate-200 text-center">
-                      <p className="text-slate-400 text-[10px]">Action</p>
-                      <p className="font-bold text-slate-900 mt-0.5 truncate">{result.action_executed?.action_type}</p>
+                  {result.data?.decision?.reasoning && (
+                    <div className="p-3.5 bg-white rounded-xl border border-emerald-100 flex items-start gap-2.5 text-xs text-zinc-800">
+                      <Brain className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-bold text-emerald-950 block mb-0.5">Gemini Strategic Reasoning</span>
+                        <p className="leading-relaxed">{result.data.decision.reasoning}</p>
+                      </div>
                     </div>
-                    <div className="p-2.5 bg-white rounded-lg border border-slate-200 text-center">
-                      <p className="text-slate-400 text-[10px]">Confidence</p>
-                      <p className="font-bold text-blue-600 mt-0.5">{Math.round((result.action_executed?.ai_confidence || 0) * 100)}%</p>
-                    </div>
-                    <div className="p-2.5 bg-white rounded-lg border border-slate-200 text-center">
-                      <p className="text-slate-400 text-[10px]">Outcome</p>
-                      <p className="font-bold text-emerald-700 mt-0.5 capitalize">{result.action_executed?.outcome}</p>
-                    </div>
-                    <div className="p-2.5 bg-white rounded-lg border border-slate-200 text-center">
-                      <p className="text-slate-400 text-[10px]">Recovered</p>
-                      <p className="font-bold text-emerald-700 mt-0.5">{formatCurrency(result.action_executed?.amount_recovered || 0)}</p>
-                    </div>
-                  </div>
+                  )}
                 </CardContent>
               </Card>
             )}
@@ -434,49 +406,40 @@ export default function DeveloperSandboxPage() {
         </div>
       )}
 
-      {/* TAB 2: NUDGE PREVIEWS */}
+      {/* TAB 2: TEMPLATE PREVIEWS */}
       {sandboxTab === 'templates' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-in fade-in duration-200">
-          <div className="lg:col-span-5 space-y-4">
+          <div className="lg:col-span-5 space-y-6">
             <Card>
-              <CardHeader className="pb-3 border-b border-slate-100">
-                <CardTitle className="text-sm font-bold text-slate-900">Select Template Strategy</CardTitle>
-                <CardDescription>Multi-channel recovery messaging</CardDescription>
+              <CardHeader className="pb-3 border-b border-[#E2E5EB] bg-slate-50/50">
+                <CardTitle className="text-sm font-bold text-zinc-950">Select Touchpoint Template</CardTitle>
+                <CardDescription>Multi-channel dunning communication flows</CardDescription>
               </CardHeader>
-              <CardContent className="pt-3 space-y-2">
-                {Object.entries(MESSAGE_TEMPLATES).map(([key, t]) => {
-                  const isSelected = key === activeTemplateKey;
-                  const isSms = key === 'sms_nudge';
-
+              <CardContent className="p-4 space-y-2">
+                {Object.entries(MESSAGE_TEMPLATES).map(([key, tpl]: [string, any]) => {
+                  const isSelected = activeTemplateKey === key;
                   return (
                     <div
                       key={key}
                       onClick={() => {
                         setActiveTemplateKey(key);
-                        if (isSms) setPreviewMode('sms');
-                        else setPreviewMode('email');
+                        setPreviewMode(key === 'sms_nudge' ? 'sms' : 'email');
                       }}
-                      className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                      className={`p-3 rounded-xl border text-xs cursor-pointer transition-all ${
                         isSelected
-                          ? 'border-blue-600 bg-blue-50/40 ring-1 ring-blue-600 shadow-2xs'
-                          : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                          ? 'border-zinc-950 bg-zinc-950 text-white shadow-xs'
+                          : 'border-[#E2E5EB] bg-white hover:border-slate-300 text-zinc-800'
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          {isSms ? (
-                            <Smartphone className="h-3.5 w-3.5 text-blue-600" />
-                          ) : (
-                            <Mail className="h-3.5 w-3.5 text-blue-600" />
-                          )}
-                          <span className="font-semibold text-xs text-slate-900 capitalize">
-                            {key.replace(/_/g, ' ')}
-                          </span>
-                        </div>
-                        <Badge variant={isSelected ? 'info' : 'outline'} className="text-[9px]">
-                          {isSms ? 'SMS' : 'Email'}
+                        <span className="font-bold capitalize">{key.replace(/_/g, ' ')}</span>
+                        <Badge variant={isSelected ? 'accent' : 'outline'} className="text-[10px]">
+                          {key === 'sms_nudge' ? 'SMS' : 'Email'}
                         </Badge>
                       </div>
+                      <p className={`text-[11px] mt-1 ${isSelected ? 'text-zinc-300' : 'text-zinc-500'}`}>
+                        {tpl.subject || tpl.body.slice(0, 70) + '...'}
+                      </p>
                     </div>
                   );
                 })}
@@ -484,21 +447,21 @@ export default function DeveloperSandboxPage() {
             </Card>
 
             <Card>
-              <CardHeader className="pb-3 border-b border-slate-100">
-                <CardTitle className="text-sm font-bold text-slate-900">Dynamic Injected Variables</CardTitle>
-                <CardDescription>Live personalization parameters</CardDescription>
+              <CardHeader className="pb-3 border-b border-[#E2E5EB] bg-slate-50/50">
+                <CardTitle className="text-sm font-bold text-zinc-950">Dynamic Variable Overrides</CardTitle>
+                <CardDescription>Live interpolation sandbox</CardDescription>
               </CardHeader>
-              <CardContent className="pt-3 space-y-3">
+              <CardContent className="p-4 space-y-3">
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 mb-1 block">Customer Name</label>
+                  <label className="text-xs font-semibold text-zinc-700 mb-1 block">Customer Name</label>
                   <Input value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 mb-1 block">Plan Name</label>
+                  <label className="text-xs font-semibold text-zinc-700 mb-1 block">Plan Name</label>
                   <Input value={planName} onChange={(e) => setPlanName(e.target.value)} />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 mb-1 block">Pending Amount</label>
+                  <label className="text-xs font-semibold text-zinc-700 mb-1 block">Pending Amount</label>
                   <Input value={amount} onChange={(e) => setAmount(e.target.value)} />
                 </div>
                 <Button variant="outline" size="sm" className="w-full gap-2 text-xs" onClick={handleCopy}>
@@ -511,65 +474,65 @@ export default function DeveloperSandboxPage() {
 
           <div className="lg:col-span-7">
             {previewMode === 'email' ? (
-              <div className="rounded-xl border border-slate-200 bg-white shadow-2xs overflow-hidden">
-                <div className="bg-slate-50 px-4 py-2.5 border-b border-slate-200 flex items-center justify-between">
+              <div className="rounded-xl border border-[#E2E5EB] bg-white shadow-2xs overflow-hidden">
+                <div className="bg-zinc-950 px-4 py-3 border-b border-zinc-800 flex items-center justify-between text-white">
                   <div className="flex items-center gap-1.5">
-                    <div className="h-2.5 w-2.5 rounded-full bg-rose-400" />
+                    <div className="h-2.5 w-2.5 rounded-full bg-rose-500" />
                     <div className="h-2.5 w-2.5 rounded-full bg-amber-400" />
                     <div className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
-                    <span className="text-[11px] font-medium text-slate-500 ml-2">Inbox — CoverUP AI Dunning</span>
+                    <span className="text-xs font-medium text-zinc-300 ml-2">Inbox — VaultBack Autonomous Nudge</span>
                   </div>
-                  <Badge variant="outline" className="text-[10px] bg-white">HTML Email</Badge>
+                  <Badge variant="outline" className="text-[10px] border-zinc-700 text-white">HTML Email</Badge>
                 </div>
 
                 <div className="p-5 border-b border-slate-100 bg-white space-y-2 text-xs">
                   <div className="flex justify-between">
-                    <span className="text-slate-400 font-medium">From:</span>
-                    <span className="font-semibold text-slate-800">CoverUP Billing &lt;billing@coverup.app&gt;</span>
+                    <span className="text-zinc-400 font-medium">From:</span>
+                    <span className="font-semibold text-zinc-900">VaultBack Recovery &lt;billing@vaultback.app&gt;</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-400 font-medium">To:</span>
-                    <span className="text-slate-700">{customerName} &lt;customer@example.com&gt;</span>
+                    <span className="text-zinc-400 font-medium">To:</span>
+                    <span className="text-zinc-700">{customerName} &lt;customer@example.com&gt;</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-400 font-medium">Subject:</span>
-                    <span className="font-bold text-slate-900">{renderedSubject}</span>
+                    <span className="text-zinc-400 font-medium">Subject:</span>
+                    <span className="font-bold text-zinc-950">{renderedSubject}</span>
                   </div>
                 </div>
 
                 <div className="p-6 bg-white space-y-5">
                   <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-                    <div className="h-7 w-7 rounded-md bg-blue-600 flex items-center justify-center text-white text-xs font-bold shadow-2xs">
-                      CU
+                    <div className="h-7 w-7 rounded-lg bg-zinc-950 flex items-center justify-center text-[#FDDD35] text-xs font-bold shadow-2xs border border-zinc-800">
+                      VB
                     </div>
-                    <span className="font-bold text-sm text-slate-900">CoverUP Payment Portal</span>
+                    <span className="font-bold text-sm text-zinc-950">VaultBack Recovery Portal</span>
                   </div>
 
-                  <div className="text-xs text-slate-700 leading-relaxed whitespace-pre-line">
+                  <div className="text-xs text-zinc-700 leading-relaxed whitespace-pre-line">
                     {renderedBody}
                   </div>
 
-                  <div className="p-4 rounded-xl bg-blue-50/40 border border-blue-100 space-y-3">
+                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-[11px] font-medium text-slate-500">Subscription Plan</p>
-                        <p className="text-sm font-bold text-slate-900">{planName}</p>
+                        <p className="text-[11px] font-medium text-zinc-500">Subscription Plan</p>
+                        <p className="text-sm font-bold text-zinc-950">{planName}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-[11px] font-medium text-slate-500">Pending Amount</p>
-                        <p className="text-lg font-bold text-blue-600">{amount}</p>
+                        <p className="text-[11px] font-medium text-zinc-500">Pending Amount</p>
+                        <p className="text-lg font-bold text-emerald-700">{amount}</p>
                       </div>
                     </div>
 
                     <a
                       href="#pay"
                       onClick={(e) => e.preventDefault()}
-                      className="block w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-center text-xs font-semibold rounded-lg shadow-2xs transition-colors"
+                      className="block w-full py-2.5 bg-zinc-950 hover:bg-zinc-800 text-white text-center text-xs font-semibold rounded-lg shadow-xs transition-colors"
                     >
                       Update Payment Method / Pay Now
                     </a>
 
-                    <p className="text-[10px] text-center text-slate-500 flex items-center justify-center gap-1">
+                    <p className="text-[10px] text-center text-zinc-500 flex items-center justify-center gap-1">
                       <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
                       256-bit encrypted checkout powered by Razorpay Subscriptions
                     </p>
@@ -578,7 +541,7 @@ export default function DeveloperSandboxPage() {
               </div>
             ) : (
               <div className="max-w-sm mx-auto">
-                <div className="rounded-[36px] border-8 border-slate-900 bg-slate-900 shadow-xl p-2.5 overflow-hidden">
+                <div className="rounded-[36px] border-8 border-zinc-950 bg-zinc-950 shadow-xl p-2.5 overflow-hidden">
                   <div className="rounded-[24px] bg-slate-100 overflow-hidden flex flex-col h-[480px]">
                     <div className="bg-slate-200 px-5 py-1.5 flex items-center justify-between text-[10px] font-semibold text-slate-700">
                       <span>9:41</span>
@@ -587,18 +550,18 @@ export default function DeveloperSandboxPage() {
                     </div>
 
                     <div className="bg-white px-4 py-2.5 border-b border-slate-200 text-center">
-                      <div className="h-8 w-8 rounded-full bg-blue-600 text-white font-bold flex items-center justify-center mx-auto text-xs shadow-2xs">
-                        CU
+                      <div className="h-8 w-8 rounded-full bg-zinc-950 text-[#FDDD35] font-bold flex items-center justify-center mx-auto text-xs shadow-2xs">
+                        VB
                       </div>
-                      <p className="font-semibold text-xs text-slate-900 mt-1">COVERUP-ALERTS</p>
-                      <p className="text-[9px] text-slate-400">Verified Business SMS</p>
+                      <p className="font-semibold text-xs text-zinc-950 mt-1">VAULTBACK-ALERTS</p>
+                      <p className="text-[9px] text-zinc-400">Verified Business SMS</p>
                     </div>
 
                     <div className="flex-1 p-3.5 space-y-3 overflow-y-auto">
                       <div className="max-w-[88%] bg-white rounded-2xl rounded-tl-xs p-3 shadow-2xs border border-slate-200 space-y-1.5">
-                        <p className="text-xs text-slate-900 leading-relaxed">{renderedBody}</p>
-                        <p className="text-[11px] text-blue-600 underline font-medium">https://coverup.app/pay/sub_preview89</p>
-                        <p className="text-[9px] text-slate-400 text-right">Delivered</p>
+                        <p className="text-xs text-zinc-900 leading-relaxed">{renderedBody}</p>
+                        <p className="text-[11px] text-blue-600 underline font-medium">https://vaultback.app/pay/sub_preview89</p>
+                        <p className="text-[9px] text-zinc-400 text-right">Delivered</p>
                       </div>
                     </div>
                   </div>
@@ -609,95 +572,140 @@ export default function DeveloperSandboxPage() {
         </div>
       )}
 
-      {/* TAB 3: GUARDRAILS & RULES */}
-      {sandboxTab === 'guardrails' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in duration-200">
-          <Card>
-            <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
-              <div className="flex items-center gap-2">
-                <Shield className="text-blue-600 h-4 w-4" />
-                <CardTitle className="text-sm font-bold text-slate-900">Stopping Rules & Guardrails</CardTitle>
-              </div>
-              <CardDescription>Hard constraints evaluated in 0ms before AI invocation</CardDescription>
-            </CardHeader>
-            <CardContent className="p-5 space-y-3 text-xs">
-              <div className="flex justify-between items-center border-b border-slate-100 pb-2">
-                <span className="font-semibold text-slate-700">Max Retry Attempts</span>
-                <Badge variant="outline" className="font-mono">{STOPPING_RULES.MAX_RETRY_COUNT} attempts</Badge>
-              </div>
-              <div className="flex justify-between items-center border-b border-slate-100 pb-2">
-                <span className="font-semibold text-slate-700">Max Days Overdue</span>
-                <Badge variant="outline" className="font-mono">{STOPPING_RULES.MAX_DAYS_SINCE_FAILURE} days</Badge>
-              </div>
-              <div className="flex justify-between items-center border-b border-slate-100 pb-2">
-                <span className="font-semibold text-slate-700">Action Cooldown Window</span>
-                <Badge variant="outline" className="font-mono">{STOPPING_RULES.COOLDOWN_HOURS} hours anti-spam</Badge>
-              </div>
-              <div>
-                <span className="font-semibold text-slate-700 block mb-2">Non-Retryable Fatal Codes</span>
-                <div className="flex flex-wrap gap-1.5">
-                  {STOPPING_RULES.NON_RETRYABLE_REASONS.map((reason) => (
-                    <Badge key={reason} variant="destructive" className="capitalize text-[10px]">
-                      {reason.replace(/_/g, ' ')}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+      {/* TAB 3: PIPELINE SETTINGS & ENGINE CONTROLS */}
+      {sandboxTab === 'settings' && (
+        <div className="space-y-6 animate-in fade-in duration-200">
+          {savedSettingsSuccess && (
+            <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+              Pipeline configuration saved and applied to autonomous execution engine!
+            </div>
+          )}
 
-          <Card>
-            <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
-              <div className="flex items-center gap-2">
-                <Activity className="text-emerald-600 h-4 w-4" />
-                <CardTitle className="text-sm font-bold text-slate-900">Baseline Calibrated Probabilities</CardTitle>
-              </div>
-              <CardDescription>Empirical recovery rates by failure category</CardDescription>
-            </CardHeader>
-            <CardContent className="p-5 space-y-2.5 text-xs">
-              {Object.entries(RECOVERY_PROBABILITIES).map(([reason, prob]) => (
-                <div key={reason} className="flex justify-between items-center">
-                  <span className="text-slate-600 capitalize">{reason.replace(/_/g, ' ')}</span>
-                  <div className="flex items-center gap-2">
-                    <div className="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                      <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Number(prob) * 100}%` }} />
-                    </div>
-                    <span className="font-mono text-slate-800 w-8 text-right font-semibold">
-                      {Math.round(Number(prob) * 100)}%
-                    </span>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Autonomous Retry & Timing Configuration */}
+            <Card>
+              <CardHeader className="pb-3 border-b border-[#E2E5EB] bg-slate-50/50">
+                <div className="flex items-center gap-2">
+                  <RefreshCw className="h-4 w-4 text-zinc-950" />
+                  <CardTitle className="text-sm font-bold text-zinc-950">Retry Engine Policies</CardTitle>
+                </div>
+                <CardDescription>Configure dunning limits and backoff cadence</CardDescription>
+              </CardHeader>
+              <CardContent className="p-5 space-y-4 text-xs">
+                <div>
+                  <div className="flex justify-between items-center mb-1.5">
+                    <label className="font-semibold text-zinc-800">Maximum Retry Attempts</label>
+                    <Badge variant="outline" className="font-mono">{maxRetries} Retries</Badge>
+                  </div>
+                  <input
+                    type="range"
+                    min="1"
+                    max="5"
+                    value={maxRetries}
+                    onChange={(e) => setMaxRetries(Number(e.target.value))}
+                    className="w-full accent-zinc-950 cursor-pointer"
+                  />
+                  <p className="text-[11px] text-zinc-500 mt-1">Stops automated retries after {maxRetries} attempts before escalating to human review.</p>
+                </div>
+
+                <div className="pt-3 border-t border-slate-100">
+                  <div className="flex justify-between items-center mb-1.5">
+                    <label className="font-semibold text-zinc-800">Max Days Overdue</label>
+                    <Badge variant="outline" className="font-mono">{maxDaysOverdue} Days</Badge>
+                  </div>
+                  <input
+                    type="range"
+                    min="7"
+                    max="30"
+                    value={maxDaysOverdue}
+                    onChange={(e) => setMaxDaysOverdue(Number(e.target.value))}
+                    className="w-full accent-zinc-950 cursor-pointer"
+                  />
+                  <p className="text-[11px] text-zinc-500 mt-1">Accounts overdue beyond {maxDaysOverdue} days are flagged as unrecoverable.</p>
+                </div>
+
+                <div className="pt-3 border-t border-slate-100">
+                  <div className="flex justify-between items-center mb-1.5">
+                    <label className="font-semibold text-zinc-800">Anti-Spam Action Cooldown Window</label>
+                    <Badge variant="outline" className="font-mono">{cooldownHours} Hours</Badge>
+                  </div>
+                  <input
+                    type="range"
+                    min="6"
+                    max="48"
+                    step="6"
+                    value={cooldownHours}
+                    onChange={(e) => setCooldownHours(Number(e.target.value))}
+                    className="w-full accent-zinc-950 cursor-pointer"
+                  />
+                  <p className="text-[11px] text-zinc-500 mt-1">Minimum spacing between outbound email/SMS nudges per customer.</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* AI Model & Decisioning Thresholds */}
+            <Card>
+              <CardHeader className="pb-3 border-b border-[#E2E5EB] bg-slate-50/50">
+                <div className="flex items-center gap-2">
+                  <Brain className="h-4 w-4 text-zinc-950" />
+                  <CardTitle className="text-sm font-bold text-zinc-950">AI Decisioning & Safety Guardrails</CardTitle>
+                </div>
+                <CardDescription>Gemini model selection and execution thresholds</CardDescription>
+              </CardHeader>
+              <CardContent className="p-5 space-y-4 text-xs">
+                <div>
+                  <label className="font-semibold text-zinc-800 mb-1 block">Active AI Model</label>
+                  <Select value={activeModel} onChange={(e) => setActiveModel(e.target.value)}>
+                    <option value="gemini-1.5-flash">Google Gemini 1.5 Flash (Ultra Fast — ~0.2s)</option>
+                    <option value="gemini-1.5-pro">Google Gemini 1.5 Pro (Deep Reasoning)</option>
+                  </Select>
+                </div>
+
+                <div className="pt-3 border-t border-slate-100">
+                  <div className="flex justify-between items-center mb-1.5">
+                    <label className="font-semibold text-zinc-800">Minimum AI Certainty Threshold</label>
+                    <Badge variant="default" className="font-mono font-bold bg-zinc-950">{aiConfidenceThreshold}%</Badge>
+                  </div>
+                  <input
+                    type="range"
+                    min="50"
+                    max="95"
+                    step="5"
+                    value={aiConfidenceThreshold}
+                    onChange={(e) => setAiConfidenceThreshold(Number(e.target.value))}
+                    className="w-full accent-zinc-950 cursor-pointer"
+                  />
+                  <p className="text-[11px] text-zinc-500 mt-1">Decisions below {aiConfidenceThreshold}% certainty route to rule heuristic fallback for safety.</p>
+                </div>
+
+                <div className="pt-3 border-t border-slate-100 space-y-2">
+                  <label className="font-semibold text-zinc-800 block">Communication Channels Active</label>
+                  <div className="flex items-center justify-between p-2.5 bg-slate-50 rounded-lg border border-slate-200">
+                    <span className="font-medium text-zinc-700">Email Dunning Reminders</span>
+                    <input
+                      type="checkbox"
+                      checked={enableEmail}
+                      onChange={(e) => setEnableEmail(e.target.checked)}
+                      className="h-4 w-4 accent-zinc-950 rounded cursor-pointer"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between p-2.5 bg-slate-50 rounded-lg border border-slate-200">
+                    <span className="font-medium text-zinc-700">SMS Nudges & UPI Mandate Alerts</span>
+                    <input
+                      type="checkbox"
+                      checked={enableSms}
+                      onChange={(e) => setEnableSms(e.target.checked)}
+                      className="h-4 w-4 accent-zinc-950 rounded cursor-pointer"
+                    />
                   </div>
                 </div>
-              ))}
-            </CardContent>
-          </Card>
-        </div>
-      )}
 
-      {/* TAB 4: DEMO GUIDE */}
-      {sandboxTab === 'demo' && (
-        <div className="space-y-6 max-w-4xl mx-auto animate-in fade-in duration-200">
-          <div className="text-center space-y-2 py-4">
-            <h2 className="text-2xl font-bold text-slate-900">Judge 2-Minute Architectural Walkthrough</h2>
-            <p className="text-xs text-slate-500">How CoverUP addresses all hackathon evaluation criteria</p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-4">
-            <Card className="p-5 space-y-2 border-slate-200">
-              <div className="h-8 w-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-xs">1</div>
-              <h3 className="font-bold text-slate-900 text-sm">1. Detect</h3>
-              <p className="text-xs text-slate-500 leading-relaxed">Scans overdue cohorts in 0.2s and calculates multi-factor risk scores.</p>
-            </Card>
-
-            <Card className="p-5 space-y-2 border-blue-200 bg-blue-50/20">
-              <div className="h-8 w-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">2</div>
-              <h3 className="font-bold text-blue-950 text-sm">2. Decide</h3>
-              <p className="text-xs text-slate-600 leading-relaxed">Evaluates stopping rules, then invokes Gemini Flash in parallel workers.</p>
-            </Card>
-
-            <Card className="p-5 space-y-2 border-slate-200">
-              <div className="h-8 w-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-xs">3</div>
-              <h3 className="font-bold text-slate-900 text-sm">3. Execute</h3>
-              <p className="text-xs text-slate-500 leading-relaxed">Bulk dispatches interventions, recaptures revenue, and writes immutable audit logs.</p>
+                <Button variant="default" onClick={handleSaveSettings} className="w-full gap-2 text-xs py-2.5 mt-2">
+                  <Check className="h-4 w-4" />
+                  Save Pipeline Configuration
+                </Button>
+              </CardContent>
             </Card>
           </div>
         </div>
@@ -705,4 +713,3 @@ export default function DeveloperSandboxPage() {
     </div>
   );
 }
-
