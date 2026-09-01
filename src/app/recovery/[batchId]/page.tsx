@@ -15,7 +15,7 @@ const OUTCOME_CONFIG: Record<string, { icon: React.ReactNode; variant: 'success'
   success: { icon: <CheckCircle2 className="h-4 w-4 text-emerald-600" />, variant: 'success' },
   pending: { icon: <Clock className="h-4 w-4 text-amber-600" />, variant: 'warning' },
   failed: { icon: <XCircle className="h-4 w-4 text-rose-600" />, variant: 'destructive' },
-  skipped: { icon: <SkipForward className="h-4 w-4 text-gray-500" />, variant: 'default' },
+  skipped: { icon: <SkipForward className="h-4 w-4 text-slate-500" />, variant: 'default' },
 };
 
 const ACTION_LABELS: Record<string, string> = {
@@ -66,7 +66,7 @@ export default function BatchDetailPage() {
   }
 
   if (!batch) {
-    return <p className="text-gray-500 text-sm">Batch not found.</p>;
+    return <p className="text-slate-500 text-sm">Batch not found.</p>;
   }
 
   const recoveryRate = batch.total_at_risk > 0
@@ -78,13 +78,13 @@ export default function BatchDetailPage() {
       {/* Header */}
       <div className="flex items-center gap-3">
         <Link href="/recovery">
-          <Button variant="ghost" size="icon" className="h-9 w-9 text-gray-500 hover:text-gray-900">
+          <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-500 hover:text-slate-900">
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Batch Details</h1>
-          <p className="text-xs text-gray-400 font-mono mt-0.5">{batch.id}</p>
+          <h1 className="text-2xl font-bold text-slate-900">Batch Details</h1>
+          <p className="text-xs text-slate-400 font-mono mt-0.5">{batch.id}</p>
         </div>
       </div>
 
@@ -92,8 +92,8 @@ export default function BatchDetailPage() {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <Card>
           <CardContent className="p-4 text-center">
-            <p className="text-xs text-gray-500 font-medium">At Risk</p>
-            <p className="text-2xl font-bold text-gray-900 mt-0.5">{batch.total_at_risk}</p>
+            <p className="text-xs text-slate-500 font-medium">At Risk</p>
+            <p className="text-2xl font-bold text-slate-900 mt-0.5">{batch.total_at_risk}</p>
           </CardContent>
         </Card>
         <Card className="border-emerald-200 bg-emerald-50/20">
@@ -104,7 +104,7 @@ export default function BatchDetailPage() {
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <p className="text-xs text-gray-500 font-medium">Unresolved</p>
+            <p className="text-xs text-slate-500 font-medium">Unresolved</p>
             <p className="text-2xl font-bold text-rose-600 mt-0.5">{batch.total_unresolved}</p>
           </CardContent>
         </Card>
@@ -114,10 +114,10 @@ export default function BatchDetailPage() {
             <p className="text-xl font-bold text-emerald-700 mt-0.5">{formatCurrency(batch.total_amount_recovered)}</p>
           </CardContent>
         </Card>
-        <Card className="col-span-2 md:col-span-1 border-indigo-200 bg-indigo-50/20">
+        <Card className="col-span-2 md:col-span-1 border-blue-200 bg-blue-50/20">
           <CardContent className="p-4 text-center">
-            <p className="text-xs text-indigo-700 font-medium">Success Rate</p>
-            <p className="text-2xl font-bold text-indigo-600 mt-0.5">{recoveryRate}%</p>
+            <p className="text-xs text-blue-700 font-medium">Success Rate</p>
+            <p className="text-2xl font-bold text-blue-600 mt-0.5">{recoveryRate}%</p>
           </CardContent>
         </Card>
       </div>
@@ -127,17 +127,17 @@ export default function BatchDetailPage() {
         <CardContent className="p-5">
           <div className="flex justify-between items-center mb-2">
             <div>
-              <p className="text-xs text-gray-500 font-medium uppercase">Batch Recovery Conversion</p>
+              <p className="text-xs text-slate-500 font-medium uppercase">Batch Recovery Conversion</p>
               <div className="flex items-baseline gap-2 mt-0.5">
                 <span className="text-xl font-bold text-emerald-700">{formatCurrency(batch.total_amount_recovered)}</span>
-                <span className="text-xs text-gray-400">/ {formatCurrency(batch.total_amount_at_risk || 0)} total at risk</span>
+                <span className="text-xs text-slate-400">/ {formatCurrency(batch.total_amount_at_risk || 0)} total at risk</span>
               </div>
             </div>
             <div className="text-right">
-              <span className="text-xl font-bold text-indigo-600">{recoveryRate}%</span>
+              <span className="text-xl font-bold text-blue-600">{recoveryRate}%</span>
             </div>
           </div>
-          <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden w-full">
+          <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden w-full">
             <div 
               className="h-full bg-emerald-500 transition-all duration-500"
               style={{ width: `${Math.min(100, Math.max(0, Number(recoveryRate)))}%` }}
@@ -148,9 +148,9 @@ export default function BatchDetailPage() {
 
       {/* Actions Timeline with Filter Buttons */}
       <Card>
-        <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100">
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
           <div>
-            <CardTitle className="text-base font-bold text-gray-900">
+            <CardTitle className="text-base font-bold text-slate-900">
               Recovery Actions ({filter === 'all' ? actions.length : actions.filter(a => a.outcome === filter).length})
             </CardTitle>
             <CardDescription>AI reasoning and execution results</CardDescription>
@@ -170,35 +170,35 @@ export default function BatchDetailPage() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-slate-100">
             {(filter === 'all' ? actions : actions.filter(a => a.outcome === filter)).map((action) => {
               const config = OUTCOME_CONFIG[action.outcome] || OUTCOME_CONFIG.pending;
               const sub = action.subscriptions;
               const customer = sub?.customers;
 
               return (
-                <div key={action.id} className="p-5 hover:bg-gray-50/70 transition-colors">
+                <div key={action.id} className="p-5 hover:bg-slate-50/70 transition-colors">
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                     <div className="space-y-1.5 min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-gray-900 text-sm">
+                        <span className="font-semibold text-slate-900 text-sm">
                           {customer?.name || 'Customer'}
                         </span>
                         <Badge variant="outline" className="text-[10px]">{sub?.plan_name}</Badge>
-                        <span className="font-bold text-xs text-gray-900">
+                        <span className="font-bold text-xs text-slate-900">
                           {sub ? formatCurrency(sub.amount) : ''}
                         </span>
                       </div>
 
-                      <div className="flex items-center gap-2 text-xs text-gray-500">
-                        <span>Action: <strong className="text-gray-700">{ACTION_LABELS[action.action_type] || action.action_type}</strong></span>
+                      <div className="flex items-center gap-2 text-xs text-slate-500">
+                        <span>Action: <strong className="text-slate-700">{ACTION_LABELS[action.action_type] || action.action_type}</strong></span>
                         <span>•</span>
-                        <span>Confidence: <strong className="text-indigo-600">{Math.round((action.ai_confidence || 0) * 100)}%</strong></span>
+                        <span>Confidence: <strong className="text-blue-600">{Math.round((action.ai_confidence || 0) * 100)}%</strong></span>
                       </div>
 
                       {action.ai_reasoning && (
-                        <div className="p-3 bg-gray-50 rounded-lg border border-gray-200/80 text-xs text-gray-700 mt-2 flex items-start gap-2">
-                          <Brain className="h-4 w-4 text-indigo-600 shrink-0 mt-0.5" />
+                        <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs text-slate-700 mt-2 flex items-start gap-2">
+                          <Brain className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
                           <p className="leading-relaxed">{action.ai_reasoning}</p>
                         </div>
                       )}
@@ -215,7 +215,7 @@ export default function BatchDetailPage() {
                       )}
                       {customer && (
                         <Link href={`/customers/${sub?.customer_id}`}>
-                          <span className="text-xs text-indigo-600 hover:underline flex items-center gap-0.5">
+                          <span className="text-xs text-blue-600 hover:underline flex items-center gap-0.5">
                             Customer Profile <ArrowRight className="h-3 w-3" />
                           </span>
                         </Link>
@@ -231,3 +231,4 @@ export default function BatchDetailPage() {
     </div>
   );
 }
+

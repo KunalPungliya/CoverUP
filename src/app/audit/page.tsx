@@ -22,7 +22,7 @@ const BORDER_VARIANTS: Record<string, string> = {
   success: 'border-l-4 border-l-emerald-500',
   pending: 'border-l-4 border-l-amber-500',
   failed: 'border-l-4 border-l-rose-500',
-  skipped: 'border-l-4 border-l-gray-300',
+  skipped: 'border-l-4 border-l-slate-300',
 };
 
 export default function AuditPage() {
@@ -126,14 +126,14 @@ export default function AuditPage() {
 
     if (action.action_type === 'send_email_reminder' && detail.body) {
       return (
-        <div className="mt-3 border border-gray-200 rounded-lg bg-white overflow-hidden shadow-2xs">
-          <div className="bg-gray-50 border-b border-gray-100 px-3.5 py-2 flex items-center gap-2">
-            <Mail className="h-3.5 w-3.5 text-gray-500" />
-            <span className="text-[11px] font-semibold text-gray-700">Email Dispatched</span>
+        <div className="mt-3 border border-slate-200 rounded-lg bg-white overflow-hidden shadow-2xs">
+          <div className="bg-slate-50 border-b border-slate-100 px-3.5 py-2 flex items-center gap-2">
+            <Mail className="h-3.5 w-3.5 text-slate-500" />
+            <span className="text-[11px] font-semibold text-slate-700">Email Dispatched</span>
           </div>
-          <div className="p-3.5 text-xs text-gray-800 whitespace-pre-wrap font-sans">
-            <div className="mb-2 text-[11px] text-gray-500"><strong>Subject:</strong> {detail.subject || 'Action Required: Update Payment Method'}</div>
-            <div className="pt-2 border-t border-gray-100">{detail.body}</div>
+          <div className="p-3.5 text-xs text-slate-800 whitespace-pre-wrap font-sans">
+            <div className="mb-2 text-[11px] text-slate-500"><strong>Subject:</strong> {detail.subject || 'Action Required: Update Payment Method'}</div>
+            <div className="pt-2 border-t border-slate-100">{detail.body}</div>
           </div>
         </div>
       );
@@ -141,12 +141,12 @@ export default function AuditPage() {
     
     if (action.action_type === 'send_sms_nudge' && detail.body) {
       return (
-        <div className="mt-3 border border-gray-200 rounded-lg bg-white overflow-hidden shadow-2xs max-w-sm">
-          <div className="bg-indigo-50 border-b border-indigo-100 px-3.5 py-2 flex items-center gap-2">
-            <MessageSquare className="h-3.5 w-3.5 text-indigo-600" />
-            <span className="text-[11px] font-semibold text-indigo-900">SMS Nudge Dispatched</span>
+        <div className="mt-3 border border-slate-200 rounded-lg bg-white overflow-hidden shadow-2xs max-w-sm">
+          <div className="bg-blue-50 border-b border-blue-100 px-3.5 py-2 flex items-center gap-2">
+            <MessageSquare className="h-3.5 w-3.5 text-blue-600" />
+            <span className="text-[11px] font-semibold text-blue-900">SMS Nudge Dispatched</span>
           </div>
-          <div className="p-3.5 text-xs text-gray-800 whitespace-pre-wrap bg-gray-50">
+          <div className="p-3.5 text-xs text-slate-800 whitespace-pre-wrap bg-slate-50">
             {detail.body}
           </div>
         </div>
@@ -154,13 +154,13 @@ export default function AuditPage() {
     }
 
     return (
-      <div className="bg-gray-50 rounded-lg p-3 mt-3 border border-gray-200/80">
-        <p className="text-[11px] font-semibold text-gray-500 mb-1.5 uppercase">Action Detail Metadata</p>
+      <div className="bg-slate-50 rounded-lg p-3 mt-3 border border-slate-200">
+        <p className="text-[11px] font-semibold text-slate-500 mb-1.5 uppercase">Action Detail Metadata</p>
         <div className="grid grid-cols-2 gap-2">
           {Object.entries(detail).map(([k, v]) => (
             <div key={k} className="text-xs">
-              <span className="font-semibold text-gray-600">{k}: </span>
-              <span className="text-gray-900 font-mono text-[11px]">{typeof v === 'object' ? JSON.stringify(v) : String(v)}</span>
+              <span className="font-semibold text-slate-600">{k}: </span>
+              <span className="text-slate-900 font-mono text-[11px]">{typeof v === 'object' ? JSON.stringify(v) : String(v)}</span>
             </div>
           ))}
         </div>
@@ -179,8 +179,8 @@ export default function AuditPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">Audit Trail</h1>
-          <p className="text-xs text-gray-500 mt-0.5">{total} autonomous AI interventions logged</p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">Audit Trail</h1>
+          <p className="text-xs text-slate-500 mt-0.5">{total} autonomous AI interventions logged</p>
         </div>
         <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full sm:w-auto">
           <div className="w-full sm:w-56">
@@ -225,8 +225,8 @@ export default function AuditPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card>
           <CardContent className="p-3.5">
-            <p className="text-xs font-medium text-gray-500">Listed Actions</p>
-            <p className="text-xl font-bold text-gray-900 mt-0.5">{stats.total}</p>
+            <p className="text-xs font-medium text-slate-500">Listed Actions</p>
+            <p className="text-xl font-bold text-slate-900 mt-0.5">{stats.total}</p>
           </CardContent>
         </Card>
         <Card>
@@ -237,8 +237,8 @@ export default function AuditPage() {
         </Card>
         <Card>
           <CardContent className="p-3.5">
-            <p className="text-xs font-medium text-indigo-700">Avg AI Confidence</p>
-            <p className="text-xl font-bold text-indigo-600 mt-0.5">{stats.avgConfidence}%</p>
+            <p className="text-xs font-medium text-blue-700">Avg AI Confidence</p>
+            <p className="text-xl font-bold text-blue-600 mt-0.5">{stats.avgConfidence}%</p>
           </CardContent>
         </Card>
         <Card>
@@ -257,22 +257,22 @@ export default function AuditPage() {
               {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-14 rounded-lg" />)}
             </div>
           ) : filteredActions.length === 0 ? (
-            <div className="py-12 text-center text-xs text-gray-500">
+            <div className="py-12 text-center text-xs text-slate-500">
               No audit entries found matching filters.
             </div>
           ) : (
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-slate-100">
               {filteredActions.map((action) => {
                 const sub = action.subscriptions;
                 const customer = sub?.customers;
                 const isExpanded = expanded.has(action.id);
-                const borderClass = BORDER_VARIANTS[action.outcome] || 'border-l-4 border-l-gray-300';
+                const borderClass = BORDER_VARIANTS[action.outcome] || 'border-l-4 border-l-slate-300';
                 const failureReason = (action.action_detail as any)?.failure_reason;
 
                 return (
                   <div
                     key={action.id}
-                    className={`px-5 py-3.5 hover:bg-gray-50/70 cursor-pointer transition-colors ${borderClass}`}
+                    className={`px-5 py-3.5 hover:bg-slate-50/70 cursor-pointer transition-colors ${borderClass}`}
                     onClick={() => toggleExpand(action.id)}
                   >
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
@@ -280,14 +280,14 @@ export default function AuditPage() {
                         <Badge variant={OUTCOME_VARIANTS[action.outcome] || 'default'} className="text-[10px]">
                           {action.outcome}
                         </Badge>
-                        <span className="text-xs font-bold text-gray-900 capitalize">
+                        <span className="text-xs font-bold text-slate-900 capitalize">
                           {action.action_type.replace(/_/g, ' ')}
                         </span>
-                        <span className="text-xs text-gray-600">
+                        <span className="text-xs text-slate-600">
                           {customer?.name || 'Customer'}
                         </span>
                         {sub && (
-                          <span className="text-[10px] px-2 py-0.5 bg-gray-100 rounded-md text-gray-600 font-mono">
+                          <span className="text-[10px] px-2 py-0.5 bg-slate-100 rounded-md text-slate-600 font-mono">
                             {sub.plan_name}
                           </span>
                         )}
@@ -298,8 +298,8 @@ export default function AuditPage() {
                             +{formatCurrency(action.amount_recovered)}
                           </span>
                         )}
-                        <span className="text-[11px] text-gray-400 whitespace-nowrap">{formatDate(action.created_at)}</span>
-                        {isExpanded ? <ChevronUp className="h-3.5 w-3.5 text-gray-400" /> : <ChevronDown className="h-3.5 w-3.5 text-gray-400" />}
+                        <span className="text-[11px] text-slate-400 whitespace-nowrap">{formatDate(action.created_at)}</span>
+                        {isExpanded ? <ChevronUp className="h-3.5 w-3.5 text-slate-400" /> : <ChevronDown className="h-3.5 w-3.5 text-slate-400" />}
                       </div>
                     </div>
 
@@ -313,14 +313,14 @@ export default function AuditPage() {
                         )}
                         
                         {action.ai_reasoning && (
-                          <div className="flex items-start gap-2.5 bg-indigo-50/40 rounded-xl p-3.5 border border-indigo-100">
-                            <Brain className="h-4 w-4 text-indigo-600 shrink-0 mt-0.5" />
+                          <div className="flex items-start gap-2.5 bg-blue-50/40 rounded-xl p-3.5 border border-blue-100">
+                            <Brain className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
                             <div className="flex-1">
                               <div className="flex items-center justify-between mb-1">
-                                <p className="text-xs font-bold text-indigo-950">AI Strategic Decision</p>
+                                <p className="text-xs font-bold text-blue-950">AI Strategic Decision</p>
                                 <div className="flex items-center gap-2">
-                                  <span className="text-[10px] font-medium text-gray-500">Confidence: {(action.ai_confidence * 100).toFixed(0)}%</span>
-                                  <div className="w-14 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                  <span className="text-[10px] font-medium text-slate-500">Confidence: {(action.ai_confidence * 100).toFixed(0)}%</span>
+                                  <div className="w-14 h-1.5 bg-slate-200 rounded-full overflow-hidden">
                                     <div 
                                       className={`h-full ${getConfidenceColor(action.ai_confidence)}`} 
                                       style={{ width: `${action.ai_confidence * 100}%` }}
@@ -328,14 +328,14 @@ export default function AuditPage() {
                                   </div>
                                 </div>
                               </div>
-                              <p className="text-xs text-gray-700 leading-relaxed">{action.ai_reasoning}</p>
+                              <p className="text-xs text-slate-700 leading-relaxed">{action.ai_reasoning}</p>
                             </div>
                           </div>
                         )}
                         
                         {action.action_detail && Object.keys(action.action_detail).length > 0 && renderActionDetail(action)}
                         
-                        <div className="flex gap-4 text-[10px] text-gray-400 pt-2 border-t border-gray-100 font-mono">
+                        <div className="flex gap-4 text-[10px] text-slate-400 pt-2 border-t border-slate-100 font-mono">
                           <span>Retry Count: #{action.retry_count}</span>
                           <span>Batch: {action.batch_id?.slice(0, 8) || 'Standalone Webhook'}</span>
                           <span>Subscription ID: {action.subscription_id.slice(0, 8)}</span>
@@ -351,8 +351,8 @@ export default function AuditPage() {
 
         {/* Pagination */}
         {totalPages > 1 && !searchQuery && (
-          <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between text-xs">
-            <p className="text-gray-500">Page {page} of {totalPages}</p>
+          <div className="px-5 py-3 border-t border-slate-100 flex items-center justify-between text-xs">
+            <p className="text-slate-500">Page {page} of {totalPages}</p>
             <div className="flex gap-2">
               <Button
                 variant="outline"
@@ -379,3 +379,4 @@ export default function AuditPage() {
     </div>
   );
 }
+

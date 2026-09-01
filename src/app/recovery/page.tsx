@@ -66,8 +66,8 @@ export default function RecoveryPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">Recovery Batches</h1>
-          <p className="text-xs text-gray-500 mt-0.5">Historical autonomous recovery runs and audit trail</p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">Recovery Batches</h1>
+          <p className="text-xs text-slate-500 mt-0.5">Historical autonomous recovery runs and audit trail</p>
         </div>
         <Button variant="default" onClick={handleRecover} loading={recovering} className="gap-2">
           <Play className="h-4 w-4 fill-current" />
@@ -96,7 +96,7 @@ export default function RecoveryPage() {
       ) : batches.length === 0 ? (
         <Card>
           <CardContent className="py-16 text-center">
-            <p className="text-sm text-gray-500 mb-4">No recovery batches run yet.</p>
+            <p className="text-sm text-slate-500 mb-4">No recovery batches run yet.</p>
             <Button variant="default" onClick={handleRecover} loading={recovering} className="gap-2">
               <Play className="h-4 w-4 fill-current" /> Run Your First Batch
             </Button>
@@ -105,35 +105,35 @@ export default function RecoveryPage() {
       ) : (
         <div className="space-y-3">
           {batches.map((batch) => (
-            <Card key={batch.id} className="hover:border-gray-300 transition-all">
+            <Card key={batch.id} className="hover:border-slate-300 transition-all">
               <CardContent className="p-4 sm:p-5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="flex flex-wrap items-center gap-4 sm:gap-6">
                     <div>
-                      <p className="text-[11px] text-gray-400 font-medium uppercase">Batch ID</p>
-                      <p className="font-mono text-xs font-bold text-gray-900">{batch.id.slice(0, 8)}</p>
+                      <p className="text-[11px] text-slate-400 font-medium uppercase">Batch ID</p>
+                      <p className="font-mono text-xs font-bold text-slate-900">{batch.id.slice(0, 8)}</p>
                     </div>
                     <div>
-                      <p className="text-[11px] text-gray-400 font-medium uppercase">Timestamp</p>
-                      <p className="text-xs text-gray-700 font-medium">{formatDate(batch.started_at)}</p>
+                      <p className="text-[11px] text-slate-400 font-medium uppercase">Timestamp</p>
+                      <p className="text-xs text-slate-700 font-medium">{formatDate(batch.started_at)}</p>
                     </div>
                     <div>
-                      <p className="text-[11px] text-gray-400 font-medium uppercase">Status</p>
+                      <p className="text-[11px] text-slate-400 font-medium uppercase">Status</p>
                       <Badge variant={batch.status === 'completed' ? 'success' : 'warning'} className="text-[10px] mt-0.5">
                         {batch.status}
                       </Badge>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between sm:justify-end gap-6 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100">
+                  <div className="flex items-center justify-between sm:justify-end gap-6 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
                     <div className="text-left sm:text-right">
-                      <p className="text-[11px] text-gray-400 font-medium uppercase">At-Risk Count</p>
-                      <p className="text-xs font-semibold text-gray-700">{batch.total_at_risk} accounts</p>
+                      <p className="text-[11px] text-slate-400 font-medium uppercase">At-Risk Count</p>
+                      <p className="text-xs font-semibold text-slate-700">{batch.total_at_risk} accounts</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-[11px] text-gray-400 font-medium uppercase">Recovered</p>
+                      <p className="text-[11px] text-slate-400 font-medium uppercase">Recovered</p>
                       <p className="text-xs font-bold text-emerald-700">
-                        {batch.total_recovered} <span className="text-gray-400 font-normal">({formatCurrency(batch.total_amount_recovered)})</span>
+                        {batch.total_recovered} <span className="text-slate-400 font-normal">({formatCurrency(batch.total_amount_recovered)})</span>
                       </p>
                     </div>
                     <Link href={`/recovery/${batch.id}`}>
@@ -162,3 +162,4 @@ export default function RecoveryPage() {
     </div>
   );
 }
+

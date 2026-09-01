@@ -9,7 +9,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Subscription, Customer } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
-import { Search, ArrowUpDown, ArrowRight } from 'lucide-react';
+import { Search, ArrowUpDown, ArrowRight, UserCheck, ShieldAlert, Sparkles, ClipboardList } from 'lucide-react';
+import { CustomerDrawer } from '@/components/customer-drawer';
 
 type SubWithCustomer = Subscription & { customers: Customer };
 
@@ -33,6 +34,10 @@ export default function SubscriptionsPage() {
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
 
   const [stats, setStats] = useState({ total: 0, active: 0, past_due: 0, failed: 0, recovered: 0 });
+
+  // Drawer state
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -76,6 +81,11 @@ export default function SubscriptionsPage() {
       direction = 'desc';
     }
     setSortConfig({ key, direction });
+  };
+
+  const handleOpenDrawer = (customerId: string) => {
+    setSelectedCustomerId(customerId);
+    setDrawerOpen(true);
   };
 
   const filteredAndSortedSubs = useMemo(() => {
@@ -126,13 +136,13 @@ export default function SubscriptionsPage() {
   const getRowClass = (status: string) => {
     switch (status) {
       case 'failed':
-        return 'bg-rose-50/30 hover:bg-rose-50/60 transition-colors';
+        return 'bg-rose-50/20 hover:bg-rose-50/50 transition-colors cursor-pointer';
       case 'past_due':
-        return 'bg-amber-50/30 hover:bg-amber-50/60 transition-colors';
+        return 'bg-amber-50/20 hover:bg-amber-50/50 transition-colors cursor-pointer';
       case 'recovered':
-        return 'bg-emerald-50/30 hover:bg-emerald-50/60 transition-colors';
+        return 'bg-emerald-50/20 hover:bg-emerald-50/50 transition-colors cursor-pointer';
       default:
-        return 'hover:bg-gray-50/80 transition-colors';
+        return 'hover:bg-slate-50/80 transition-colors cursor-pointer';
     }
   };
 
@@ -141,10 +151,15 @@ export default function SubscriptionsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">Subscriptions</h1>
-          <p className="text-xs text-gray-500 mt-0.5">{total} customer subscription accounts</p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">Subscriptions & Ledger</h1>
+          <p className="text-xs text-slate-500 mt-0.5">
+            {total} customer subscription accounts — Click any row for 360° timeline
+          </p>
         </div>
-        <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex flex-col sm:flex-row items-center gap-3">
+          <Link href="/audit" className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1">
+            <ClipboardList className="h-3.5 w-3.5" /> Full Audit Trail →
+          </Link>
           <div className="w-full sm:w-64">
             <Input
               icon={<Search className="h-4 w-4" />}
@@ -176,18 +191,18 @@ export default function SubscriptionsPage() {
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         <Card
           className={`cursor-pointer transition-all ${
-            statusFilter === 'all' ? 'border-indigo-500 ring-1 ring-indigo-500 bg-indigo-50/20' : 'hover:border-gray-300'
+            statusFilter === 'all' ? 'border-blue-600 ring-1 ring-blue-600 bg-blue-50/20' : 'hover:border-slate-300'
           }`}
           onClick={() => setStatusFilter('all')}
         >
           <CardContent className="p-3 text-center">
-            <p className="text-xs text-gray-500 font-medium">Total Accounts</p>
-            <p className="text-xl font-bold text-gray-900 mt-0.5">{stats.total || total}</p>
+            <p className="text-xs text-slate-500 font-medium">Total Accounts</p>
+            <p className="text-xl font-bold text-slate-900 mt-0.5">{stats.total || total}</p>
           </CardContent>
         </Card>
         <Card
           className={`cursor-pointer transition-all ${
-            statusFilter === 'active' ? 'border-emerald-500 ring-1 ring-emerald-500 bg-emerald-50/30' : 'hover:border-emerald-300'
+            statusFilter === 'active' ? 'border-emerald-600 ring-1 ring-emerald-600 bg-emerald-50/30' : 'hover:border-emerald-300'
           }`}
           onClick={() => setStatusFilter('active')}
         >
@@ -220,13 +235,13 @@ export default function SubscriptionsPage() {
         </Card>
         <Card
           className={`col-span-2 sm:col-span-1 cursor-pointer transition-all ${
-            statusFilter === 'recovered' ? 'border-indigo-500 ring-1 ring-indigo-500 bg-indigo-50/30' : 'hover:border-indigo-300'
+            statusFilter === 'recovered' ? 'border-blue-600 ring-1 ring-blue-600 bg-blue-50/30' : 'hover:border-blue-300'
           }`}
           onClick={() => setStatusFilter('recovered')}
         >
           <CardContent className="p-3 text-center">
-            <p className="text-xs text-indigo-700 font-medium">Recovered</p>
-            <p className="text-xl font-bold text-indigo-700 mt-0.5">{stats.recovered}</p>
+            <p className="text-xs text-blue-700 font-medium">Recovered</p>
+            <p className="text-xl font-bold text-blue-700 mt-0.5">{stats.recovered}</p>
           </CardContent>
         </Card>
       </div>
@@ -244,27 +259,27 @@ export default function SubscriptionsPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="border-b border-gray-200 bg-gray-50/70">
-                    <th className="text-left px-5 py-3 font-semibold text-gray-500 uppercase tracking-wider">Customer & Company</th>
-                    <th className="text-left px-5 py-3 font-semibold text-gray-500 uppercase tracking-wider">Plan</th>
+                  <tr className="border-b border-slate-200 bg-slate-50/80">
+                    <th className="text-left px-5 py-3 font-semibold text-slate-500 uppercase tracking-wider">Customer & Company</th>
+                    <th className="text-left px-5 py-3 font-semibold text-slate-500 uppercase tracking-wider">Plan</th>
                     <th
-                      className="text-right px-5 py-3 font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-900"
+                      className="text-right px-5 py-3 font-semibold text-slate-500 uppercase tracking-wider cursor-pointer hover:text-slate-900"
                       onClick={() => handleSort('amount')}
                     >
                       Amount <ArrowUpDown className="inline h-3 w-3 ml-0.5" />
                     </th>
                     <th
-                      className="text-left px-5 py-3 font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-900"
+                      className="text-left px-5 py-3 font-semibold text-slate-500 uppercase tracking-wider cursor-pointer hover:text-slate-900"
                       onClick={() => handleSort('status')}
                     >
                       Status <ArrowUpDown className="inline h-3 w-3 ml-0.5" />
                     </th>
-                    <th className="text-left px-5 py-3 font-semibold text-gray-500 uppercase tracking-wider">Recovery & Risk Detail</th>
-                    <th className="text-left px-5 py-3 font-semibold text-gray-500 uppercase tracking-wider">Payment Method</th>
-                    <th className="text-right px-5 py-3 font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                    <th className="text-left px-5 py-3 font-semibold text-slate-500 uppercase tracking-wider">Recovery & Risk Detail</th>
+                    <th className="text-left px-5 py-3 font-semibold text-slate-500 uppercase tracking-wider">Payment Method</th>
+                    <th className="text-right px-5 py-3 font-semibold text-slate-500 uppercase tracking-wider">Customer 360°</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-slate-100">
                   {filteredAndSortedSubs.map((sub) => {
                     const isAtRisk = sub.status === 'past_due' || sub.status === 'failed';
                     const isRecovered = sub.status === 'recovered';
@@ -272,26 +287,30 @@ export default function SubscriptionsPage() {
                     const pm = sub.payment_method as any;
 
                     return (
-                      <tr key={sub.id} className={getRowClass(sub.status)}>
+                      <tr 
+                        key={sub.id} 
+                        className={getRowClass(sub.status)}
+                        onClick={() => handleOpenDrawer(sub.customer_id)}
+                      >
                         <td className="px-5 py-3.5">
-                          <Link href={`/customers/${sub.customer_id}`} className="block group">
-                            <p className="font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">
+                          <div>
+                            <p className="font-semibold text-slate-900 hover:text-blue-600 transition-colors">
                               {sub.customers?.name || 'Customer'}
                             </p>
-                            <p className="text-[11px] text-gray-500">{sub.customers?.email}</p>
+                            <p className="text-[11px] text-slate-500">{sub.customers?.email}</p>
                             {sub.customers?.phone && (
-                              <p className="text-[10px] text-gray-400 font-mono">{sub.customers.phone}</p>
+                              <p className="text-[10px] text-slate-400 font-mono">{sub.customers.phone}</p>
                             )}
-                          </Link>
+                          </div>
                         </td>
                         <td className="px-5 py-3.5">
-                          <p className="font-medium text-gray-800">{sub.plan_name}</p>
+                          <p className="font-medium text-slate-800">{sub.plan_name}</p>
                           <Badge variant="outline" className="mt-0.5 text-[9px] uppercase font-mono tracking-wider">
                             {sub.billing_cycle}
                           </Badge>
                         </td>
                         <td className="px-5 py-3.5 text-right">
-                          <span className="font-bold text-gray-900">{formatCurrency(sub.amount)}</span>
+                          <span className="font-bold text-slate-900">{formatCurrency(sub.amount)}</span>
                         </td>
                         <td className="px-5 py-3.5">
                           <Badge variant={STATUS_VARIANTS[sub.status] || 'default'} className="capitalize text-[11px]">
@@ -316,18 +335,18 @@ export default function SubscriptionsPage() {
                               </span>
                             </div>
                           ) : (
-                            <span className="text-gray-400 text-xs">In good standing</span>
+                            <span className="text-slate-400 text-xs">In good standing</span>
                           )}
                         </td>
                         <td className="px-5 py-3.5">
                           {pm?.type === 'card' ? (
                             <div className="flex flex-col gap-0.5 text-xs">
                               <div className="flex items-center gap-1.5">
-                                <span className="font-semibold text-gray-800">{pm.brand || 'Card'}</span>
-                                <span className="font-mono text-gray-500">•••• {pm.last4}</span>
+                                <span className="font-semibold text-slate-800">{pm.brand || 'Card'}</span>
+                                <span className="font-mono text-slate-500">•••• {pm.last4}</span>
                               </div>
-                              <div className="text-[10px] text-gray-400">
-                                Exp: <span className="font-mono text-gray-600">{pm.expiry || '12/28'}</span>
+                              <div className="text-[10px] text-slate-400">
+                                Exp: <span className="font-mono text-slate-600">{pm.expiry || '12/28'}</span>
                                 {pm.bank && ` · ${pm.bank}`}
                               </div>
                             </div>
@@ -335,34 +354,39 @@ export default function SubscriptionsPage() {
                             <div className="flex flex-col gap-0.5 text-xs">
                               <div className="flex items-center gap-1">
                                 <Badge variant="secondary" className="text-[9px] px-1 py-0">{pm.app || 'UPI'}</Badge>
-                                <span className="font-mono text-gray-700 text-[11px]">{pm.upi_id}</span>
+                                <span className="font-mono text-slate-700 text-[11px]">{pm.upi_id}</span>
                               </div>
                               {pm.autopay_limit && (
-                                <span className="text-[10px] text-gray-400">Limit: {pm.autopay_limit}</span>
+                                <span className="text-[10px] text-slate-400">Limit: {pm.autopay_limit}</span>
                               )}
                             </div>
                           ) : pm?.type === 'mandate' ? (
                             <div className="flex flex-col gap-0.5 text-xs">
-                              <span className="font-semibold text-gray-800">{pm.bank || 'Bank e-Mandate'}</span>
-                              <span className="text-[10px] text-gray-400">{pm.auth_mode || 'e-NACH Recurring'}</span>
+                              <span className="font-semibold text-slate-800">{pm.bank || 'Bank e-Mandate'}</span>
+                              <span className="text-[10px] text-slate-400">{pm.auth_mode || 'e-NACH Recurring'}</span>
                             </div>
                           ) : (
-                            <span className="text-xs text-gray-400">Standard Mandate</span>
+                            <span className="text-xs text-slate-400">Standard Mandate</span>
                           )}
                         </td>
                         <td className="px-5 py-3.5 text-right">
-                          <Link href={`/customers/${sub.customer_id}`}>
-                            <span className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 hover:underline flex items-center justify-end gap-0.5">
-                              Timeline <ArrowRight className="h-3 w-3" />
-                            </span>
-                          </Link>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenDrawer(sub.customer_id);
+                            }}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md border border-blue-100 transition-colors"
+                          >
+                            <span>Profile</span>
+                            <ArrowRight className="h-3 w-3" />
+                          </button>
                         </td>
                       </tr>
                     );
                   })}
                   {filteredAndSortedSubs.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="px-5 py-10 text-center text-gray-500">
+                      <td colSpan={7} className="px-5 py-10 text-center text-slate-500">
                         No subscriptions found matching your filters.
                       </td>
                     </tr>
@@ -373,6 +397,17 @@ export default function SubscriptionsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Customer 360 Slide-Over Drawer */}
+      <CustomerDrawer
+        customerId={selectedCustomerId}
+        isOpen={drawerOpen}
+        onClose={() => {
+          setDrawerOpen(false);
+          setSelectedCustomerId(null);
+        }}
+      />
     </div>
   );
 }
+
