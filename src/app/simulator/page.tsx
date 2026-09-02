@@ -342,16 +342,16 @@ export default function DeveloperSandboxPage() {
       {sandboxTab === 'settings' && (
         <div className="space-y-6 animate-in fade-in duration-200">
           {savedSettingsSuccess && (
-            <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-[#00BA68]" />
+            <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs font-bold flex items-center gap-2 shadow-xs">
+              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
               Pipeline settings saved and applied to autonomous recovery engine!
             </div>
           )}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* 1. Retry Engine Policies */}
-            <Card>
-              <CardHeader className="pb-3 border-b border-[#E2E5EB] bg-slate-50/50">
+            <Card className="border-slate-300 shadow-2xs">
+              <CardHeader className="pb-3 border-b border-[#E2E5EB] bg-slate-50/70">
                 <div className="flex items-center gap-2">
                   <RefreshCw className="h-4 w-4 text-zinc-950" />
                   <CardTitle className="text-sm font-bold text-zinc-950">Retry Engine Policies</CardTitle>
@@ -361,8 +361,8 @@ export default function DeveloperSandboxPage() {
               <CardContent className="p-5 space-y-4 text-xs">
                 <div>
                   <div className="flex justify-between items-center mb-1.5">
-                    <label className="font-semibold text-zinc-800">Maximum Retry Attempts</label>
-                    <Badge variant="outline" className="font-mono font-bold bg-slate-50">{maxRetries} Retries</Badge>
+                    <label className="font-bold text-zinc-900">Maximum Retry Attempts</label>
+                    <Badge variant="default" className="font-mono font-bold">{maxRetries} Retries</Badge>
                   </div>
                   <input
                     type="range"
@@ -372,17 +372,17 @@ export default function DeveloperSandboxPage() {
                     onChange={(e) => setMaxRetries(Number(e.target.value))}
                     className="w-full accent-zinc-950 cursor-pointer"
                   />
-                  <div className="flex items-center justify-between text-[11px] text-zinc-500 mt-1">
+                  <div className="flex items-center justify-between text-[11px] text-zinc-600 font-medium mt-1">
                     <span>1 attempt (conservative)</span>
                     <span>3 (recommended)</span>
                     <span>5 (aggressive)</span>
                   </div>
                 </div>
 
-                <div className="pt-3 border-t border-slate-100">
+                <div className="pt-3 border-t border-slate-200">
                   <div className="flex justify-between items-center mb-1.5">
-                    <label className="font-semibold text-zinc-800">Max Days Overdue Cutoff</label>
-                    <Badge variant="outline" className="font-mono font-bold bg-slate-50">{maxDaysOverdue} Days</Badge>
+                    <label className="font-bold text-zinc-900">Max Days Overdue Cutoff</label>
+                    <Badge variant="default" className="font-mono font-bold">{maxDaysOverdue} Days</Badge>
                   </div>
                   <input
                     type="range"
@@ -392,13 +392,13 @@ export default function DeveloperSandboxPage() {
                     onChange={(e) => setMaxDaysOverdue(Number(e.target.value))}
                     className="w-full accent-zinc-950 cursor-pointer"
                   />
-                  <p className="text-[11px] text-zinc-500 mt-1">Accounts overdue beyond {maxDaysOverdue} days are flagged as unrecoverable to protect metrics.</p>
+                  <p className="text-[11px] text-zinc-600 font-medium mt-1">Accounts overdue beyond {maxDaysOverdue} days are flagged as unrecoverable to protect metrics.</p>
                 </div>
 
-                <div className="pt-3 border-t border-slate-100">
+                <div className="pt-3 border-t border-slate-200">
                   <div className="flex justify-between items-center mb-1.5">
-                    <label className="font-semibold text-zinc-800">Anti-Spam Action Cooldown Window</label>
-                    <Badge variant="outline" className="font-mono font-bold bg-slate-50">{cooldownHours} Hours</Badge>
+                    <label className="font-bold text-zinc-900">Anti-Spam Action Cooldown Window</label>
+                    <Badge variant="default" className="font-mono font-bold">{cooldownHours} Hours</Badge>
                   </div>
                   <input
                     type="range"
@@ -409,14 +409,14 @@ export default function DeveloperSandboxPage() {
                     onChange={(e) => setCooldownHours(Number(e.target.value))}
                     className="w-full accent-zinc-950 cursor-pointer"
                   />
-                  <p className="text-[11px] text-zinc-500 mt-1">Enforces minimum {cooldownHours}h spacing between successive customer touches.</p>
+                  <p className="text-[11px] text-zinc-600 font-medium mt-1">Enforces minimum {cooldownHours}h spacing between successive customer touches.</p>
                 </div>
               </CardContent>
             </Card>
 
             {/* 2. AI Decisioning & Guardrails */}
-            <Card>
-              <CardHeader className="pb-3 border-b border-[#E2E5EB] bg-slate-50/50">
+            <Card className="border-slate-300 shadow-2xs">
+              <CardHeader className="pb-3 border-b border-[#E2E5EB] bg-slate-50/70">
                 <div className="flex items-center gap-2">
                   <Brain className="h-4 w-4 text-zinc-950" />
                   <CardTitle className="text-sm font-bold text-zinc-950">AI Decisioning & Safety Guardrails</CardTitle>
@@ -425,17 +425,17 @@ export default function DeveloperSandboxPage() {
               </CardHeader>
               <CardContent className="p-5 space-y-4 text-xs">
                 <div>
-                  <label className="font-semibold text-zinc-800 mb-1 block">Active AI Model</label>
-                  <Select value={activeModel} onChange={(e) => setActiveModel(e.target.value)}>
+                  <label className="font-bold text-zinc-900 mb-1 block">Active AI Model</label>
+                  <Select value={activeModel} onChange={(e) => setActiveModel(e.target.value)} className="border-slate-300 text-zinc-900 font-medium">
                     <option value="gemini-1.5-flash">Google Gemini 1.5 Flash (Ultra Fast — ~0.2s)</option>
                     <option value="gemini-1.5-pro">Google Gemini 1.5 Pro (Deep Strategy Reasoning)</option>
                   </Select>
                 </div>
 
-                <div className="pt-3 border-t border-slate-100">
+                <div className="pt-3 border-t border-slate-200">
                   <div className="flex justify-between items-center mb-1.5">
-                    <label className="font-semibold text-zinc-800">Minimum AI Certainty Threshold</label>
-                    <Badge variant="default" className="font-mono font-bold bg-zinc-950 text-[#FDDD35]">{aiConfidenceThreshold}%</Badge>
+                    <label className="font-bold text-zinc-900">Minimum AI Certainty Threshold</label>
+                    <Badge variant="accent" className="font-mono font-bold">{aiConfidenceThreshold}%</Badge>
                   </div>
                   <input
                     type="range"
@@ -446,15 +446,15 @@ export default function DeveloperSandboxPage() {
                     onChange={(e) => setAiConfidenceThreshold(Number(e.target.value))}
                     className="w-full accent-zinc-950 cursor-pointer"
                   />
-                  <p className="text-[11px] text-zinc-500 mt-1">Decisions with &lt;{aiConfidenceThreshold}% confidence fall back to calibrated heuristics.</p>
+                  <p className="text-[11px] text-zinc-600 font-medium mt-1">Decisions with &lt;{aiConfidenceThreshold}% confidence fall back to calibrated heuristics.</p>
                 </div>
 
-                <div className="pt-3 border-t border-slate-100 space-y-2">
-                  <label className="font-semibold text-zinc-800 block">Active Communication Channels</label>
+                <div className="pt-3 border-t border-slate-200 space-y-2">
+                  <label className="font-bold text-zinc-900 block">Active Communication Channels</label>
                   <div className="flex items-center justify-between p-2.5 bg-slate-50 rounded-lg border border-slate-200">
                     <div className="flex items-center gap-2">
-                      <Mail className="h-3.5 w-3.5 text-zinc-700" />
-                      <span className="font-medium text-zinc-800">Email Dunning Reminders</span>
+                      <Mail className="h-3.5 w-3.5 text-zinc-800" />
+                      <span className="font-semibold text-zinc-900">Email Dunning Reminders</span>
                     </div>
                     <input
                       type="checkbox"
@@ -465,8 +465,8 @@ export default function DeveloperSandboxPage() {
                   </div>
                   <div className="flex items-center justify-between p-2.5 bg-slate-50 rounded-lg border border-slate-200">
                     <div className="flex items-center gap-2">
-                      <Smartphone className="h-3.5 w-3.5 text-zinc-700" />
-                      <span className="font-medium text-zinc-800">SMS Nudges & UPI Alerts</span>
+                      <Smartphone className="h-3.5 w-3.5 text-zinc-800" />
+                      <span className="font-semibold text-zinc-900">SMS Nudges & UPI Alerts</span>
                     </div>
                     <input
                       type="checkbox"
@@ -477,7 +477,7 @@ export default function DeveloperSandboxPage() {
                   </div>
                 </div>
 
-                <Button variant="default" onClick={handleSaveSettings} className="w-full gap-2 text-xs py-2.5 mt-2">
+                <Button variant="default" onClick={handleSaveSettings} className="w-full gap-2 text-xs py-2.5 mt-2 font-bold shadow-xs">
                   <Check className="h-4 w-4 text-[#FDDD35]" />
                   Save Pipeline Configuration
                 </Button>
@@ -486,22 +486,24 @@ export default function DeveloperSandboxPage() {
           </div>
 
           {/* 3. Live Policy Evaluator Sandbox */}
-          <Card className="border-[#E2E5EB]">
-            <CardHeader className="pb-3 border-b border-[#E2E5EB] bg-slate-50/50">
+          <Card className="border-slate-300 shadow-2xs">
+            <CardHeader className="pb-3 border-b border-[#E2E5EB] bg-slate-50/70">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Cpu className="h-4 w-4 text-zinc-950" />
                   <CardTitle className="text-sm font-bold text-zinc-950">Live Policy & Rule Tester</CardTitle>
                 </div>
-                <Badge variant="outline" className="text-[10px] font-mono">Real-Time Simulation</Badge>
+                <span className="px-2 py-0.5 rounded bg-zinc-100 text-zinc-800 font-mono font-bold text-[11px] border border-slate-300">
+                  Real-Time Simulation
+                </span>
               </div>
               <CardDescription>Test how current settings evaluate against simulated Indian gateway errors</CardDescription>
             </CardHeader>
             <CardContent className="p-5 space-y-4">
               <div className="flex flex-col sm:flex-row gap-3 items-end">
                 <div className="flex-1">
-                  <label className="text-xs font-semibold text-zinc-800 mb-1.5 block">Select Failure Code</label>
-                  <Select value={testScenario} onChange={(e) => setTestScenario(e.target.value)} className="w-full text-xs">
+                  <label className="text-xs font-bold text-zinc-900 mb-1.5 block">Select Failure Code</label>
+                  <Select value={testScenario} onChange={(e) => setTestScenario(e.target.value)} className="w-full text-xs font-medium text-zinc-900 border-slate-300">
                     <option value="insufficient_funds">Insufficient Funds (Transient / Balance Low)</option>
                     <option value="card_expired">Card Expired (Mandate Revoked / Expired Token)</option>
                     <option value="authentication_required">3D Secure / OTP Challenge Required</option>
@@ -510,40 +512,40 @@ export default function DeveloperSandboxPage() {
                     <option value="account_closed">Bank Account Closed (Mandate Terminated)</option>
                   </Select>
                 </div>
-                <Button onClick={handleEvaluatePolicy} variant="default" className="gap-2 text-xs py-2.5 shrink-0">
-                  <Play className="h-3.5 w-3.5 fill-current" />
+                <Button onClick={handleEvaluatePolicy} variant="default" className="gap-2 text-xs py-2.5 shrink-0 font-bold shadow-xs">
+                  <Play className="h-3.5 w-3.5 fill-current text-[#FDDD35]" />
                   Test Policy Evaluation
                 </Button>
               </div>
 
               {testEvaluationResult && (
-                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3 animate-in fade-in duration-150">
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-300 space-y-3 animate-in fade-in duration-150 shadow-2xs">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-zinc-950">Policy Decision Output</span>
-                    <Badge variant="default" className="bg-emerald-600 text-white text-[10px]">
+                    <Badge variant="success" className="bg-emerald-600 text-white font-bold text-[11px]">
                       {testEvaluationResult.status}
                     </Badge>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
-                    <div className="p-2.5 bg-white rounded-lg border border-slate-200">
-                      <span className="text-zinc-400 text-[10px] uppercase font-semibold">Action Selected</span>
-                      <p className="font-bold text-zinc-950 mt-0.5 capitalize">{testEvaluationResult.action.replace(/_/g, ' ')}</p>
+                    <div className="p-2.5 bg-white rounded-lg border border-slate-300 shadow-2xs">
+                      <span className="text-zinc-600 text-[10px] uppercase font-bold">Action Selected</span>
+                      <p className="font-bold text-zinc-950 mt-0.5 capitalize text-sm">{testEvaluationResult.action.replace(/_/g, ' ')}</p>
                     </div>
-                    <div className="p-2.5 bg-white rounded-lg border border-slate-200">
-                      <span className="text-zinc-400 text-[10px] uppercase font-semibold">AI Confidence</span>
-                      <p className="font-bold text-emerald-700 mt-0.5">{Math.round(testEvaluationResult.confidence * 100)}%</p>
+                    <div className="p-2.5 bg-white rounded-lg border border-slate-300 shadow-2xs">
+                      <span className="text-zinc-600 text-[10px] uppercase font-bold">AI Confidence</span>
+                      <p className="font-bold text-emerald-700 mt-0.5 text-sm">{Math.round(testEvaluationResult.confidence * 100)}%</p>
                     </div>
-                    <div className="p-2.5 bg-white rounded-lg border border-slate-200">
-                      <span className="text-zinc-400 text-[10px] uppercase font-semibold">Execution Timing</span>
-                      <p className="font-bold text-zinc-950 mt-0.5">{testEvaluationResult.timing}</p>
+                    <div className="p-2.5 bg-white rounded-lg border border-slate-300 shadow-2xs">
+                      <span className="text-zinc-600 text-[10px] uppercase font-bold">Execution Timing</span>
+                      <p className="font-bold text-zinc-950 mt-0.5 text-sm">{testEvaluationResult.timing}</p>
                     </div>
-                    <div className="p-2.5 bg-white rounded-lg border border-slate-200">
-                      <span className="text-zinc-400 text-[10px] uppercase font-semibold">Dispatched Via</span>
-                      <p className="font-bold text-zinc-950 mt-0.5">{testEvaluationResult.channel}</p>
+                    <div className="p-2.5 bg-white rounded-lg border border-slate-300 shadow-2xs">
+                      <span className="text-zinc-600 text-[10px] uppercase font-bold">Dispatched Via</span>
+                      <p className="font-bold text-zinc-950 mt-0.5 text-sm">{testEvaluationResult.channel}</p>
                     </div>
                   </div>
-                  <p className="text-xs text-zinc-700 bg-white p-3 rounded-lg border border-slate-200 leading-relaxed">
-                    <strong>Rule Reasoning:</strong> {testEvaluationResult.reasoning}
+                  <p className="text-xs text-zinc-800 bg-white p-3 rounded-lg border border-slate-300 leading-relaxed font-normal shadow-2xs">
+                    <strong className="text-zinc-950 font-bold">Rule Reasoning:</strong> {testEvaluationResult.reasoning}
                   </p>
                 </div>
               )}
@@ -552,35 +554,36 @@ export default function DeveloperSandboxPage() {
         </div>
       )}
 
+
       {/* TAB 2: WEBHOOK SIMULATOR */}
       {sandboxTab === 'webhook' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-in fade-in duration-200">
           <div className="lg:col-span-5 space-y-6">
-            <Card>
-              <CardHeader className="pb-3 border-b border-[#E2E5EB] bg-slate-50/50">
+            <Card className="border-slate-300 shadow-2xs">
+              <CardHeader className="pb-3 border-b border-[#E2E5EB] bg-slate-50/70">
                 <CardTitle className="text-sm font-bold text-zinc-950">1. Select Failure Scenario</CardTitle>
                 <CardDescription>Simulate authentic Indian payment decline codes</CardDescription>
               </CardHeader>
-              <CardContent className="p-4 space-y-2">
+              <CardContent className="p-4 space-y-2.5">
                 {PRESETS.map((preset) => {
                   const isSelected = selectedPresetId === preset.id;
                   return (
                     <div
                       key={preset.id}
                       onClick={() => setSelectedPresetId(preset.id)}
-                      className={`p-3 rounded-xl border text-xs cursor-pointer transition-all ${
+                      className={`p-3.5 rounded-xl border text-xs cursor-pointer transition-all ${
                         isSelected
-                          ? 'border-zinc-950 bg-zinc-950 text-white shadow-xs'
-                          : 'border-[#E2E5EB] bg-white hover:border-slate-300 text-zinc-800'
+                          ? 'border-zinc-950 bg-zinc-950 text-white shadow-md'
+                          : 'border-slate-200 bg-white hover:border-zinc-400 hover:bg-slate-50 text-zinc-900 shadow-2xs'
                       }`}
                     >
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold">{preset.name}</span>
-                        <Badge variant={isSelected ? 'accent' : 'outline'} className="text-[10px]">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className={`font-bold text-sm ${isSelected ? 'text-white' : 'text-zinc-950'}`}>{preset.name}</span>
+                        <Badge variant={isSelected ? 'accent' : 'default'} className="text-[11px] font-mono shrink-0">
                           {preset.failure_reason}
                         </Badge>
                       </div>
-                      <p className={`text-[11px] mt-1 ${isSelected ? 'text-zinc-300' : 'text-zinc-500'}`}>
+                      <p className={`text-xs mt-1.5 leading-relaxed ${isSelected ? 'text-zinc-200' : 'text-zinc-600 font-medium'}`}>
                         {preset.error_description}
                       </p>
                     </div>
@@ -589,8 +592,8 @@ export default function DeveloperSandboxPage() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="pb-3 border-b border-[#E2E5EB] bg-slate-50/50">
+            <Card className="border-slate-300 shadow-2xs">
+              <CardHeader className="pb-3 border-b border-[#E2E5EB] bg-slate-50/70">
                 <CardTitle className="text-sm font-bold text-zinc-950">2. Target Subscription</CardTitle>
                 <CardDescription>Select an account to inject the failure into</CardDescription>
               </CardHeader>
@@ -601,10 +604,10 @@ export default function DeveloperSandboxPage() {
                   <Select
                     value={selectedSubId}
                     onChange={(e) => setSelectedSubId(e.target.value)}
-                    className="w-full text-xs"
+                    className="w-full text-xs font-medium text-zinc-900 bg-white border-slate-300"
                   >
                     {subscriptions.map((s) => (
-                      <option key={s.id} value={s.id}>
+                      <option key={s.id} value={s.id} className="text-zinc-900">
                         {s.customers?.name || 'Customer'} — {s.plan_name} ({formatCurrency(s.amount)})
                       </option>
                     ))}
@@ -615,7 +618,7 @@ export default function DeveloperSandboxPage() {
                   onClick={handleFireWebhook}
                   disabled={firing || !selectedSubId}
                   variant="default"
-                  className="w-full gap-2 text-xs py-2.5"
+                  className="w-full gap-2 text-xs py-2.5 font-bold shadow-xs"
                 >
                   <Zap className="h-4 w-4 text-[#FDDD35]" />
                   {firing ? 'Processing Autonomous Decision...' : 'Simulate Webhook Trigger'}
@@ -625,16 +628,18 @@ export default function DeveloperSandboxPage() {
           </div>
 
           <div className="lg:col-span-7 space-y-6">
-            <Card>
-              <CardHeader className="pb-3 border-b border-[#E2E5EB] bg-slate-50/50 flex flex-row items-center justify-between">
+            <Card className="border-slate-300 shadow-2xs">
+              <CardHeader className="pb-3 border-b border-[#E2E5EB] bg-slate-50/70 flex flex-row items-center justify-between">
                 <div>
                   <CardTitle className="text-sm font-bold text-zinc-950">3. JSON Webhook Payload</CardTitle>
                   <CardDescription>Live simulated Razorpay payment.failed payload</CardDescription>
                 </div>
-                <Badge variant="outline" className="font-mono text-[10px]">application/json</Badge>
+                <span className="px-2.5 py-1 rounded-md bg-zinc-950 text-[#FDDD35] font-mono font-bold text-xs border border-zinc-800 shadow-2xs">
+                  application/json
+                </span>
               </CardHeader>
               <CardContent className="p-4">
-                <pre className="p-4 rounded-xl bg-zinc-950 text-emerald-400 font-mono text-xs overflow-x-auto border border-zinc-800 shadow-inner max-h-60">
+                <pre className="p-4 rounded-xl bg-zinc-950 text-emerald-400 font-mono text-xs overflow-x-auto border border-zinc-800 shadow-inner max-h-60 leading-relaxed">
                   {JSON.stringify(currentPayload, null, 2)}
                 </pre>
               </CardContent>
@@ -651,52 +656,52 @@ export default function DeveloperSandboxPage() {
             )}
 
             {result && (
-              <Card className="border-emerald-200 bg-emerald-50/10">
-                <CardHeader className="pb-3 border-b border-emerald-100 bg-emerald-50/40">
+              <Card className="border-emerald-300 bg-emerald-50/20 shadow-2xs">
+                <CardHeader className="pb-3 border-b border-emerald-200 bg-emerald-50/60">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div className="p-1 rounded-md bg-emerald-600 text-white">
+                      <div className="p-1 rounded-md bg-emerald-600 text-white shadow-2xs">
                         <Check className="h-3.5 w-3.5" />
                       </div>
                       <CardTitle className="text-sm font-bold text-emerald-950">
                         Autonomous AI Execution Result
                       </CardTitle>
                     </div>
-                    <Badge variant="default" className="bg-emerald-600">HTTP 200 OK</Badge>
+                    <Badge variant="success" className="bg-emerald-600 text-white font-bold">HTTP 200 OK</Badge>
                   </div>
                 </CardHeader>
                 <CardContent className="p-5 space-y-4">
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                    <div className="p-3 bg-white rounded-lg border border-emerald-100">
-                      <span className="text-zinc-400 text-[10px] uppercase font-semibold">Action Selected</span>
-                      <p className="font-bold text-zinc-950 mt-0.5 capitalize">
+                    <div className="p-3 bg-white rounded-lg border border-emerald-200 shadow-2xs">
+                      <span className="text-zinc-600 text-[10px] uppercase font-bold">Action Selected</span>
+                      <p className="font-bold text-zinc-950 mt-0.5 capitalize text-sm">
                         {result.data?.decision?.action?.replace(/_/g, ' ') || 'None'}
                       </p>
                     </div>
-                    <div className="p-3 bg-white rounded-lg border border-emerald-100">
-                      <span className="text-zinc-400 text-[10px] uppercase font-semibold">AI Confidence</span>
-                      <p className="font-bold text-emerald-700 mt-0.5">
+                    <div className="p-3 bg-white rounded-lg border border-emerald-200 shadow-2xs">
+                      <span className="text-zinc-600 text-[10px] uppercase font-bold">AI Confidence</span>
+                      <p className="font-bold text-emerald-700 mt-0.5 text-sm">
                         {Math.round((result.data?.decision?.confidence || 0.94) * 100)}%
                       </p>
                     </div>
-                    <div className="p-3 bg-white rounded-lg border border-emerald-100">
-                      <span className="text-zinc-400 text-[10px] uppercase font-semibold">Execution Status</span>
-                      <p className="font-bold text-zinc-950 mt-0.5 capitalize">{result.data?.execution?.outcome || 'Success'}</p>
+                    <div className="p-3 bg-white rounded-lg border border-emerald-200 shadow-2xs">
+                      <span className="text-zinc-600 text-[10px] uppercase font-bold">Execution Status</span>
+                      <p className="font-bold text-zinc-950 mt-0.5 capitalize text-sm">{result.data?.execution?.outcome || 'Success'}</p>
                     </div>
-                    <div className="p-3 bg-white rounded-lg border border-emerald-100">
-                      <span className="text-zinc-400 text-[10px] uppercase font-semibold">Recaptured</span>
-                      <p className="font-bold text-emerald-700 mt-0.5">
+                    <div className="p-3 bg-white rounded-lg border border-emerald-200 shadow-2xs">
+                      <span className="text-zinc-600 text-[10px] uppercase font-bold">Recaptured</span>
+                      <p className="font-bold text-emerald-700 mt-0.5 text-sm">
                         {formatCurrency(result.data?.execution?.amount_recovered || 0)}
                       </p>
                     </div>
                   </div>
 
                   {result.data?.decision?.reasoning && (
-                    <div className="p-3.5 bg-white rounded-xl border border-emerald-100 flex items-start gap-2.5 text-xs text-zinc-800">
+                    <div className="p-3.5 bg-white rounded-xl border border-emerald-200 flex items-start gap-2.5 text-xs text-zinc-800 shadow-2xs">
                       <Brain className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
                       <div>
-                        <span className="font-bold text-emerald-950 block mb-0.5">Gemini Strategic Reasoning</span>
-                        <p className="leading-relaxed">{result.data.decision.reasoning}</p>
+                        <span className="font-bold text-emerald-950 block mb-0.5 text-sm">Gemini Strategic Reasoning</span>
+                        <p className="leading-relaxed text-zinc-700 font-medium">{result.data.decision.reasoning}</p>
                       </div>
                     </div>
                   )}
@@ -711,12 +716,12 @@ export default function DeveloperSandboxPage() {
       {sandboxTab === 'templates' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-in fade-in duration-200">
           <div className="lg:col-span-5 space-y-6">
-            <Card>
-              <CardHeader className="pb-3 border-b border-[#E2E5EB] bg-slate-50/50">
+            <Card className="border-slate-300 shadow-2xs">
+              <CardHeader className="pb-3 border-b border-[#E2E5EB] bg-slate-50/70">
                 <CardTitle className="text-sm font-bold text-zinc-950">Select Touchpoint Template</CardTitle>
                 <CardDescription>Multi-channel dunning communication flows</CardDescription>
               </CardHeader>
-              <CardContent className="p-4 space-y-2">
+              <CardContent className="p-4 space-y-2.5">
                 {Object.entries(MESSAGE_TEMPLATES).map(([key, tpl]: [string, any]) => {
                   const isSelected = activeTemplateKey === key;
                   return (
@@ -726,20 +731,20 @@ export default function DeveloperSandboxPage() {
                         setActiveTemplateKey(key);
                         setPreviewMode(key === 'sms_nudge' ? 'sms' : 'email');
                       }}
-                      className={`p-3 rounded-xl border text-xs cursor-pointer transition-all ${
+                      className={`p-3.5 rounded-xl border text-xs cursor-pointer transition-all ${
                         isSelected
-                          ? 'border-zinc-950 bg-zinc-950 text-white shadow-xs'
-                          : 'border-[#E2E5EB] bg-white hover:border-slate-300 text-zinc-800'
+                          ? 'border-zinc-950 bg-zinc-950 text-white shadow-md'
+                          : 'border-slate-200 bg-white hover:border-zinc-400 hover:bg-slate-50 text-zinc-900 shadow-2xs'
                       }`}
                     >
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold capitalize">{key.replace(/_/g, ' ')}</span>
-                        <Badge variant={isSelected ? 'accent' : 'outline'} className="text-[10px]">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className={`font-bold text-sm capitalize ${isSelected ? 'text-white' : 'text-zinc-950'}`}>{key.replace(/_/g, ' ')}</span>
+                        <Badge variant={isSelected ? 'accent' : 'default'} className="text-[11px] font-bold shrink-0">
                           {key === 'sms_nudge' ? 'SMS' : 'Email'}
                         </Badge>
                       </div>
-                      <p className={`text-[11px] mt-1 ${isSelected ? 'text-zinc-300' : 'text-zinc-500'}`}>
-                        {tpl.subject || tpl.body.slice(0, 70) + '...'}
+                      <p className={`text-xs mt-1.5 leading-relaxed truncate ${isSelected ? 'text-zinc-200' : 'text-zinc-600 font-medium'}`}>
+                        {tpl.subject || tpl.body.slice(0, 75) + '...'}
                       </p>
                     </div>
                   );
@@ -747,25 +752,25 @@ export default function DeveloperSandboxPage() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="pb-3 border-b border-[#E2E5EB] bg-slate-50/50">
+            <Card className="border-slate-300 shadow-2xs">
+              <CardHeader className="pb-3 border-b border-[#E2E5EB] bg-slate-50/70">
                 <CardTitle className="text-sm font-bold text-zinc-950">Dynamic Variable Overrides</CardTitle>
                 <CardDescription>Live interpolation sandbox</CardDescription>
               </CardHeader>
               <CardContent className="p-4 space-y-3">
                 <div>
-                  <label className="text-xs font-semibold text-zinc-700 mb-1 block">Customer Name</label>
-                  <Input value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
+                  <label className="text-xs font-bold text-zinc-800 mb-1 block">Customer Name</label>
+                  <Input value={customerName} onChange={(e) => setCustomerName(e.target.value)} className="border-slate-300 text-zinc-900 font-medium" />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-zinc-700 mb-1 block">Plan Name</label>
-                  <Input value={planName} onChange={(e) => setPlanName(e.target.value)} />
+                  <label className="text-xs font-bold text-zinc-800 mb-1 block">Plan Name</label>
+                  <Input value={planName} onChange={(e) => setPlanName(e.target.value)} className="border-slate-300 text-zinc-900 font-medium" />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-zinc-700 mb-1 block">Pending Amount</label>
-                  <Input value={amount} onChange={(e) => setAmount(e.target.value)} />
+                  <label className="text-xs font-bold text-zinc-800 mb-1 block">Pending Amount</label>
+                  <Input value={amount} onChange={(e) => setAmount(e.target.value)} className="border-slate-300 text-zinc-900 font-medium" />
                 </div>
-                <Button variant="outline" size="sm" className="w-full gap-2 text-xs" onClick={handleCopy}>
+                <Button variant="outline" size="sm" className="w-full gap-2 text-xs font-bold border-slate-300 text-zinc-900 hover:bg-slate-100" onClick={handleCopy}>
                   {copied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
                   {copied ? 'Copied to Clipboard' : 'Copy Rendered Message'}
                 </Button>
@@ -775,66 +780,66 @@ export default function DeveloperSandboxPage() {
 
           <div className="lg:col-span-7">
             {previewMode === 'email' ? (
-              <div className="rounded-xl border border-[#E2E5EB] bg-white shadow-2xs overflow-hidden">
+              <div className="rounded-xl border border-slate-300 bg-white shadow-md overflow-hidden">
                 <div className="bg-zinc-950 px-4 py-3 border-b border-zinc-800 flex items-center justify-between text-white">
                   <div className="flex items-center gap-1.5">
                     <div className="h-2.5 w-2.5 rounded-full bg-rose-500" />
                     <div className="h-2.5 w-2.5 rounded-full bg-amber-400" />
                     <div className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
-                    <span className="text-xs font-medium text-zinc-300 ml-2">Inbox — VaultBack Autonomous Nudge</span>
+                    <span className="text-xs font-semibold text-zinc-200 ml-2">Inbox — VaultBack Autonomous Nudge</span>
                   </div>
-                  <Badge variant="outline" className="text-[10px] border-zinc-700 text-white">HTML Email</Badge>
+                  <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-zinc-800 text-[#FDDD35] border border-zinc-700">HTML Email</span>
                 </div>
 
-                <div className="p-5 border-b border-slate-100 bg-white space-y-2 text-xs">
-                  <div className="flex justify-between">
-                    <span className="text-zinc-400 font-medium">From:</span>
-                    <span className="font-semibold text-zinc-900">VaultBack Recovery &lt;billing@vaultback.app&gt;</span>
+                <div className="p-5 border-b border-slate-200 bg-slate-50/70 space-y-2.5 text-xs">
+                  <div className="flex justify-between items-center">
+                    <span className="text-zinc-600 font-bold">From:</span>
+                    <span className="font-semibold text-zinc-950">VaultBack Recovery &lt;billing@vaultback.app&gt;</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-zinc-400 font-medium">To:</span>
-                    <span className="text-zinc-700">{customerName} &lt;customer@example.com&gt;</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-zinc-600 font-bold">To:</span>
+                    <span className="text-zinc-900 font-semibold">{customerName} &lt;customer@example.com&gt;</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-zinc-400 font-medium">Subject:</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-zinc-600 font-bold">Subject:</span>
                     <span className="font-bold text-zinc-950">{renderedSubject}</span>
                   </div>
                 </div>
 
                 <div className="p-6 bg-white space-y-5">
-                  <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-                    <div className="h-7 w-7 rounded-lg bg-zinc-950 flex items-center justify-center text-[#FDDD35] text-xs font-bold shadow-2xs border border-zinc-800">
+                  <div className="flex items-center gap-2 pb-3 border-b border-slate-200">
+                    <div className="h-7 w-7 rounded-lg bg-zinc-950 flex items-center justify-center text-[#FDDD35] text-xs font-extrabold shadow-2xs border border-zinc-800">
                       VB
                     </div>
-                    <span className="font-bold text-sm text-zinc-950">VaultBack Recovery Portal</span>
+                    <span className="font-extrabold text-sm text-zinc-950">VaultBack Recovery Portal</span>
                   </div>
 
-                  <div className="text-xs text-zinc-700 leading-relaxed whitespace-pre-line">
+                  <div className="text-xs text-zinc-900 font-normal leading-relaxed whitespace-pre-line">
                     {renderedBody}
                   </div>
 
-                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-300 space-y-3">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-[11px] font-medium text-zinc-500">Subscription Plan</p>
-                        <p className="text-sm font-bold text-zinc-950">{planName}</p>
+                        <p className="text-xs font-bold text-zinc-600">Subscription Plan</p>
+                        <p className="text-sm font-bold text-zinc-950 mt-0.5">{planName}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-[11px] font-medium text-zinc-500">Pending Amount</p>
-                        <p className="text-lg font-bold text-emerald-700">{amount}</p>
+                        <p className="text-xs font-bold text-zinc-600">Pending Amount</p>
+                        <p className="text-lg font-bold text-emerald-800 mt-0.5">{amount}</p>
                       </div>
                     </div>
 
                     <a
                       href="#pay"
                       onClick={(e) => e.preventDefault()}
-                      className="block w-full py-2.5 bg-zinc-950 hover:bg-zinc-800 text-white text-center text-xs font-semibold rounded-lg shadow-xs transition-colors"
+                      className="block w-full py-2.5 bg-zinc-950 hover:bg-zinc-800 text-white text-center text-xs font-bold rounded-lg shadow-xs transition-colors"
                     >
                       Update Payment Method / Pay Now
                     </a>
 
-                    <p className="text-[10px] text-center text-zinc-500 flex items-center justify-center gap-1">
-                      <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
+                    <p className="text-[11px] text-center text-zinc-600 font-medium flex items-center justify-center gap-1.5">
+                      <ShieldCheck className="h-4 w-4 text-emerald-600" />
                       256-bit encrypted checkout powered by Razorpay Subscriptions
                     </p>
                   </div>
@@ -854,15 +859,15 @@ export default function DeveloperSandboxPage() {
                       <div className="h-8 w-8 rounded-full bg-zinc-950 text-[#FDDD35] font-bold flex items-center justify-center mx-auto text-xs shadow-2xs">
                         VB
                       </div>
-                      <p className="font-semibold text-xs text-zinc-950 mt-1">VAULTBACK-ALERTS</p>
-                      <p className="text-[9px] text-zinc-400">Verified Business SMS</p>
+                      <p className="font-bold text-xs text-zinc-950 mt-1">VAULTBACK-ALERTS</p>
+                      <p className="text-[10px] text-zinc-600 font-medium">Verified Business SMS</p>
                     </div>
 
                     <div className="flex-1 p-3.5 space-y-3 overflow-y-auto">
-                      <div className="max-w-[88%] bg-white rounded-2xl rounded-tl-xs p-3 shadow-2xs border border-slate-200 space-y-1.5">
-                        <p className="text-xs text-zinc-900 leading-relaxed">{renderedBody}</p>
-                        <p className="text-[11px] text-blue-600 underline font-medium">https://vaultback.app/pay/sub_preview89</p>
-                        <p className="text-[9px] text-zinc-400 text-right">Delivered</p>
+                      <div className="max-w-[88%] bg-white rounded-2xl rounded-tl-xs p-3 shadow-2xs border border-slate-300 space-y-1.5">
+                        <p className="text-xs text-zinc-950 font-normal leading-relaxed">{renderedBody}</p>
+                        <p className="text-[11px] text-blue-700 underline font-bold">https://vaultback.app/pay/sub_preview89</p>
+                        <p className="text-[10px] text-zinc-500 text-right font-medium">Delivered</p>
                       </div>
                     </div>
                   </div>
@@ -872,6 +877,7 @@ export default function DeveloperSandboxPage() {
           </div>
         </div>
       )}
+
     </div>
   );
 }
