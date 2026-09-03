@@ -1,141 +1,216 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { 
-  ShieldCheck, 
   LayoutDashboard, 
-  CreditCard, 
+  ListFilter, 
   BarChart3, 
   Zap, 
-  ClipboardList, 
+  FileClock, 
   Menu, 
   X,
-  Activity
+  MoreHorizontal,
+  ChevronRight,
+  ShieldCheck,
+  Activity,
+  BellRing
 } from 'lucide-react';
 import { DemoBanner } from './demo-banner';
 
 interface NavItem {
   href: string;
   label: string;
-  icon: React.ComponentType<{ className?: string }>;
+  count?: string;
+  icon: React.ComponentType<{ className?: string; size?: number; strokeWidth?: number }>;
 }
 
 const mainNavItems: NavItem[] = [
-  { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/subscriptions', label: 'Subscriptions & Ledger', icon: CreditCard },
-  { href: '/analytics', label: 'Analytics & ROI', icon: BarChart3 },
+  { href: '/', label: 'Overview', icon: LayoutDashboard },
+  { href: '/subscriptions', label: 'Recovery queue', count: '148', icon: ListFilter },
   { href: '/simulator', label: 'Developer Sandbox', icon: Zap },
-  { href: '/audit', label: 'Audit Trail', icon: ClipboardList },
+  { href: '/analytics', label: 'Analytics & ROI', icon: BarChart3 },
+  { href: '/audit', label: 'Audit trail', icon: FileClock },
 ];
 
 export function Sidebar({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileNav, setMobileNav] = useState(false);
+  const [currentTime, setCurrentTime] = useState('09:42:18');
+
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      setCurrentTime(now.toTimeString().split(' ')[0]);
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
-    <div className="min-h-screen bg-[#F7F8FA] text-[#0A0D14] flex flex-col selection:bg-[#FDDD35]/40 selection:text-zinc-950">
-      {/* Paddle-Styled Header */}
-      <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md border-b border-[#E2E5EB] shadow-2xs transition-all">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            
-            {/* Extreme Left: VaultBack Brand Logo */}
-            <div className="flex items-center gap-8">
-              <Link href="/" className="flex items-center gap-2.5 group">
-                <div className="h-9 w-9 rounded-xl bg-zinc-950 flex items-center justify-center shadow-xs transition-transform group-hover:scale-105 border border-zinc-800">
-                  <ShieldCheck className="h-5 w-5 text-[#FDDD35]" />
-                </div>
-                <span className="text-lg font-bold tracking-tight text-zinc-950">
-                  VaultBack
-                </span>
-              </Link>
-
-              {/* Desktop Cockpits Navigation */}
-              <nav className="hidden md:flex items-center gap-1">
-                {mainNavItems.map((item) => {
-                  const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
-                  const Icon = item.icon;
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className={cn(
-                        'flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold tracking-tight transition-all',
-                        isActive
-                          ? 'bg-zinc-950 text-white shadow-xs'
-                          : 'text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100/80'
-                      )}
-                    >
-                      <Icon className={cn('h-4 w-4', isActive ? 'text-[#FDDD35]' : 'text-zinc-400')} />
-                      {item.label}
-                    </Link>
-                  );
-                })}
-              </nav>
+    <div className="min-h-screen bg-[#171914] text-[#F2F0E6] selection:bg-[#C7F36B] selection:text-[#1C2016]">
+      {/* Persistent Desktop Navigation Rail */}
+      <aside className={cn(
+        "fixed inset-y-0 left-0 z-40 flex w-[244px] flex-col border-r border-[#2B2D27] bg-[#171914] px-5 py-6 text-[#F4F0E5] transition-transform duration-200 lg:translate-x-0",
+        mobileNav ? "translate-x-0 shadow-2xl" : "-translate-x-full"
+      )}>
+        {/* Brand Header */}
+        <div className="flex items-center gap-3 px-1">
+          <Link href="/" className="flex items-center gap-3 group">
+            <div className="grid h-9 w-9 place-items-center bg-[#C7F36B] text-[#171914] shadow-[4px_4px_0_#5E6F31] transition-transform group-hover:scale-105">
+              <span className="font-display font-black text-xl tracking-tighter text-[#171914]">R</span>
             </div>
-
-            {/* Right Side Header: Engine Live Status Pill */}
-            <div className="hidden md:flex items-center gap-3">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-950 text-white text-[11px] font-medium border border-zinc-800 shadow-xs">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00EB88] opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-[#00EB88]"></span>
-                </span>
-                <span className="text-zinc-300">Autonomous Engine:</span>
-                <span className="font-bold text-[#00EB88]">Active</span>
-              </div>
+            <div>
+              <p className="font-display text-[15px] font-bold tracking-[-0.04em] text-white">
+                recover<span className="text-[#C7F36B]">/</span>y
+              </p>
+              <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-[#7D8174]">
+                Revenue OS
+              </p>
             </div>
-
-            {/* Mobile Menu Button */}
-            <div className="md:hidden flex items-center">
-              <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="p-2 rounded-lg text-zinc-600 hover:text-zinc-900 hover:bg-slate-100"
-                aria-label="Toggle menu"
-              >
-                {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-              </button>
-            </div>
-          </div>
+          </Link>
+          {mobileNav && (
+            <button
+              onClick={() => setMobileNav(false)}
+              className="ml-auto p-1.5 text-zinc-400 hover:text-white lg:hidden"
+              aria-label="Close menu"
+            >
+              <X size={18} />
+            </button>
+          )}
         </div>
 
-        {/* Mobile Navigation Drawer */}
-        {mobileMenuOpen && (
-          <div className="md:hidden border-t border-[#E2E5EB] bg-white px-4 pt-3 pb-6 space-y-2 shadow-lg animate-in slide-in-from-top duration-200">
-            <div className="text-[11px] font-semibold text-zinc-400 px-3 uppercase tracking-wider">Navigation</div>
-            {mainNavItems.map((item) => {
-              const isActive = pathname === item.href;
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={cn(
-                    'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium',
-                    isActive ? 'bg-zinc-950 text-white font-semibold' : 'text-zinc-700 hover:bg-slate-100'
-                  )}
-                >
-                  <Icon className={cn('h-4 w-4', isActive ? 'text-[#FDDD35]' : 'text-zinc-400')} />
-                  {item.label}
-                </Link>
-              );
-            })}
-          </div>
-        )}
-      </header>
+        {/* Workspace Nav Header */}
+        <div className="mt-10 px-2 font-mono text-[9px] uppercase tracking-[0.2em] text-[#71766A]">
+          Workspace
+        </div>
 
-      {/* Main Content Area */}
-      <main className="flex-1 w-full bg-[#F7F8FA]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        {/* Primary Navigation Links */}
+        <nav className="mt-3 space-y-1" aria-label="Primary navigation">
+          {mainNavItems.map((item) => {
+            const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setMobileNav(false)}
+                className={cn(
+                  "group flex w-full items-center justify-between px-3 py-2.5 text-left text-sm transition-colors duration-150 rounded-xs",
+                  isActive
+                    ? "bg-[#242820] text-[#F8F5EC] font-medium"
+                    : "text-[#A3A79B] hover:bg-[#20231D] hover:text-[#F8F5EC]"
+                )}
+              >
+                <span className="flex items-center gap-3">
+                  <span className={cn(
+                    "transition-colors",
+                    isActive ? "text-[#C7F36B]" : "text-[#7C8274] group-hover:text-[#C7F36B]"
+                  )}>
+                    <Icon size={17} strokeWidth={1.8} />
+                  </span>
+                  {item.label}
+                </span>
+                {item.count && (
+                  <span className="font-mono text-[10px] text-[#7D8174]">
+                    {item.count}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Bottom Rail: Live Guardrail Status & User Profile */}
+        <div className="mt-auto border-t border-[#30342C] pt-5">
+          <div className="mb-3 px-2 font-mono text-[9px] uppercase tracking-[0.2em] text-[#71766A]">
+            Live guardrail
+          </div>
+          <div className="flex items-center gap-3 px-2">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#C7F36B] opacity-60" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#C7F36B]" />
+            </span>
+            <div>
+              <p className="text-xs font-medium text-[#D7D8CC]">Agent online</p>
+              <p className="mt-0.5 font-mono text-[9px] text-[#7D8174]">
+                last sync {currentTime}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-6 flex items-center gap-3 px-2 text-left text-[#9FA297]">
+            <div className="grid h-7 w-7 place-items-center rounded-full bg-[#34382F] text-[10px] font-semibold text-white">
+              AK
+            </div>
+            <div>
+              <span className="text-xs text-[#E4E7D7] font-medium block">Aarav Kapoor</span>
+              <span className="text-[10px] font-mono text-[#7D8174]">Revenue Lead</span>
+            </div>
+            <MoreHorizontal size={15} className="ml-auto text-[#7D8174]" />
+          </div>
+        </div>
+      </aside>
+
+      {/* Backdrop for mobile drawer */}
+      {mobileNav && (
+        <div
+          className="fixed inset-0 z-30 bg-[#11130F]/70 backdrop-blur-xs lg:hidden"
+          onClick={() => setMobileNav(false)}
+        />
+      )}
+
+      {/* Main Operating Area */}
+      <div className="min-h-screen lg:pl-[244px] flex flex-col">
+        {/* Top Operational Bar */}
+        <header className="sticky top-0 z-20 flex h-[68px] items-center justify-between border-b border-[#30342C] bg-[#171914]/95 px-5 text-[#F2F0E6] backdrop-blur md:px-8">
+          <div className="flex items-center gap-3">
+            <button
+              className="grid h-9 w-9 place-items-center border border-[#3C4135] bg-[#242820] text-[#C7F36B] lg:hidden"
+              onClick={() => setMobileNav(true)}
+              aria-label="Open navigation"
+            >
+              <Menu size={18} />
+            </button>
+            <div className="flex items-center gap-2.5 pr-3 sm:border-r sm:border-[#30342C]">
+              <div className="grid h-7 w-7 place-items-center bg-[#C7F36B] text-[#171914]">
+                <span className="font-display font-black text-xs text-[#171914]">R</span>
+              </div>
+              <span className="hidden font-display text-sm font-bold tracking-[-0.05em] sm:block">
+                recover<span className="text-[#C7F36B]">/</span>y
+              </span>
+            </div>
+            <div className="hidden items-center gap-2 font-mono text-[10px] uppercase tracking-[0.17em] text-[#858D7E] sm:flex">
+              <span>Workspace</span>
+              <ChevronRight size={12} />
+              <span className="text-[#E9E6DC]">
+                {pathname === '/' ? 'Recovery Overview' : pathname.replace('/', '').replace(/-/g, ' ')}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            <span className="hidden items-center gap-2 border border-[#D8D5CB] bg-[#FAF9F5] px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-[#777970] md:flex">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#9BBD49]" />
+              Demo data · 03 Sep 2026
+            </span>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 border border-[#30342C] bg-[#20231C] text-[11px] font-mono text-[#E4E7D7]">
+              <span className="h-2 w-2 rounded-full bg-[#C7F36B]" />
+              <span className="hidden sm:inline text-[#9FA297]">Autonomous Engine:</span>
+              <span className="font-bold text-[#C7F36B]">Active</span>
+            </div>
+          </div>
+        </header>
+
+        {/* Page Children Container */}
+        <main className="flex-1 p-5 md:p-8">
           <DemoBanner />
           {children}
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }
-

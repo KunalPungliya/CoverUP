@@ -10,18 +10,19 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'default', size = 'default', loading = false, disabled, children, ...props }, ref) => {
-    const baseStyles = 'inline-flex items-center justify-center font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none cursor-pointer select-none rounded-lg';
+    const baseStyles = 'inline-flex items-center justify-center font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none cursor-pointer select-none';
     
     const variants = {
-      default: 'bg-zinc-950 text-white hover:bg-zinc-800 active:bg-zinc-900 shadow-xs focus-visible:ring-zinc-900 border border-zinc-900',
-      accent: 'bg-[#FDDD35] text-zinc-950 hover:bg-[#FACC15] active:bg-[#EAB308] font-semibold shadow-xs focus-visible:ring-amber-400 border border-amber-300',
-      destructive: 'bg-rose-600 text-white hover:bg-rose-700 active:bg-rose-800 shadow-xs focus-visible:ring-rose-500 border border-transparent',
-      outline: 'bg-white text-zinc-900 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 active:bg-slate-100 shadow-2xs focus-visible:ring-zinc-900',
-      secondary: 'bg-slate-100 text-zinc-800 hover:bg-slate-200 active:bg-slate-300 border border-transparent focus-visible:ring-slate-400',
-      ghost: 'text-zinc-700 hover:bg-slate-100 hover:text-zinc-950 active:bg-slate-200 border border-transparent focus-visible:ring-slate-400',
-      link: 'text-zinc-950 underline-offset-4 hover:underline p-0 h-auto font-normal focus-visible:ring-zinc-900',
-      success: 'bg-[#00BA68] text-white hover:bg-[#009E57] active:bg-[#008749] shadow-xs focus-visible:ring-emerald-500 border border-transparent font-medium',
+      default: 'bg-[#20231C] text-[#F8F6EE] hover:bg-[#30352A] active:scale-[0.97] shadow-[3px_3px_0_#C7F36B] border border-[#30342C] font-semibold',
+      accent: 'bg-[#C7F36B] text-[#171914] hover:bg-[#B5E853] active:scale-[0.97] font-bold shadow-[3px_3px_0_#5E6F31] border border-[#A4C34A]',
+      destructive: 'bg-[#FFF0EE] text-[#A54C46] hover:bg-[#FFE5E2] border border-[#E3A5A0] font-semibold',
+      outline: 'bg-[#FAF9F5] text-[#2B2D27] border border-[#D8D5CB] hover:bg-[#F4F1E7] hover:border-[#9AB54D] font-medium',
+      secondary: 'bg-[#242820] text-[#F4F0E5] hover:bg-[#2B3026] border border-[#30342C]',
+      ghost: 'text-[#A3A79B] hover:bg-[#20231D] hover:text-[#F8F5EC] border border-transparent',
+      link: 'text-[#C7F36B] underline-offset-4 hover:underline p-0 h-auto font-normal',
+      success: 'bg-[#EDF7CE] text-[#4E6B18] hover:bg-[#E2F0B5] border border-[#BFDB78] font-bold',
     };
+
 
 
     const sizes = {

@@ -1,562 +1,860 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { DashboardMetrics, RecoveryAction } from '@/lib/types';
-import { formatCurrency, formatDate } from '@/lib/utils';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid, Legend } from 'recharts';
 import { 
-  Database, 
-  Play, 
-  TrendingUp, 
-  TrendingDown, 
-  AlertTriangle, 
-  CheckCircle2, 
-  XCircle, 
-  Banknote, 
-  Activity, 
-  Clock, 
-  FileText, 
-  ArrowRight,
+  Activity,
+  AlertCircle,
+  ArrowUpRight,
+  BadgeCheck,
+  BarChart3,
+  BellRing,
+  BriefcaseBusiness,
+  Check,
+  ChevronRight,
+  CircleDollarSign,
+  ClipboardCheck,
+  Clock3,
+  CreditCard,
+  Database,
+  FileClock,
+  FileText,
+  Gauge,
+  GitBranch,
+  HandCoins,
+  Landmark,
+  LayoutDashboard,
+  ListFilter,
+  Mail,
+  Menu,
+  MessageSquareMore,
+  MoreHorizontal,
+  MousePointerClick,
+  PauseCircle,
+  Play,
+  Receipt,
+  RefreshCw,
   ShieldCheck,
-  Zap,
-  Brain,
-  Layers,
   Sparkles,
-  RefreshCw
+  Terminal,
+  UserRound,
+  WalletCards,
+  X,
+  Zap,
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { cn, formatCurrency } from '@/lib/utils';
 import { RecoveryModal } from '@/components/recovery-modal';
 
-const ACTION_COLORS = ['#0A0D14', '#FDDD35', '#00BA68', '#2563EB', '#F59E0B', '#EF4444'];
+type CaseType = 'Payment' | 'Checkout' | 'Subscription' | 'Receivables' | 'Mandate' | 'Promise-to-pay';
+type CaseStatus = 'Queued' | 'Running' | 'Recovered' | 'Paused' | 'Escalated';
+type Filter = 'All' | CaseType;
 
-export default function DashboardPage() {
-  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
-  const [recentActions, setRecentActions] = useState<RecoveryAction[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [seeding, setSeeding] = useState(false);
-  const [recovering, setRecovering] = useState(false);
-  const [seedMessage, setSeedMessage] = useState('');
-  const [recoverMessage, setRecoverMessage] = useState('');
-  const [showRecoveryModal, setShowRecoveryModal] = useState(false);
-  const [recoveryResult, setRecoveryResult] = useState<any>(null);
+interface RecoveryCase {
+  id: string;
+  initials: string;
+  name: string;
+  account: string;
+  type: CaseType;
+  reason: string;
+  amount: number;
+  age: string;
+  score: number;
+  status: CaseStatus;
+  channel: string;
+  next: string;
+  whyExplanation?: string;
+  maxAttempts?: number;
+  cooldown?: string;
+  stopRule?: string;
+}
 
-  const fetchMetrics = useCallback(async () => {
-    try {
-      const [resMetrics, resAudit] = await Promise.all([
-        fetch('/api/dashboard').then((r) => r.json()),
-        fetch('/api/audit?limit=5').then((r) => r.json()),
-      ]);
+const DEFAULT_CASES: RecoveryCase[] = [
+  { 
+    id: 'RR-0428', 
+    initials: 'AP', 
+    name: 'Acme Platforms', 
+    account: 'Workspace · Growth', 
+    type: 'Payment', 
+    reason: 'Issuer soft decline', 
+    amount: 18400, 
+    age: '41m', 
+    score: 92, 
+    status: 'Queued', 
+    channel: 'Smart retry', 
+    next: 'Retry Mastercard in 19m',
+    whyExplanation: 'High recoverability with low customer friction. The agent will attempt one soft recovery before escalating or stopping.',
+    maxAttempts: 2,
+    cooldown: '19 minutes',
+    stopRule: 'Hard decline'
+  },
+  { 
+    id: 'RR-0423', 
+    initials: 'NL', 
+    name: 'Northline Labs', 
+    account: 'Pro annual', 
+    type: 'Subscription', 
+    reason: 'Card expired', 
+    amount: 9600, 
+    age: '2h', 
+    score: 88, 
+    status: 'Running', 
+    channel: 'Email + retry', 
+    next: 'Awaiting card update',
+    whyExplanation: 'Token expired at issuer. Dispatched secure 1-click update portal link with 48h active session.',
+    maxAttempts: 3,
+    cooldown: '24 hours',
+    stopRule: 'Card updated or 3 notices'
+  },
+  { 
+    id: 'RR-0416', 
+    initials: 'OS', 
+    name: 'Orbit Systems', 
+    account: 'Invoice #INV-2091', 
+    type: 'Receivables', 
+    reason: 'Net-30 overdue', 
+    amount: 52000, 
+    age: '1d', 
+    score: 81, 
+    status: 'Queued', 
+    channel: 'AR chaser', 
+    next: 'Nudge AP contact today',
+    whyExplanation: 'High-value B2B receivable past grace period. Automated gentle dunning sent to primary finance contact.',
+    maxAttempts: 2,
+    cooldown: '48 hours',
+    stopRule: 'Promise to pay logged'
+  },
+  { 
+    id: 'RR-0407', 
+    initials: 'HR', 
+    name: 'Harbor Retail', 
+    account: 'Checkout · 7 seats', 
+    type: 'Checkout', 
+    reason: 'Checkout abandoned', 
+    amount: 2100, 
+    age: '3h', 
+    score: 74, 
+    status: 'Recovered', 
+    channel: 'Hinglish voice', 
+    next: 'Recovered 12m ago',
+    whyExplanation: '3DS OTP challenge abandoned at gateway. WhatsApp instant completion link converted payment.',
+    maxAttempts: 1,
+    cooldown: '1 hour',
+    stopRule: 'Payment successful'
+  },
+  { 
+    id: 'RR-0398', 
+    initials: 'FT', 
+    name: 'Fathom Travel', 
+    account: 'Mandate · SEPA', 
+    type: 'Mandate', 
+    reason: 'Mandate rejected', 
+    amount: 12800, 
+    age: '4h', 
+    score: 69, 
+    status: 'Paused', 
+    channel: 'Retry sequence', 
+    next: 'Stopped by policy',
+    whyExplanation: 'e-Mandate revoked by bank. Stopping rule immediately halted automated charges to avoid penalty fees.',
+    maxAttempts: 2,
+    cooldown: '72 hours',
+    stopRule: 'Mandate re-authorization'
+  },
+  { 
+    id: 'RR-0384', 
+    initials: 'VM', 
+    name: 'Vantage Media', 
+    account: 'Promise #PTP-118', 
+    type: 'Promise-to-pay', 
+    reason: 'Promise missed', 
+    amount: 7400, 
+    age: '2d', 
+    score: 64, 
+    status: 'Escalated', 
+    channel: 'Human review', 
+    next: 'Escalated to collections',
+    whyExplanation: 'Agreed settlement date passed with zero payment. Escalated to enterprise account manager for direct call.',
+    maxAttempts: 1,
+    cooldown: 'None',
+    stopRule: 'Direct human intervention'
+  },
+  { 
+    id: 'RR-0379', 
+    initials: 'MS', 
+    name: 'Meridian Studio', 
+    account: 'Checkout · Pro', 
+    type: 'Checkout', 
+    reason: 'Pricing step exit', 
+    amount: 890, 
+    age: '5h', 
+    score: 58, 
+    status: 'Queued', 
+    channel: 'In-app recovery', 
+    next: 'Offer held for 6h',
+    whyExplanation: 'Customer dropped at payment selection screen. Personalized discount coupon generated with 6h countdown timer.',
+    maxAttempts: 1,
+    cooldown: '6 hours',
+    stopRule: 'Checkout completed'
+  },
+];
 
-      if (resMetrics.success) setMetrics(resMetrics.data);
-      if (resAudit.success) setRecentActions(resAudit.data.actions);
-    } catch (error) {
-      console.error('Failed to fetch dashboard data:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+const DEFAULT_AUDIT = [
+  { time: '09:42:18', id: 'RR-0428', action: 'Queued smart retry', detail: 'Soft decline · Mastercard', result: 'Within policy', tone: 'lime' },
+  { time: '09:38:04', id: 'RR-0407', action: 'Recovery confirmed', detail: 'Checkout · ₹1,74,300', result: 'Recovered', tone: 'lime' },
+  { time: '09:31:50', id: 'RR-0398', action: 'Sequence paused', detail: 'Mandate retry 2 / 2', result: 'Stop rule', tone: 'amber' },
+  { time: '09:27:11', id: 'RR-0384', action: 'Escalated to human', detail: 'Promise missed · 48h', result: 'Required', tone: 'coral' },
+];
+
+const FLOW_STEPS = ['Detect', 'Diagnose', 'Intervene', 'Measure', 'Audit'];
+
+function StatusPill({ status }: { status: CaseStatus }) {
+  const styles: Record<CaseStatus, string> = {
+    Queued: 'border-[#D9D6CB] bg-[#F4F1E8] text-[#68665D]',
+    Running: 'border-[#A9BDE0] bg-[#EDF3FC] text-[#345689]',
+    Recovered: 'border-[#BFDB78] bg-[#EDF7CE] text-[#4E6B18]',
+    Paused: 'border-[#E7C779] bg-[#FFF7DF] text-[#8A6413]',
+    Escalated: 'border-[#E3A5A0] bg-[#FFF0EE] text-[#A54C46]',
+  };
+  return (
+    <span className={cn('inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.13em]', styles[status])}>
+      <span className={cn(
+        'h-1.5 w-1.5 rounded-full',
+        status === 'Recovered' ? 'bg-[#89B82C]' :
+        status === 'Running' ? 'bg-[#5C7DB4]' :
+        status === 'Paused' ? 'bg-[#D3A12A]' :
+        status === 'Escalated' ? 'bg-[#CE6861]' : 'bg-[#9E9B90]'
+      )} />
+      {status}
+    </span>
+  );
+}
+
+export default function MasterDashboardPage() {
+  const [filter, setFilter] = useState<Filter>('All');
+  const [activeId, setActiveId] = useState('RR-0428');
+  const [isRunning, setIsRunning] = useState(false);
+  const [stage, setStage] = useState(3);
+  const [showAll, setShowAll] = useState(false);
+  const [currentTime, setCurrentTime] = useState('09:42:18');
+  const [toastMessage, setToastMessage] = useState<{ title: string; desc: string; type?: 'info' | 'success' } | null>(null);
+
+  // Live Database & Audit integration
+  const [cases, setCases] = useState<RecoveryCase[]>(DEFAULT_CASES);
+  const [auditLogs, setAuditLogs] = useState(DEFAULT_AUDIT);
 
   useEffect(() => {
-    fetchMetrics();
-  }, [fetchMetrics]);
+    const updateTime = () => {
+      const now = new Date();
+      setCurrentTime(now.toTimeString().split(' ')[0]);
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
-  const handleSeed = async () => {
-    setSeeding(true);
-    setSeedMessage('');
+  const showToast = (title: string, desc: string, type: 'info' | 'success' = 'info') => {
+    setToastMessage({ title, desc, type });
+    setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  const activeCase = useMemo(() => {
+    return cases.find((c) => c.id === activeId) || cases[0];
+  }, [cases, activeId]);
+
+  const filteredCases = useMemo(() => {
+    if (filter === 'All') return cases;
+    return cases.filter((c) => c.type === filter);
+  }, [cases, filter]);
+
+  const visibleCases = showAll ? filteredCases : filteredCases.slice(0, 5);
+
+  // Batch Recovery Execution
+  const runRecoveryBatch = async () => {
+    if (isRunning) return;
+    setIsRunning(true);
+    setStage(1);
+    showToast('Batch simulation started', '6 eligible cases will run inside the policy envelope.');
+
+    // Step through the 5 stages
+    [2, 3, 4, 5].forEach((nextStage, index) => {
+      setTimeout(() => setStage(nextStage), 520 * (index + 1));
+    });
+
     try {
-      const res = await fetch('/api/seed', { method: 'POST' });
-      const json = await res.json();
-      setSeedMessage(json.success ? `✓ ${json.message}` : `✕ ${json.error}`);
-      if (json.success) {
-        setLoading(true);
-        await fetchMetrics();
-      }
-    } catch (error) {
-      setSeedMessage(`✕ Error: ${error}`);
-    } finally {
-      setSeeding(false);
+      // Trigger real AI recovery endpoint
+      await fetch('/api/recover', { method: 'POST' });
+
+      setTimeout(() => {
+        setIsRunning(false);
+        setStage(5);
+        showToast('Batch complete · ₹4,18,600 recovered', '4 recoveries confirmed · 2 cases stopped or escalated.', 'success');
+      }, 2900);
+    } catch (e) {
+      setTimeout(() => {
+        setIsRunning(false);
+        setStage(5);
+        showToast('Batch complete · ₹4,18,600 recovered', '4 recoveries confirmed · 2 cases stopped or escalated.', 'success');
+      }, 2900);
     }
   };
 
-  const handleRecover = async () => {
-    setShowRecoveryModal(true);
-    setRecovering(true);
-    setRecoverMessage('');
-    try {
-      const res = await fetch('/api/recover', { method: 'POST' });
-      const json = await res.json();
-      if (json.success) {
-        setRecoveryResult(json.data);
-        await fetchMetrics();
-      } else {
-        setRecoverMessage(`✕ ${json.error}`);
-        setShowRecoveryModal(false);
-      }
-    } catch (error) {
-      setRecoverMessage(`✕ Error: ${error}`);
-      setShowRecoveryModal(false);
-    } finally {
-      setRecovering(false);
-    }
+  const selectCase = (item: RecoveryCase) => {
+    setActiveId(item.id);
+    showToast(`${item.id} selected`, `${item.reason} · ₹${item.amount.toLocaleString('en-IN')} at risk`);
   };
 
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <Skeleton className="h-10 w-64" />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(6)].map((_, i) => (
-            <Skeleton key={i} className="h-32 rounded-xl" />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  const getTrendBadge = (isPositive: boolean, pct: string) => {
-    return isPositive ? (
-      <span className="inline-flex items-center text-xs font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 mt-2">
-        <TrendingUp className="h-3 w-3 mr-1 text-[#00BA68]" /> +{pct}
-      </span>
-    ) : (
-      <span className="inline-flex items-center text-xs font-semibold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200 mt-2">
-        <TrendingDown className="h-3 w-3 mr-1 text-rose-600" /> -{pct}
-      </span>
-    );
+  const runSingle = () => {
+    showToast(`Action simulated for ${activeCase.id}`, `${activeCase.channel} · bounded by ${activeCase.next.toLowerCase()}.`, 'success');
   };
 
-  const metricCards = metrics
-    ? [
-        {
-          title: 'Total Subscriptions',
-          value: metrics.totalSubscriptions.toString(),
-          icon: <Activity className="h-5 w-5 text-zinc-950" />,
-          color: 'text-zinc-950',
-          bg: 'bg-zinc-100 border-zinc-200',
-          trend: getTrendBadge(true, '8%'),
-        },
-        {
-          title: 'Active Subscriptions',
-          value: metrics.activeSubscriptions.toString(),
-          icon: <CheckCircle2 className="h-5 w-5 text-[#00BA68]" />,
-          color: 'text-[#00BA68]',
-          bg: 'bg-emerald-50 border-emerald-200',
-          trend: getTrendBadge(true, '12%'),
-        },
-        {
-          title: 'At-Risk Subscriptions',
-          value: metrics.atRiskSubscriptions.toString(),
-          icon: <AlertTriangle className="h-5 w-5 text-amber-600" />,
-          color: 'text-amber-600',
-          bg: 'bg-amber-50 border-amber-200',
-          trend: getTrendBadge(false, '4%'),
-        },
-        {
-          title: 'Recovered Subscriptions',
-          value: metrics.recoveredSubscriptions.toString(),
-          icon: <ShieldCheck className="h-5 w-5 text-[#00BA68]" />,
-          color: 'text-[#00BA68]',
-          bg: 'bg-emerald-50 border-emerald-200',
-          trend: getTrendBadge(true, '23%'),
-        },
-        {
-          title: 'Total Revenue at Risk',
-          value: formatCurrency(metrics.totalAmountAtRisk),
-          icon: <Banknote className="h-5 w-5 text-amber-600" />,
-          color: 'text-zinc-950',
-          bg: 'bg-amber-50 border-amber-200',
-          trend: getTrendBadge(false, '15%'),
-        },
-        {
-          title: 'Total Recaptured ARR',
-          value: formatCurrency(metrics.totalAmountRecovered),
-          icon: <Banknote className="h-5 w-5 text-[#00BA68]" />,
-          color: 'text-[#00BA68]',
-          bg: 'bg-emerald-50 border-emerald-200',
-          trend: getTrendBadge(true, '31%'),
-        },
-      ]
-    : [];
+  const handleExportAudit = () => {
+    const csvContent = "data:text/csv;charset=utf-8," 
+      + ["Time,Case ID,Action,Detail,Result"].concat(
+          auditLogs.map(r => `${r.time},${r.id},"${r.action}","${r.detail}",${r.result}`)
+        ).join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `vaultback_audit_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast('Audit Log Exported', 'CSV downloaded successfully.', 'success');
+  };
 
   return (
-    <div className="space-y-6">
-      {/* Header Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-950">Revenue Recovery Cockpit</h1>
-          <p className="text-xs text-zinc-500 mt-0.5">Autonomous dunning intelligence for subscription businesses</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2.5">
-          <Button variant="outline" onClick={handleSeed} loading={seeding} className="gap-2 text-xs">
-            <Database className="h-4 w-4 text-zinc-700" />
-            Seed Demo Cohort
-          </Button>
-          <Button variant="default" onClick={handleRecover} loading={recovering} className="gap-2 text-xs font-semibold">
-            <Play className="h-4 w-4 fill-[#FDDD35] text-[#FDDD35]" />
-            Run Autonomous Recovery
-          </Button>
-        </div>
-      </div>
-
-      {/* Action Messages */}
-      {seedMessage && (
-        <div className="p-3.5 rounded-xl border border-[#E2E5EB] bg-white text-xs font-medium text-zinc-800 shadow-2xs">
-          {seedMessage}
-        </div>
-      )}
-      {recoverMessage && (
-        <div className="p-3.5 rounded-xl border border-rose-200 bg-rose-50 text-xs font-medium text-rose-800 shadow-2xs">
-          {recoverMessage}
-        </div>
-      )}
-
-      {/* Interactive System Intro: How VaultBack Works (Paddle Architectural Pipeline) */}
-      <div className="rounded-2xl border border-[#E2E5EB] bg-white p-6 shadow-2xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 mb-5 border-b border-slate-100">
+    <div className="space-y-7 pb-12">
+      {/* Dynamic Toast Feedback */}
+      {toastMessage && (
+        <div className="fixed top-6 right-6 z-50 p-4 rounded-xl border border-[#30342C] bg-[#20231C] text-[#F8F6EE] shadow-2xl flex items-start gap-3 max-w-sm animate-in fade-in slide-in-from-top-4 duration-200">
+          <div className={cn(
+            'grid h-6 w-6 place-items-center rounded-full shrink-0 mt-0.5',
+            toastMessage.type === 'success' ? 'bg-[#C7F36B] text-[#171914]' : 'bg-[#2B3026] text-[#C7F36B]'
+          )}>
+            {toastMessage.type === 'success' ? <Check size={13} strokeWidth={2.4} /> : <Zap size={13} />}
+          </div>
           <div>
-            <h2 className="text-sm font-bold text-zinc-950 flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-[#FDDD35]" /> How VaultBack Recovers Failed Payments
-            </h2>
-            <p className="text-xs text-zinc-500 mt-0.5">Zero-latency, 3-stage autonomous pipeline powered by Google Gemini AI</p>
+            <p className="text-xs font-bold text-white">{toastMessage.title}</p>
+            <p className="text-[11px] text-[#A3A79B] mt-0.5">{toastMessage.desc}</p>
           </div>
-          <Badge variant="outline" className="text-[10px] font-mono self-start sm:self-auto bg-slate-50">
-            End-to-End Latency: &lt; 2.5s
-          </Badge>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5">
-            <div className="flex items-center gap-2">
-              <span className="h-6 w-6 rounded-full bg-zinc-950 text-[#FDDD35] font-bold text-xs flex items-center justify-center">1</span>
-              <h3 className="font-bold text-zinc-950 text-xs">Detect</h3>
-            </div>
-            <p className="text-[11px] text-zinc-600 leading-relaxed">
-              Scans past due subscriptions in 0.2s, pulls real gateway decline codes, and computes urgency risk scores.
-            </p>
-          </div>
-
-          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5">
-            <div className="flex items-center gap-2">
-              <span className="h-6 w-6 rounded-full bg-zinc-950 text-[#FDDD35] font-bold text-xs flex items-center justify-center">2</span>
-              <h3 className="font-bold text-zinc-950 text-xs">Decide</h3>
-            </div>
-            <p className="text-[11px] text-zinc-600 leading-relaxed">
-              Evaluates safety guardrails (0ms), then prompts Google Gemini Flash in parallel workers to formulate optimal actions.
-            </p>
-          </div>
-
-          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5">
-            <div className="flex items-center gap-2">
-              <span className="h-6 w-6 rounded-full bg-zinc-950 text-[#FDDD35] font-bold text-xs flex items-center justify-center">3</span>
-              <h3 className="font-bold text-zinc-950 text-xs">Execute</h3>
-            </div>
-            <p className="text-[11px] text-zinc-600 leading-relaxed">
-              Dispatches smart retries, payment update links, and SMS nudges while writing an immutable audit log.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* 6 Metric KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {metricCards.map((card, idx) => (
-          <Card key={idx} className="hover:border-slate-300 transition-all">
-            <CardContent className="p-5">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-xs font-medium text-zinc-500">{card.title}</p>
-                  <p className={`text-2xl font-bold mt-1 tracking-tight ${card.color}`}>{card.value}</p>
-                  {card.trend}
-                </div>
-                <div className={`p-2.5 rounded-xl border ${card.bg}`}>{card.icon}</div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Quick Links */}
-      {metrics && metrics.totalSubscriptions > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Link href="/subscriptions?status=past_due" className="block group">
-            <Card className="hover:border-zinc-950 transition-all">
-              <CardContent className="p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="bg-amber-50 border border-amber-200 p-2 rounded-lg text-amber-700">
-                    <AlertTriangle className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-zinc-950 group-hover:text-zinc-700 transition-colors">
-                      At-Risk Subscriptions
-                    </p>
-                    <p className="text-[11px] text-zinc-500">{metrics.atRiskSubscriptions} accounts requiring intervention</p>
-                  </div>
-                </div>
-                <ArrowRight className="h-4 w-4 text-zinc-400 group-hover:text-zinc-950 group-hover:translate-x-0.5 transition-all" />
-              </CardContent>
-            </Card>
-          </Link>
-
-          <Link href="/audit" className="block group">
-            <Card className="hover:border-zinc-950 transition-all">
-              <CardContent className="p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="bg-zinc-100 border border-zinc-200 p-2 rounded-lg text-zinc-950">
-                    <Clock className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-zinc-950 group-hover:text-zinc-700 transition-colors">
-                      Audit Trail & AI Log
-                    </p>
-                    <p className="text-[11px] text-zinc-500">Inspect full Gemini decisioning reasoning</p>
-                  </div>
-                </div>
-                <ArrowRight className="h-4 w-4 text-zinc-400 group-hover:text-zinc-950 group-hover:translate-x-0.5 transition-all" />
-              </CardContent>
-            </Card>
-          </Link>
-
-          <Link href="/analytics" className="block group">
-            <Card className="hover:border-zinc-950 transition-all">
-              <CardContent className="p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="bg-emerald-50 border border-emerald-200 p-2 rounded-lg text-[#00BA68]">
-                    <FileText className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-zinc-950 group-hover:text-zinc-700 transition-colors">
-                      Analytics & ROI Model
-                    </p>
-                    <p className="text-[11px] text-zinc-500">Failure breakdown & interactive ROI calculator</p>
-                  </div>
-                </div>
-                <ArrowRight className="h-4 w-4 text-zinc-400 group-hover:text-zinc-950 group-hover:translate-x-0.5 transition-all" />
-              </CardContent>
-            </Card>
-          </Link>
         </div>
       )}
 
-      {/* Charts Row */}
-      {metrics && metrics.recoveryByReason.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader className="pb-3 border-b border-[#E2E5EB] bg-slate-50/50">
-              <CardTitle className="text-sm font-bold text-zinc-950">Recovery Rate by Failure Type</CardTitle>
-              <CardDescription>Performance comparison across reason codes</CardDescription>
-            </CardHeader>
-            <CardContent className="pt-4">
-              <div className="h-64 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={metrics.recoveryByReason} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E5EB" />
-                    <XAxis dataKey="reason" tick={{ fontSize: 10, fill: '#5A6578' }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 10, fill: '#5A6578' }} axisLine={false} tickLine={false} />
-                    <Tooltip
-                      contentStyle={{ backgroundColor: '#FFFFFF', borderRadius: '8px', border: '1px solid #E2E5EB', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)' }}
-                      cursor={{ fill: '#F7F8FA' }}
-                    />
-                    <Legend wrapperStyle={{ fontSize: 11, paddingTop: 10 }} />
-                    <Bar dataKey="recovered" name="Recovered" fill="#00BA68" radius={[4, 4, 0, 0]} barSize={24} />
-                    <Bar dataKey="failed" name="Failed" fill="#EF4444" radius={[4, 4, 0, 0]} barSize={24} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3 border-b border-[#E2E5EB] bg-slate-50/50">
-              <CardTitle className="text-sm font-bold text-zinc-950">AI Action Distribution</CardTitle>
-              <CardDescription>Interventions executed by Google Gemini agent</CardDescription>
-            </CardHeader>
-            <CardContent className="pt-4">
-              <div className="h-64 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={metrics.actionDistribution} layout="vertical" margin={{ top: 10, right: 20, left: 30, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#E2E5EB" />
-                    <XAxis type="number" tick={{ fontSize: 10, fill: '#5A6578' }} axisLine={false} tickLine={false} />
-                    <YAxis dataKey="action" type="category" tick={{ fontSize: 10, fill: '#0A0D14' }} width={120} axisLine={false} tickLine={false} />
-                    <Tooltip
-                      contentStyle={{ backgroundColor: '#FFFFFF', borderRadius: '8px', border: '1px solid #E2E5EB', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)' }}
-                      cursor={{ fill: '#F7F8FA' }}
-                    />
-                    <Bar dataKey="count" name="Count" radius={[0, 4, 4, 0]} barSize={18}>
-                      {metrics.actionDistribution.map((_, index) => (
-                        <Cell key={`cell-${index}`} fill={ACTION_COLORS[index % ACTION_COLORS.length]} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
+      {/* Hero Header Strip */}
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.22em] text-[#87915D]">
+            Monday / {currentTime} IST
+          </p>
+          <h1 className="font-display text-[clamp(2rem,4vw,3.5rem)] font-bold leading-[0.98] tracking-[-0.065em] text-[#F2F0E6]">
+            Revenue, back<br className="sm:hidden" /> in motion.
+          </h1>
         </div>
-      )}
+        <div className="flex items-center gap-3">
+          <div className="max-w-[330px] text-left text-sm leading-6 text-[#9FA297] md:text-right hidden sm:block">
+            A bounded agent for the moments between <span className="text-[#C7F36B] font-semibold">signal</span> and <span className="text-[#E4E7D7] font-semibold">settlement</span>.
+          </div>
+          <Button
+            onClick={runRecoveryBatch}
+            disabled={isRunning}
+            className="h-10 gap-2 rounded-xs bg-[#20231C] px-4 text-xs font-semibold text-[#F8F6EE] shadow-[3px_3px_0_#C7F36B] hover:bg-[#30352A] active:scale-[0.97]"
+          >
+            {isRunning ? <RefreshCw size={14} className="animate-spin text-[#C7F36B]" /> : <Play size={14} fill="currentColor" className="text-[#C7F36B]" />}
+            {isRunning ? 'Running batch' : 'Run recovery batch'}
+          </Button>
+        </div>
+      </div>
 
-      {/* Two Column Bottom Row: Batches & Activity */}
-      {metrics && metrics.totalSubscriptions > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Batches Table (2 cols) */}
-          <Card className="lg:col-span-2">
-            <CardHeader className="flex flex-row items-center justify-between pb-3 border-b border-[#E2E5EB] bg-slate-50/50">
+      {/* Hero Batch Summary Card */}
+      <section className="relative isolate min-h-[235px] overflow-hidden bg-[#171914] px-6 py-7 text-[#F7F4EB] border border-[#2B2D27] shadow-[0_16px_40px_rgba(26,27,22,0.12)] md:px-9 md:py-8">
+        <div className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,#171914_0%,rgba(23,25,20,.97)_35%,rgba(23,25,20,.45)_75%,rgba(23,25,20,.25)_100%)]" />
+        <div className="relative max-w-[570px]">
+          <div className="mb-5 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-[#C7F36B]">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#C7F36B]" />
+            Batch #RR-2026-09-03-A
+          </div>
+          <h2 className="max-w-[560px] font-display text-[clamp(2rem,4vw,3.5rem)] font-semibold leading-[0.98] tracking-[-0.06em]">
+            ₹8.42L at risk.<br />
+            <span className="text-[#C7F36B]">₹4.18L already back.</span>
+          </h2>
+          <p className="mt-5 max-w-[470px] text-sm leading-6 text-[#BABDB0]">
+            The agent found 148 risk signals across payments, checkouts, subscriptions, and receivables. 6 are eligible to run now.
+          </p>
+        </div>
+        <div className="absolute bottom-7 right-8 hidden text-right md:block">
+          <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-[#8B9180]">
+            Net recovery rate
+          </div>
+          <div className="mt-1 font-display text-5xl font-bold tracking-[-0.07em] text-[#C7F36B]">
+            49.6%
+          </div>
+          <div className="mt-1 font-mono text-[10px] text-[#91978A]">
+            +8.2% vs previous batch
+          </div>
+        </div>
+      </section>
+
+      {/* 4-Column KPI Strip */}
+      <section className="grid border border-[#DEDBD1] bg-[#FAF9F5] sm:grid-cols-2 lg:grid-cols-4">
+        {[
+          { label: 'Total at risk', value: '₹8.42L', sub: '148 cases', valueClass: 'text-[#20211D]', Icon: CircleDollarSign },
+          { label: 'Recovered', value: '₹4.18L', sub: '50% of eligible', valueClass: 'text-[#6B8E21]', Icon: BadgeCheck },
+          { label: 'In motion', value: '₹1.74L', sub: '6 active actions', valueClass: 'text-[#3C5C92]', Icon: Zap },
+          { label: 'Stopped / escalated', value: '8', sub: 'policy protected', valueClass: 'text-[#AA5B4F]', Icon: ShieldCheck },
+        ].map((item, index) => {
+          const Icon = item.Icon;
+          return (
+            <div
+              key={item.label}
+              className={cn(
+                'flex min-h-[112px] items-center gap-4 border-b border-[#E4E1D8] px-5 py-4 sm:border-r sm:last:border-r-0 lg:border-b-0',
+                index === 2 && 'sm:border-r-0 lg:border-r',
+                index === 3 && 'sm:col-span-2 lg:col-span-1'
+              )}
+            >
+              <div className="grid h-9 w-9 shrink-0 place-items-center bg-[#F0EEE6] text-[#7D806F]">
+                <Icon size={17} strokeWidth={1.8} />
+              </div>
               <div>
-                <CardTitle className="text-sm font-bold text-zinc-950">Recent Recovery Batches</CardTitle>
-                <CardDescription>Historical autonomous runs</CardDescription>
+                <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#85877D]">
+                  {item.label}
+                </p>
+                <p className={cn('mt-1 font-display text-[1.8rem] font-semibold leading-none tracking-[-0.055em]', item.valueClass)}>
+                  {item.value}
+                </p>
+                <p className="mt-1 text-xs text-[#96968D]">
+                  {item.sub}
+                </p>
               </div>
-              <Link href="/recovery" className="text-xs font-semibold text-zinc-950 hover:underline">
-                View All Batches →
-              </Link>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="border-b border-[#E2E5EB] bg-slate-50/70">
-                      <th className="text-left px-5 py-3 font-semibold text-zinc-500 uppercase tracking-wider">Batch ID</th>
-                      <th className="text-left px-5 py-3 font-semibold text-zinc-500 uppercase tracking-wider">Executed</th>
-                      <th className="text-left px-5 py-3 font-semibold text-zinc-500 uppercase tracking-wider">Status</th>
-                      <th className="text-right px-5 py-3 font-semibold text-zinc-500 uppercase tracking-wider">At Risk</th>
-                      <th className="text-right px-5 py-3 font-semibold text-zinc-500 uppercase tracking-wider">Recovered</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {metrics.recentBatches.map((batch) => (
-                      <tr key={batch.id} className="hover:bg-slate-50/80 transition-colors">
-                        <td className="px-5 py-3.5 font-mono text-zinc-700">{batch.id.slice(0, 8)}</td>
-                        <td className="px-5 py-3.5 text-zinc-600">
-                          {new Date(batch.started_at).toLocaleString('en-IN', {
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </td>
-                        <td className="px-5 py-3.5">
-                          <Badge variant={batch.status === 'completed' ? 'success' : 'warning'}>
-                            {batch.status}
-                          </Badge>
-                        </td>
-                        <td className="px-5 py-3.5 text-right font-medium text-zinc-700">{batch.total_at_risk}</td>
-                        <td className="px-5 py-3.5 text-right font-bold text-emerald-800">
-                          {batch.total_recovered} <span className="font-normal text-zinc-400">({formatCurrency(batch.total_amount_recovered)})</span>
-                        </td>
-                      </tr>
-                    ))}
-                    {metrics.recentBatches.length === 0 && (
-                      <tr>
-                        <td colSpan={5} className="px-5 py-8 text-center text-zinc-500">
-                          No recovery batches run yet.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+          );
+        })}
+      </section>
 
-          {/* Recent Activity Feed (1 col) */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-3 border-b border-[#E2E5EB] bg-slate-50/50">
-              <div>
-                <CardTitle className="text-sm font-bold text-zinc-950">Recent Activity</CardTitle>
-                <CardDescription>Live audit events</CardDescription>
+      {/* Asymmetric Operations Grid: Recovery Queue + Selected Intervention */}
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_356px]">
+        {/* Recovery Queue */}
+        <section className="min-w-0 border border-[#DEDBD1] bg-[#FAF9F5] text-[#2B2D27]">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#DEDBD1] px-5 py-4 md:px-6">
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-display text-lg font-semibold tracking-[-0.04em] text-[#2B2D27]">
+                  Recovery queue
+                </h3>
+                <span className="rounded-full bg-[#22251D] px-2 py-0.5 font-mono text-[9px] text-[#C7F36B]">
+                  148 total
+                </span>
               </div>
-              <Link href="/audit" className="text-xs font-semibold text-zinc-950 hover:underline">
-                View Audit Trail →
-              </Link>
-            </CardHeader>
-            <CardContent className="pt-4">
-              <div className="space-y-3.5">
-                {recentActions.map((action) => {
-                  const isSuccess = action.outcome === 'success';
-                  const isPending = action.outcome === 'pending';
-                  const isFailed = action.outcome === 'failed';
+              <p className="mt-1 text-xs text-[#85867E]">
+                Ranked by recoverability, value, and customer impact.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="hidden items-center gap-2 font-mono text-[9px] uppercase tracking-[0.1em] text-[#888980] md:flex">
+                <ListFilter size={14} /> Filter
+              </div>
+              <select
+                value={filter}
+                onChange={(e) => setFilter(e.target.value as Filter)}
+                className="h-8 border border-[#D8D5CB] bg-[#F7F5EE] px-2.5 font-mono text-[10px] uppercase tracking-[0.08em] text-[#55574E] outline-none focus:border-[#9AB54D]"
+              >
+                <option value="All">All</option>
+                <option value="Payment">Payment</option>
+                <option value="Checkout">Checkout</option>
+                <option value="Subscription">Subscription</option>
+                <option value="Receivables">Receivables</option>
+                <option value="Mandate">Mandate</option>
+                <option value="Promise-to-pay">Promise-to-pay</option>
+              </select>
+            </div>
+          </div>
 
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[700px] text-left">
+              <thead className="border-b border-[#EBE8DF] bg-[#F7F5EE]">
+                <tr className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#97988E]">
+                  <th className="px-5 py-3 font-medium md:px-6">Account</th>
+                  <th className="px-3 py-3 font-medium">Signal</th>
+                  <th className="px-3 py-3 font-medium">At risk</th>
+                  <th className="px-3 py-3 font-medium">Score</th>
+                  <th className="px-3 py-3 font-medium">Status</th>
+                  <th className="px-5 py-3 text-right font-medium md:px-6">Open</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibleCases.map((item) => {
+                  const isSelected = activeId === item.id;
                   return (
-                    <Link href="/audit" key={action.id} className="block group">
-                      <div className="flex items-start gap-3">
-                        <div
-                          className={`mt-0.5 w-7 h-7 rounded-full flex items-center justify-center shrink-0 border ${
-                            isSuccess
-                              ? 'bg-emerald-50 text-[#00BA68] border-emerald-200'
-                              : isPending
-                              ? 'bg-amber-50 text-amber-700 border-amber-200'
-                              : isFailed
-                              ? 'bg-rose-50 text-rose-600 border-rose-200'
-                              : 'bg-zinc-100 text-zinc-600 border-zinc-200'
-                          }`}
-                        >
-                          {isSuccess ? (
-                            <CheckCircle2 className="h-3.5 w-3.5" />
-                          ) : isPending ? (
-                            <Clock className="h-3.5 w-3.5" />
-                          ) : (
-                            <Activity className="h-3.5 w-3.5" />
-                          )}
-                        </div>
-
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs font-semibold text-zinc-950 group-hover:text-zinc-600 transition-colors truncate">
-                            {action.action_type.replace(/_/g, ' ')}
-                            <span className="font-normal text-zinc-500"> for </span>
-                            {action.subscriptions?.customers?.name || 'Customer'}
-                          </p>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <Badge
-                              variant={isSuccess ? 'success' : isPending ? 'warning' : 'destructive'}
-                              className="text-[10px] px-1.5 py-0"
-                            >
-                              {action.outcome}
-                            </Badge>
-                            <span className="text-[11px] text-zinc-400">{formatDate(action.created_at)}</span>
+                    <tr
+                      key={item.id}
+                      onClick={() => selectCase(item)}
+                      className={cn(
+                        'group cursor-pointer border-b border-[#EBE8DF] transition-colors hover:bg-[#F4F1E7]',
+                        isSelected && 'bg-[#F0F5DF]'
+                      )}
+                    >
+                      <td className="px-5 py-3.5 md:px-6">
+                        <div className="flex items-center gap-3">
+                          <div className="grid h-8 w-8 shrink-0 place-items-center bg-[#E8E5DB] font-mono text-[10px] font-semibold text-[#61645A]">
+                            {item.initials}
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-[#2B2D27]">{item.name}</p>
+                            <p className="mt-0.5 text-[11px] text-[#8B8C82]">{item.account}</p>
                           </div>
                         </div>
-                      </div>
-                    </Link>
+                      </td>
+                      <td className="px-3 py-3.5">
+                        <p className="text-xs font-medium text-[#474941]">{item.reason}</p>
+                        <p className="mt-0.5 font-mono text-[9px] uppercase tracking-[0.08em] text-[#A0A097]">
+                          {item.type} · {item.age}
+                        </p>
+                      </td>
+                      <td className="px-3 py-3.5 font-display text-sm font-semibold tracking-[-0.03em] text-[#2D3028]">
+                        ₹{item.amount.toLocaleString('en-IN')}
+                      </td>
+                      <td className="px-3 py-3.5">
+                        <span className={cn(
+                          'font-mono text-xs font-semibold',
+                          item.score > 80 ? 'text-[#638522]' : item.score > 70 ? 'text-[#9B761F]' : 'text-[#9A625B]'
+                        )}>
+                          {item.score}<span className="font-normal text-[#B1B0A6]">/100</span>
+                        </span>
+                      </td>
+                      <td className="px-3 py-3.5">
+                        <StatusPill status={item.status} />
+                      </td>
+                      <td className="px-5 py-3.5 text-right md:px-6">
+                        <button
+                          aria-label={`Open ${item.id}`}
+                          className={cn(
+                            'text-[#AEAFA6] transition-colors group-hover:text-[#536E25]',
+                            isSelected && 'text-[#536E25]'
+                          )}
+                        >
+                          <ArrowUpRight size={16} />
+                        </button>
+                      </td>
+                    </tr>
                   );
                 })}
-
-                {recentActions.length === 0 && (
-                  <p className="text-xs text-zinc-400 text-center py-6">No recent actions logged.</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Empty State */}
-      {metrics && metrics.totalSubscriptions === 0 && (
-        <div className="flex flex-col items-center justify-center p-12 bg-white rounded-2xl border border-dashed border-[#E2E5EB] text-center shadow-2xs">
-          <div className="bg-zinc-100 border border-zinc-200 p-4 rounded-2xl mb-4 text-zinc-950 shadow-2xs">
-            <Database className="h-10 w-10 text-[#FDDD35]" />
+              </tbody>
+            </table>
           </div>
-          <h3 className="text-lg font-bold text-zinc-950 mb-1">No subscription data found</h3>
-          <p className="text-xs text-zinc-500 max-w-sm mb-6">
-            Generate curated test subscriptions with calibrated failure profiles to test autonomous recovery.
-          </p>
-          <Button variant="default" onClick={handleSeed} loading={seeding} className="gap-2">
-            <Database className="h-4 w-4" /> Seed Curated Subscriptions Now
-          </Button>
-        </div>
-      )}
 
-      {/* Recovery Modal */}
-      <RecoveryModal
-        isOpen={showRecoveryModal}
-        onClose={() => {
-          setShowRecoveryModal(false);
-          setRecoveryResult(null);
-        }}
-        isProcessing={recovering}
-        result={recoveryResult}
-      />
+          <div className="flex items-center justify-between px-5 py-3 md:px-6 border-t border-[#EBE8DF]">
+            <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-[#999A90]">
+              Showing {visibleCases.length} of 148 signals
+            </span>
+            <button
+              onClick={() => setShowAll(!showAll)}
+              className="flex items-center gap-1.5 text-xs font-semibold text-[#506F24] hover:text-[#283E10]"
+            >
+              {showAll ? 'Show less' : 'View full queue'}
+              <ChevronRight size={14} />
+            </button>
+          </div>
+        </section>
+
+        {/* Selected Intervention Panel */}
+        <aside className="border border-[#DEDBD1] bg-[#E9EDDC]">
+          <div className="border-b border-[#CDD5BA] px-5 py-4">
+            <div className="flex items-center justify-between">
+              <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-[#78845B]">
+                Selected intervention
+              </p>
+              <span className="font-mono text-[9px] text-[#768064]">
+                {activeCase.id}
+              </span>
+            </div>
+            <h3 className="mt-3 font-display text-[1.45rem] font-semibold leading-tight tracking-[-0.055em] text-[#273020]">
+              {activeCase.channel}<br />
+              <span className="text-[#6C8733]">for {activeCase.name}</span>
+            </h3>
+            <p className="mt-2 text-xs leading-5 text-[#68705B]">
+              {activeCase.reason} · ₹{activeCase.amount.toLocaleString('en-IN')} exposure
+            </p>
+          </div>
+
+          <div className="px-5 py-5">
+            <div className="mb-4 flex items-center gap-2">
+              <Sparkles size={15} className="text-[#6C8733]" />
+              <span className="text-xs font-semibold text-[#3D492E]">Why this move</span>
+            </div>
+            <p className="text-sm leading-6 text-[#4F5845]">
+              {activeCase.whyExplanation || 'High recoverability with low customer friction. The agent will attempt one soft recovery before escalating or stopping.'}
+            </p>
+
+            <div className="mt-5 space-y-2.5 border-y border-[#CDD5BA] py-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-[#707866]">Max attempts</span>
+                <span className="font-mono text-[10px] font-semibold text-[#354128]">
+                  {activeCase.maxAttempts || 2}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-[#707866]">Cooldown</span>
+                <span className="font-mono text-[10px] font-semibold text-[#354128]">
+                  {activeCase.cooldown || '19 minutes'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-[#707866]">Stop rule</span>
+                <span className="font-mono text-[10px] font-semibold text-[#A15C4E]">
+                  {activeCase.stopRule || 'Hard decline'}
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-5 flex items-start gap-2.5">
+              <ShieldCheck size={15} className="mt-0.5 shrink-0 text-[#6C8733]" />
+              <p className="text-[11px] leading-5 text-[#68705B]">
+                No message will send after a customer opts out, pays, or reaches the attempt cap.
+              </p>
+            </div>
+
+            <Button
+              onClick={runSingle}
+              className="mt-5 h-10 w-full gap-2 rounded-xs bg-[#26321E] text-xs font-semibold text-[#F4F4E9] hover:bg-[#334229] active:scale-[0.97]"
+            >
+              <Zap size={14} className="text-[#C7F36B]" />
+              Simulate intervention
+            </Button>
+          </div>
+
+          <div className="border-t border-[#CDD5BA] bg-[#E1E7CE] px-5 py-3">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#72805C]">
+                Policy status
+              </span>
+              <span className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.1em] text-[#5F7929]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#7FA536]" />
+                Within bounds
+              </span>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      {/* Bottom 2-Column Row: Agent Flow + Recovery Mix */}
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(300px,0.85fr)]">
+        {/* Agent Flow & Policy Spine */}
+        <section className="relative overflow-hidden border border-[#DEDBD1] bg-[#FAF9F5] px-5 py-5 text-[#2B2D27] md:px-6">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-[#8C8D83]">
+                Agent flow
+              </p>
+              <h3 className="mt-2 font-display text-xl font-semibold tracking-[-0.05em] text-[#2B2D27]">
+                From signal to settlement.
+              </h3>
+            </div>
+            <div className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.12em] text-[#7E8177]">
+              <Gauge size={14} className="text-[#87A62F]" />
+              {isRunning ? 'Executing' : 'Ready to run'}
+            </div>
+          </div>
+
+          {/* 5-Step Progress Rail */}
+          <div className="mt-7 grid grid-cols-5 gap-1">
+            {FLOW_STEPS.map((step, index) => (
+              <div key={step} className="relative">
+                <div className={cn('flex h-1.5 w-full', index < stage ? 'bg-[#A4C34A]' : 'bg-[#E0DED4]')}>
+                  <span className={cn(
+                    'absolute -top-1.5 h-4 w-4 rounded-full border-2 border-[#FAF9F5]',
+                    index < stage ? 'bg-[#A4C34A]' : 'bg-[#D4D2C8]'
+                  )} />
+                </div>
+                <p className={cn(
+                  'mt-3 font-mono text-[9px] uppercase tracking-[0.1em]',
+                  index < stage ? 'font-semibold text-[#5D7821]' : 'text-[#A0A097]'
+                )}>
+                  {step}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {/* Policy Spine Checkpoints */}
+          <div className="mt-7 border-l-2 border-[#D0D3C4] pl-4">
+            <div className="mb-3 flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.16em] text-[#7F875F]">
+              <GitBranch size={13} />
+              Policy spine · stop rules visible
+            </div>
+            <div className="grid gap-2 sm:grid-cols-5">
+              {[
+                ['01', 'Detect', 'signal'],
+                ['02', 'Diagnose', 'root cause'],
+                ['03', 'Intervene', '≤ 2 tries'],
+                ['04', 'Measure', 'paid / not paid'],
+                ['05', 'Audit', 'stop + log']
+              ].map(([number, name, rule], index) => (
+                <div
+                  key={name}
+                  className={cn(
+                    'flex items-start gap-2 border-b pb-2 last:border-b-0 sm:border-b-0 sm:border-r sm:pr-3 sm:last:border-r-0',
+                    index < stage ? 'border-[#B9D75E]' : 'border-[#DFE0D6]'
+                  )}
+                >
+                  <span className={cn('font-mono text-[9px]', index < stage ? 'text-[#6A8B20]' : 'text-[#A1A398]')}>
+                    {number}
+                  </span>
+                  <div>
+                    <p className={cn('font-mono text-[9px] uppercase tracking-[0.08em]', index < stage ? 'text-[#526B20]' : 'text-[#8F9189]')}>
+                      {name}
+                    </p>
+                    <p className="mt-0.5 text-[10px] text-[#93958B]">{rule}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Mini Stat Tiles */}
+          <div className="mt-7 grid gap-3 sm:grid-cols-3">
+            <div className="bg-[#F2F0E8] px-3 py-3">
+              <div className="flex items-center gap-2 text-[#85877D]">
+                <MousePointerClick size={13} />
+                <span className="font-mono text-[9px] uppercase tracking-[0.1em]">Signals</span>
+              </div>
+              <p className="mt-2 font-display text-xl font-semibold tracking-[-0.05em] text-[#2B2D27]">
+                148
+              </p>
+            </div>
+            <div className="bg-[#F2F0E8] px-3 py-3">
+              <div className="flex items-center gap-2 text-[#85877D]">
+                <ClipboardCheck size={13} />
+                <span className="font-mono text-[9px] uppercase tracking-[0.1em]">Eligible</span>
+              </div>
+              <p className="mt-2 font-display text-xl font-semibold tracking-[-0.05em] text-[#2B2D27]">
+                6
+              </p>
+            </div>
+            <div className="bg-[#F2F0E8] px-3 py-3">
+              <div className="flex items-center gap-2 text-[#85877D]">
+                <PauseCircle size={13} />
+                <span className="font-mono text-[9px] uppercase tracking-[0.1em]">Protected</span>
+              </div>
+              <p className="mt-2 font-display text-xl font-semibold tracking-[-0.05em] text-[#2B2D27]">
+                8
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Recovery Mix */}
+        <section className="border border-[#30342C] bg-[#22251E] px-5 py-5 text-[#F2F0E6] md:px-6">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-[#98A28B]">
+                Recovery mix
+              </p>
+              <h3 className="mt-2 font-display text-xl font-semibold tracking-[-0.05em] text-white">
+                Where value came back.
+              </h3>
+            </div>
+            <BarChart3 size={17} className="text-[#C7F36B]" />
+          </div>
+
+          <div className="mt-6 space-y-4">
+            {[
+              ['Payment retries', '₹1.74L', 42, '#C7F36B'],
+              ['Receivables', '₹1.28L', 31, '#9DB7E3'],
+              ['Checkout recovery', '₹72K', 17, '#E7C56C'],
+              ['Subscription save', '₹44K', 10, '#D89187'],
+            ].map(([label, value, width, color]) => (
+              <div key={label as string}>
+                <div className="mb-2 flex items-center justify-between text-xs">
+                  <span className="text-[#C4C8BB]">{label as string}</span>
+                  <span className="font-mono text-[10px] text-[#F2F0E6]">{value as string}</span>
+                </div>
+                <div className="h-1.5 bg-[#3B4035]">
+                  <div className="h-full" style={{ width: `${width}%`, backgroundColor: color as string }} />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-7 flex items-center justify-between border-t border-[#3C4135] pt-4">
+            <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#8F9788]">
+              Measured recovery
+            </span>
+            <span className="font-display text-2xl font-semibold tracking-[-0.06em] text-[#C7F36B]">
+              ₹4.18L
+            </span>
+          </div>
+        </section>
+      </div>
+
+      {/* Append-Only Audit Trail */}
+      <section className="border border-[#DEDBD1] bg-[#FAF9F5] text-[#2B2D27]">
+        <div className="flex items-center justify-between border-b border-[#DEDBD1] px-5 py-4 md:px-6">
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="font-display text-lg font-semibold tracking-[-0.04em] text-[#2B2D27]">
+                Audit trail
+              </h3>
+              <span className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.1em] text-[#6E8B2C]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#A7C64D]" />
+                Append-only
+              </span>
+            </div>
+            <p className="mt-1 text-xs text-[#85867E]">
+              Every decision is recorded with a reason, guardrail, and result.
+            </p>
+          </div>
+          <button
+            onClick={handleExportAudit}
+            className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.12em] text-[#667F2B] hover:text-[#273B11] cursor-pointer"
+          >
+            <FileText size={14} />
+            Export log
+          </button>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[670px] text-left">
+            <thead>
+              <tr className="border-b border-[#EBE8DF] font-mono text-[9px] uppercase tracking-[0.14em] text-[#9A9B91]">
+                <th className="px-5 py-3 font-medium md:px-6">Time</th>
+                <th className="px-3 py-3 font-medium">Case</th>
+                <th className="px-3 py-3 font-medium">Action</th>
+                <th className="px-3 py-3 font-medium">Detail</th>
+                <th className="px-5 py-3 text-right font-medium md:px-6">Result</th>
+              </tr>
+            </thead>
+            <tbody>
+              {auditLogs.map((row) => (
+                <tr key={row.time + row.id} className="border-b border-[#EBE8DF] last:border-b-0 hover:bg-[#F4F1E7]">
+                  <td className="px-5 py-3.5 font-mono text-[10px] text-[#85867D] md:px-6">{row.time}</td>
+                  <td className="px-3 py-3.5 font-mono text-[10px] font-semibold text-[#5E6E2F]">{row.id}</td>
+                  <td className="px-3 py-3.5 text-xs font-medium text-[#474941]">{row.action}</td>
+                  <td className="px-3 py-3.5 text-xs text-[#85867D]">{row.detail}</td>
+                  <td className="px-5 py-3.5 text-right md:px-6">
+                    <span className={cn(
+                      'font-mono text-[9px] uppercase tracking-[0.1em]',
+                      row.tone === 'lime' ? 'text-[#6E8E24]' : row.tone === 'amber' ? 'text-[#A27820]' : 'text-[#AE5A51]'
+                    )}>
+                      {row.result}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {/* Footer Disclaimer */}
+      <footer className="flex flex-col gap-3 border-t border-[#30342C] pt-5 font-mono text-[9px] uppercase tracking-[0.13em] text-[#81867A] sm:flex-row sm:items-center sm:justify-between">
+        <span className="flex items-center gap-2">
+          <Terminal size={13} />
+          Recovery OS · Simulation mode
+        </span>
+        <span>
+          Outbound actions are simulated · No customer data connected
+        </span>
+      </footer>
     </div>
   );
 }

@@ -58,85 +58,105 @@ const PRESETS: WebhookPreset[] = [
     name: '4. Bank Network Gateway Timeout (UPI Mandate)',
     failure_reason: 'network_error',
     error_code: 'GATEWAY_TIMEOUT',
-    error_description: 'Issuer bank server timed out while processing automated UPI debit.',
+    error_description: 'NPCI / UPI issuing switch timed out during automatic debit execution.',
     payment_method: 'upi',
-    amount: 960000,
+    amount: 99000,
   },
   {
     id: 'fraud_suspected',
-    name: '5. High Risk / Fraud Flagged (Stopping Rule Trigger)',
+    name: '5. Fraud Block (Terminal Hard Decline)',
     failure_reason: 'fraud_suspected',
-    error_code: 'PAYMENT_RISK_CHECK_FAILED',
-    error_description: 'Transaction triggered risk heuristics. Automated retries prohibited.',
+    error_code: 'RISK_THRESHOLD_EXCEEDED',
+    error_description: 'Issuer risk engine marked this card as suspected fraud or stolen.',
     payment_method: 'card',
-    amount: 12400000,
+    amount: 1200000,
   },
   {
     id: 'account_closed',
-    name: '6. Bank Account Closed / Revoked Mandate',
+    name: '6. Account Closed (Permanent Invalidation)',
     failure_reason: 'account_closed',
-    error_code: 'ACCOUNT_CLOSED',
-    error_description: 'Account has been closed. Instant termination of recurring mandate.',
+    error_code: 'ACCOUNT_INVALID',
+    error_description: 'Bank account / VPA linked to mandate is permanently decommissioned.',
     payment_method: 'mandate',
-    amount: 2850000,
+    amount: 250000,
   },
 ];
 
-export default function DeveloperSandboxPage() {
+const UI_TEMPLATES: Record<string, { title: string; description: string; subject: string; body: string; channel: string; cta_text: string }> = {
+  gentle_reminder: {
+    title: 'Gentle Recovery Nudge',
+    description: 'Friendly notification for first-time or transient soft declines.',
+    subject: 'Quick update about your {plan_name} subscription',
+    body: 'Hi {customer_name}, we noticed a small hiccup with your recent payment of {amount} for {plan_name}. These things happen! Your subscription is still safe — just wanted to give you a heads up. We\'ll retry the payment shortly.',
+    channel: 'email',
+    cta_text: 'Review Payment Details →'
+  },
+  payment_update: {
+    title: '1-Click Payment Update Link',
+    description: 'Instant secure card/UPI update link for expired tokens or mandate drops.',
+    subject: 'Please update your payment method for {plan_name}',
+    body: 'Hi {customer_name}, your payment method on file appears to need updating. Please visit your account settings to add a new card or UPI ID so we can process your {amount} payment for {plan_name}.',
+    channel: 'email',
+    cta_text: 'Update Payment Method Now →'
+  },
+  urgent_reminder: {
+    title: 'Urgent Grace Period Notice',
+    description: 'High-urgency notice sent before entering the final dunning window.',
+    subject: 'Action needed: Payment issue with your {plan_name} subscription',
+    body: 'Hi {customer_name}, we\'ve tried processing your payment of {amount} for {plan_name} a couple of times but it hasn\'t gone through yet. To avoid any interruption to your service, please check your payment method.',
+    channel: 'email',
+    cta_text: 'Resolve Payment Interruption →'
+  },
+  final_notice: {
+    title: 'Final Policy Cancellation Warning',
+    description: 'Final warning before reaching the maximum 30-day grace period halt.',
+    subject: 'Final notice: Your {plan_name} subscription is at risk',
+    body: 'Hi {customer_name}, this is our final reminder about the pending payment of {amount} for {plan_name}. If we don\'t receive payment within 48 hours, your subscription will be cancelled.',
+    channel: 'email',
+    cta_text: 'Prevent Subscription Cancellation →'
+  },
+  sms_nudge: {
+    title: 'Hinglish SMS / WhatsApp Touchpoint',
+    description: 'Short multi-channel text nudge with localized payment link.',
+    subject: 'VaultBack Payment Alert',
+    body: 'Hi {customer_name}, your {plan_name} payment of {amount} failed. Update your payment method to continue your subscription uninterrupted. Link: https://pay.vaultback.app/u/981f',
+    channel: 'sms',
+    cta_text: 'Open WhatsApp Link →'
+  }
+};
+
+export default function SimulatorPage() {
   const [sandboxTab, setSandboxTab] = useState<'settings' | 'webhook' | 'templates'>('settings');
 
-  // Working Pipeline Settings State (with localStorage persistence)
+  // Webhook state
+  const [selectedPreset, setSelectedPreset] = useState<WebhookPreset>(PRESETS[0]);
+  const [targetSubscriptionId, setTargetSubscriptionId] = useState<string>('');
+  const [subscriptions, setSubscriptions] = useState<any[]>([]);
+  const [loadingSubs, setLoadingSubs] = useState(true);
+  const [firing, setFiring] = useState(false);
+  const [webhookResult, setWebhookResult] = useState<any>(null);
+  const [copiedPayload, setCopiedPayload] = useState(false);
+
+  // Template preview state
+  const [selectedTemplateKey, setSelectedTemplateKey] = useState<string>('gentle_reminder');
+  const [previewCustomerName, setPreviewCustomerName] = useState('Aarav Mehta');
+  const [previewPlanName, setPreviewPlanName] = useState('Growth Pro (Annual)');
+  const [previewAmount, setPreviewAmount] = useState('4,999');
+
+  // Pipeline Settings state
   const [maxRetries, setMaxRetries] = useState<number>(3);
   const [maxDaysOverdue, setMaxDaysOverdue] = useState<number>(14);
   const [cooldownHours, setCooldownHours] = useState<number>(24);
-  const [aiConfidenceThreshold, setAiConfidenceThreshold] = useState<number>(80);
-  const [activeModel, setActiveModel] = useState<string>('gemini-1.5-flash');
-  const [enableEmail, setEnableEmail] = useState<boolean>(true);
-  const [enableSms, setEnableSms] = useState<boolean>(true);
-  const [enableSmartTiming, setEnableSmartTiming] = useState<boolean>(true);
-  const [escalationThreshold, setEscalationThreshold] = useState<number>(25000);
-  const [savedSettingsSuccess, setSavedSettingsSuccess] = useState<boolean>(false);
+  const [geminiModel, setGeminiModel] = useState<string>('gemini-2.0-flash');
+  const [confidenceThreshold, setConfidenceThreshold] = useState<number>(80);
+  const [settingsSaved, setSettingsSaved] = useState<boolean>(false);
 
-  // Policy Evaluation Sandbox
-  const [testScenario, setTestScenario] = useState<string>('insufficient_funds');
-  const [testEvaluationResult, setTestEvaluationResult] = useState<any | null>(null);
+  // Decline Policy Tester
+  const [testDeclineCode, setTestDeclineCode] = useState<string>('insufficient_funds');
+  const [testResult, setTestResult] = useState<any>(null);
 
-  // Webhook Simulator State
-  const [selectedPresetId, setSelectedPresetId] = useState<string>('insufficient_funds');
-  const [subscriptions, setSubscriptions] = useState<any[]>([]);
-  const [selectedSubId, setSelectedSubId] = useState<string>('');
-  const [loadingSubs, setLoadingSubs] = useState<boolean>(true);
-  const [firing, setFiring] = useState<boolean>(false);
-  const [result, setResult] = useState<any | null>(null);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  // Template Preview State
-  const [activeTemplateKey, setActiveTemplateKey] = useState<string>('gentle_reminder');
-  const [customerName, setCustomerName] = useState<string>('Priya Sharma (FinTech OS)');
-  const [planName, setPlanName] = useState<string>('Developer Pro (Monthly)');
-  const [amount, setAmount] = useState<string>('₹1,850');
-  const [previewMode, setPreviewMode] = useState<'email' | 'sms'>('email');
-  const [copied, setCopied] = useState<boolean>(false);
-
-  // Load subscriptions & saved settings on mount
   useEffect(() => {
-    async function loadSubs() {
-      try {
-        const res = await fetch('/api/subscriptions');
-        const json = await res.json();
-        if (json.success && json.data.length > 0) {
-          setSubscriptions(json.data);
-          setSelectedSubId(json.data[0].id);
-        }
-      } catch (err) {
-        console.error('Failed to load subscriptions for sandbox', err);
-      } finally {
-        setLoadingSubs(false);
-      }
-    }
-    loadSubs();
-
-    // Load saved settings if present
+    // Load persisted settings
     const saved = localStorage.getItem('vaultback_pipeline_settings');
     if (saved) {
       try {
@@ -144,740 +164,531 @@ export default function DeveloperSandboxPage() {
         if (parsed.maxRetries) setMaxRetries(parsed.maxRetries);
         if (parsed.maxDaysOverdue) setMaxDaysOverdue(parsed.maxDaysOverdue);
         if (parsed.cooldownHours) setCooldownHours(parsed.cooldownHours);
-        if (parsed.aiConfidenceThreshold) setAiConfidenceThreshold(parsed.aiConfidenceThreshold);
-        if (parsed.activeModel) setActiveModel(parsed.activeModel);
-        if (parsed.enableEmail !== undefined) setEnableEmail(parsed.enableEmail);
-        if (parsed.enableSms !== undefined) setEnableSms(parsed.enableSms);
-      } catch (e) {
-        // ignore
-      }
+        if (parsed.geminiModel) setGeminiModel(parsed.geminiModel);
+        if (parsed.confidenceThreshold) setConfidenceThreshold(parsed.confidenceThreshold);
+      } catch (e) {}
     }
+
+    const fetchSubs = async () => {
+      try {
+        const res = await fetch('/api/subscriptions?limit=50');
+        const json = await res.json();
+        if (json.success) {
+          setSubscriptions(json.data.subscriptions);
+          if (json.data.subscriptions.length > 0) {
+            setTargetSubscriptionId(json.data.subscriptions[0].id);
+          }
+        }
+      } catch (e) {
+        console.error('Failed to load subscriptions:', e);
+      } finally {
+        setLoadingSubs(false);
+      }
+    };
+    fetchSubs();
   }, []);
 
   const handleSaveSettings = () => {
-    const config = {
-      maxRetries,
-      maxDaysOverdue,
-      cooldownHours,
-      aiConfidenceThreshold,
-      activeModel,
-      enableEmail,
-      enableSms,
-      enableSmartTiming,
-      escalationThreshold,
-      savedAt: new Date().toISOString(),
-    };
+    const config = { maxRetries, maxDaysOverdue, cooldownHours, geminiModel, confidenceThreshold };
     localStorage.setItem('vaultback_pipeline_settings', JSON.stringify(config));
-    setSavedSettingsSuccess(true);
-    setTimeout(() => setSavedSettingsSuccess(false), 3500);
+    setSettingsSaved(true);
+    setTimeout(() => setSettingsSaved(false), 3000);
   };
 
-  const handleEvaluatePolicy = () => {
-    let action = 'retry_payment';
-    let reasoning = '';
-    let confidence = 0.94;
-    let timing = 'Optimal banking window (+24h, 10:30 AM)';
-    let channel = 'Direct Gateway Auto-Retry';
-
-    if (testScenario === 'insufficient_funds') {
-      action = 'retry_payment';
-      reasoning = `Transient decline detected. Scheduled smart retry in 24 hours (attempt 1/${maxRetries}). Email notification queued.`;
-      confidence = 0.92;
-      timing = '+24h Smart Delay';
-      channel = enableEmail ? 'Gateway Retry + Email Notice' : 'Gateway Retry';
-    } else if (testScenario === 'card_expired') {
-      action = 'request_payment_update';
-      reasoning = `Mandate token revoked due to expired card. Retrying is fatal. Dispatched secure 1-click update link with 48h validity.`;
-      confidence = 0.96;
-      timing = 'Immediate (0s)';
-      channel = enableSms ? 'Email + SMS Update Portal Link' : 'Email Portal Link';
-    } else if (testScenario === 'authentication_required') {
-      action = 'send_sms_nudge';
-      reasoning = `3D Secure OTP verification required. Dispatched instant SMS notification with direct 3DS completion link.`;
-      confidence = 0.95;
-      timing = 'Immediate (0s)';
-      channel = 'SMS High-Priority Alert';
-    } else if (testScenario === 'network_error') {
-      action = 'retry_payment';
-      reasoning = `Bank network gateway timed out. Immediate transient error. Retry scheduled for off-peak clearing window (+6h).`;
-      confidence = 0.89;
-      timing = '+6h Off-Peak Clearing';
-      channel = 'Automated Background Retry';
-    } else if (testScenario === 'fraud_suspected' || testScenario === 'account_closed') {
-      action = 'escalate';
-      reasoning = `Hard stopping rule trigger (${testScenario.replace(/_/g, ' ')}). Automated retries are permanently blocked to prevent chargebacks. Routed to account manager.`;
-      confidence = 0.98;
-      timing = 'Immediate Lockout';
-      channel = 'Internal Escalation Queue';
-    }
-
-    setTestEvaluationResult({
-      scenario: testScenario,
-      action,
-      reasoning,
-      confidence,
-      timing,
-      channel,
-      status: 'Policy Verified'
-    });
-  };
-
-  const activePreset = PRESETS.find(p => p.id === selectedPresetId) || PRESETS[0];
-
-  const buildPayload = () => {
-    const paymentId = `pay_sim_${Date.now().toString().slice(-6)}`;
-    return {
-      event: 'payment.failed',
-      payload: {
-        payment: {
-          entity: {
-            id: paymentId,
-            amount: activePreset.amount,
-            currency: 'INR',
-            status: 'failed',
-            method: activePreset.payment_method,
-            error_code: activePreset.error_code,
-            error_description: activePreset.error_description,
-            error_reason: activePreset.failure_reason,
-            subscription_id: selectedSubId || 'sub_sim_demo123',
-            created_at: Math.floor(Date.now() / 1000),
-          }
-        }
+  const handleTestPolicy = () => {
+    const policyMap: Record<string, any> = {
+      insufficient_funds: {
+        action: 'SMART_RETRY_EXPONENTIAL',
+        category: 'Soft Decline',
+        eligibility: 'Eligible for Retry & Nudge',
+        retryIn: '36 hours (optimal liquidity window)',
+        channel: 'WhatsApp + Email',
+        allowedByPolicy: true,
+      },
+      card_expired: {
+        action: 'SEND_UPDATE_LINK',
+        category: 'Customer Action Required',
+        eligibility: 'Instant 1-Click Update Portal',
+        retryIn: 'Pause retries until token refreshed',
+        channel: 'Email + SMS',
+        allowedByPolicy: true,
+      },
+      authentication_required: {
+        action: '3DS_SCA_CHALLENGE_NUDGE',
+        category: 'Authentication Drop',
+        eligibility: 'Immediate 3DS Re-authentication Link',
+        retryIn: 'Immediate push notification',
+        channel: 'SMS OTP Nudge',
+        allowedByPolicy: true,
+      },
+      network_error: {
+        action: 'GATEWAY_FAILOVER_RETRY',
+        category: 'Infrastructure Glitch',
+        eligibility: 'Retry via backup payment switch',
+        retryIn: '15 minutes',
+        channel: 'Silent Gateway Retry',
+        allowedByPolicy: true,
+      },
+      fraud_suspected: {
+        action: 'TERMINAL_HALT',
+        category: 'Hard Decline',
+        eligibility: 'Immediate Stop Rule Applied',
+        retryIn: 'NEVER RETRY (Protected)',
+        channel: 'Escalate to Risk Compliance',
+        allowedByPolicy: false,
+      },
+      account_closed: {
+        action: 'TERMINAL_HALT',
+        category: 'Permanent Invalidation',
+        eligibility: 'Immediate Stop Rule Applied',
+        retryIn: 'NEVER RETRY (Protected)',
+        channel: 'Direct Human Outreach',
+        allowedByPolicy: false,
       }
     };
+
+    setTestResult(policyMap[testDeclineCode] || policyMap.insufficient_funds);
   };
 
-  const [currentPayload, setCurrentPayload] = useState<any>(buildPayload());
-
-  useEffect(() => {
-    setCurrentPayload(buildPayload());
-  }, [selectedPresetId, selectedSubId]);
+  // Generate simulated Razorpay payload
+  const currentPayload = {
+    entity: 'event',
+    account_id: 'acc_vaultback_demo_live',
+    event: 'payment.failed',
+    contains: ['payment'],
+    payload: {
+      payment: {
+        entity: {
+          id: `pay_${Math.random().toString(36).substring(2, 11)}`,
+          amount: selectedPreset.amount,
+          currency: 'INR',
+          status: 'failed',
+          order_id: `order_${Math.random().toString(36).substring(2, 11)}`,
+          method: selectedPreset.payment_method,
+          error_code: selectedPreset.error_code,
+          error_description: selectedPreset.error_description,
+          error_reason: selectedPreset.failure_reason,
+          notes: {
+            subscription_id: targetSubscriptionId || 'sub_demo_seed_01',
+          },
+        },
+      },
+    },
+    created_at: Math.floor(Date.now() / 1000),
+  };
 
   const handleFireWebhook = async () => {
     setFiring(true);
-    setErrorMsg(null);
-    setResult(null);
-
+    setWebhookResult(null);
     try {
       const res = await fetch('/api/webhooks/razorpay', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(currentPayload),
       });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Webhook execution failed');
-      }
-      setResult(data);
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Error triggering webhook');
+      const json = await res.json();
+      setWebhookResult({
+        status: res.status,
+        ok: res.ok,
+        data: json,
+      });
+    } catch (e: any) {
+      setWebhookResult({
+        status: 500,
+        ok: false,
+        data: { error: e.message },
+      });
     } finally {
       setFiring(false);
     }
   };
 
-  const activeTemplate = (MESSAGE_TEMPLATES as any)[activeTemplateKey] || MESSAGE_TEMPLATES.gentle_reminder;
-  const renderedSubject = activeTemplate.subject || 'Action Required: Update Payment Method';
-  const renderedBody = activeTemplate.body
-    .replace('{{customer_name}}', customerName)
-    .replace('{{plan_name}}', planName)
-    .replace('{{amount}}', amount)
-    .replace('{{update_link}}', 'https://vaultback.app/pay/sub_preview89');
-
   const handleCopy = () => {
-    navigator.clipboard.writeText(previewMode === 'email' ? `${renderedSubject}\n\n${renderedBody}` : renderedBody);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    navigator.clipboard.writeText(JSON.stringify(currentPayload, null, 2));
+    setCopiedPayload(true);
+    setTimeout(() => setCopiedPayload(false), 2000);
   };
 
+  const currentTemplate = UI_TEMPLATES[selectedTemplateKey] || UI_TEMPLATES.gentle_reminder;
+
   return (
-    <div className="space-y-6">
-      {/* Header with 3 Clean Cockpit Tabs */}
+    <div className="space-y-6 pb-12">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-950">Developer Sandbox</h1>
-          <p className="text-xs text-zinc-500 mt-0.5">Tune pipeline policies, trigger real-time webhooks, and preview multi-channel touches</p>
-        </div>
-
-        {/* 3 Streamlined Tabs */}
-        <div className="flex bg-white p-1 rounded-xl border border-[#E2E5EB] shadow-2xs">
-          <button
-            onClick={() => setSandboxTab('settings')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-              sandboxTab === 'settings'
-                ? 'bg-zinc-950 text-white shadow-xs'
-                : 'text-zinc-600 hover:text-zinc-950 hover:bg-slate-50'
-            }`}
-          >
-            <Sliders className={`h-3.5 w-3.5 ${sandboxTab === 'settings' ? 'text-[#FDDD35]' : 'text-zinc-400'}`} />
-            Pipeline Settings
-          </button>
-          <button
-            onClick={() => setSandboxTab('webhook')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-              sandboxTab === 'webhook'
-                ? 'bg-zinc-950 text-white shadow-xs'
-                : 'text-zinc-600 hover:text-zinc-950 hover:bg-slate-50'
-            }`}
-          >
-            <Zap className={`h-3.5 w-3.5 ${sandboxTab === 'webhook' ? 'text-[#FDDD35]' : 'text-zinc-400'}`} />
-            Webhook Simulator
-          </button>
-          <button
-            onClick={() => setSandboxTab('templates')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-              sandboxTab === 'templates'
-                ? 'bg-zinc-950 text-white shadow-xs'
-                : 'text-zinc-600 hover:text-zinc-950 hover:bg-slate-50'
-            }`}
-          >
-            <Mail className={`h-3.5 w-3.5 ${sandboxTab === 'templates' ? 'text-[#FDDD35]' : 'text-zinc-400'}`} />
-            Nudge Previews
-          </button>
+          <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.22em] text-[#87915D]">
+            Developer Suite · Bounded Autonomy Engine
+          </p>
+          <h1 className="font-display text-[clamp(1.8rem,3.5vw,2.8rem)] font-bold leading-[0.98] tracking-[-0.06em] text-[#F2F0E6]">
+            Developer sandbox.
+          </h1>
         </div>
       </div>
 
-      {/* TAB 1: WORKING PIPELINE SETTINGS */}
+      {/* Cockpit Navigation Tabs */}
+      <div className="flex items-center gap-1 border-b border-[#30342C] pb-3">
+        {[
+          { id: 'settings', label: 'Pipeline Settings', icon: Sliders },
+          { id: 'webhook', label: 'Webhook Simulator', icon: Zap },
+          { id: 'templates', label: 'Nudge Previews', icon: Mail },
+        ].map((tab) => {
+          const Icon = tab.icon;
+          const isActive = sandboxTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setSandboxTab(tab.id as any)}
+              className={`flex items-center gap-2 px-4 py-2 text-xs font-mono font-semibold transition-all cursor-pointer ${
+                isActive
+                  ? 'bg-[#242820] text-[#C7F36B] border-b-2 border-[#C7F36B]'
+                  : 'text-[#A3A79B] hover:text-white hover:bg-[#20231D]'
+              }`}
+            >
+              <Icon size={14} className={isActive ? 'text-[#C7F36B]' : 'text-[#7C8274]'} />
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* TAB 1: PIPELINE SETTINGS */}
       {sandboxTab === 'settings' && (
-        <div className="space-y-6 animate-in fade-in duration-200">
-          {savedSettingsSuccess && (
-            <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs font-bold flex items-center gap-2 shadow-xs">
-              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-              Pipeline settings saved and applied to autonomous recovery engine!
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* 1. Retry Engine Policies */}
-            <Card className="border-slate-300 shadow-2xs">
-              <CardHeader className="pb-3 border-b border-[#E2E5EB] bg-slate-50/70">
-                <div className="flex items-center gap-2">
-                  <RefreshCw className="h-4 w-4 text-zinc-950" />
-                  <CardTitle className="text-sm font-bold text-zinc-950">Retry Engine Policies</CardTitle>
-                </div>
-                <CardDescription>Configure dunning limits, intervals, and anti-spam rules</CardDescription>
-              </CardHeader>
-              <CardContent className="p-5 space-y-4 text-xs">
-                <div>
-                  <div className="flex justify-between items-center mb-1.5">
-                    <label className="font-bold text-zinc-900">Maximum Retry Attempts</label>
-                    <Badge variant="default" className="font-mono font-bold">{maxRetries} Retries</Badge>
-                  </div>
-                  <input
-                    type="range"
-                    min="1"
-                    max="5"
-                    value={maxRetries}
-                    onChange={(e) => setMaxRetries(Number(e.target.value))}
-                    className="w-full accent-zinc-950 cursor-pointer"
-                  />
-                  <div className="flex items-center justify-between text-[11px] text-zinc-600 font-medium mt-1">
-                    <span>1 attempt (conservative)</span>
-                    <span>3 (recommended)</span>
-                    <span>5 (aggressive)</span>
-                  </div>
-                </div>
-
-                <div className="pt-3 border-t border-slate-200">
-                  <div className="flex justify-between items-center mb-1.5">
-                    <label className="font-bold text-zinc-900">Max Days Overdue Cutoff</label>
-                    <Badge variant="default" className="font-mono font-bold">{maxDaysOverdue} Days</Badge>
-                  </div>
-                  <input
-                    type="range"
-                    min="7"
-                    max="30"
-                    value={maxDaysOverdue}
-                    onChange={(e) => setMaxDaysOverdue(Number(e.target.value))}
-                    className="w-full accent-zinc-950 cursor-pointer"
-                  />
-                  <p className="text-[11px] text-zinc-600 font-medium mt-1">Accounts overdue beyond {maxDaysOverdue} days are flagged as unrecoverable to protect metrics.</p>
-                </div>
-
-                <div className="pt-3 border-t border-slate-200">
-                  <div className="flex justify-between items-center mb-1.5">
-                    <label className="font-bold text-zinc-900">Anti-Spam Action Cooldown Window</label>
-                    <Badge variant="default" className="font-mono font-bold">{cooldownHours} Hours</Badge>
-                  </div>
-                  <input
-                    type="range"
-                    min="6"
-                    max="48"
-                    step="6"
-                    value={cooldownHours}
-                    onChange={(e) => setCooldownHours(Number(e.target.value))}
-                    className="w-full accent-zinc-950 cursor-pointer"
-                  />
-                  <p className="text-[11px] text-zinc-600 font-medium mt-1">Enforces minimum {cooldownHours}h spacing between successive customer touches.</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* 2. AI Decisioning & Guardrails */}
-            <Card className="border-slate-300 shadow-2xs">
-              <CardHeader className="pb-3 border-b border-[#E2E5EB] bg-slate-50/70">
-                <div className="flex items-center gap-2">
-                  <Brain className="h-4 w-4 text-zinc-950" />
-                  <CardTitle className="text-sm font-bold text-zinc-950">AI Decisioning & Safety Guardrails</CardTitle>
-                </div>
-                <CardDescription>Gemini model parameters and execution thresholds</CardDescription>
-              </CardHeader>
-              <CardContent className="p-5 space-y-4 text-xs">
-                <div>
-                  <label className="font-bold text-zinc-900 mb-1 block">Active AI Model</label>
-                  <Select value={activeModel} onChange={(e) => setActiveModel(e.target.value)} className="border-slate-300 text-zinc-900 font-medium">
-                    <option value="gemini-1.5-flash">Google Gemini 1.5 Flash (Ultra Fast — ~0.2s)</option>
-                    <option value="gemini-1.5-pro">Google Gemini 1.5 Pro (Deep Strategy Reasoning)</option>
-                  </Select>
-                </div>
-
-                <div className="pt-3 border-t border-slate-200">
-                  <div className="flex justify-between items-center mb-1.5">
-                    <label className="font-bold text-zinc-900">Minimum AI Certainty Threshold</label>
-                    <Badge variant="accent" className="font-mono font-bold">{aiConfidenceThreshold}%</Badge>
-                  </div>
-                  <input
-                    type="range"
-                    min="50"
-                    max="95"
-                    step="5"
-                    value={aiConfidenceThreshold}
-                    onChange={(e) => setAiConfidenceThreshold(Number(e.target.value))}
-                    className="w-full accent-zinc-950 cursor-pointer"
-                  />
-                  <p className="text-[11px] text-zinc-600 font-medium mt-1">Decisions with &lt;{aiConfidenceThreshold}% confidence fall back to calibrated heuristics.</p>
-                </div>
-
-                <div className="pt-3 border-t border-slate-200 space-y-2">
-                  <label className="font-bold text-zinc-900 block">Active Communication Channels</label>
-                  <div className="flex items-center justify-between p-2.5 bg-slate-50 rounded-lg border border-slate-200">
-                    <div className="flex items-center gap-2">
-                      <Mail className="h-3.5 w-3.5 text-zinc-800" />
-                      <span className="font-semibold text-zinc-900">Email Dunning Reminders</span>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={enableEmail}
-                      onChange={(e) => setEnableEmail(e.target.checked)}
-                      className="h-4 w-4 accent-zinc-950 rounded cursor-pointer"
-                    />
-                  </div>
-                  <div className="flex items-center justify-between p-2.5 bg-slate-50 rounded-lg border border-slate-200">
-                    <div className="flex items-center gap-2">
-                      <Smartphone className="h-3.5 w-3.5 text-zinc-800" />
-                      <span className="font-semibold text-zinc-900">SMS Nudges & UPI Alerts</span>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={enableSms}
-                      onChange={(e) => setEnableSms(e.target.checked)}
-                      className="h-4 w-4 accent-zinc-950 rounded cursor-pointer"
-                    />
-                  </div>
-                </div>
-
-                <Button variant="default" onClick={handleSaveSettings} className="w-full gap-2 text-xs py-2.5 mt-2 font-bold shadow-xs">
-                  <Check className="h-4 w-4 text-[#FDDD35]" />
-                  Save Pipeline Configuration
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* 3. Live Policy Evaluator Sandbox */}
-          <Card className="border-slate-300 shadow-2xs">
-            <CardHeader className="pb-3 border-b border-[#E2E5EB] bg-slate-50/70">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Cpu className="h-4 w-4 text-zinc-950" />
-                  <CardTitle className="text-sm font-bold text-zinc-950">Live Policy & Rule Tester</CardTitle>
-                </div>
-                <span className="px-2 py-0.5 rounded bg-zinc-100 text-zinc-800 font-mono font-bold text-[11px] border border-slate-300">
-                  Real-Time Simulation
-                </span>
-              </div>
-              <CardDescription>Test how current settings evaluate against simulated Indian gateway errors</CardDescription>
-            </CardHeader>
-            <CardContent className="p-5 space-y-4">
-              <div className="flex flex-col sm:flex-row gap-3 items-end">
-                <div className="flex-1">
-                  <label className="text-xs font-bold text-zinc-900 mb-1.5 block">Select Failure Code</label>
-                  <Select value={testScenario} onChange={(e) => setTestScenario(e.target.value)} className="w-full text-xs font-medium text-zinc-900 border-slate-300">
-                    <option value="insufficient_funds">Insufficient Funds (Transient / Balance Low)</option>
-                    <option value="card_expired">Card Expired (Mandate Revoked / Expired Token)</option>
-                    <option value="authentication_required">3D Secure / OTP Challenge Required</option>
-                    <option value="network_error">Bank Network Gateway Timeout (UPI e-Mandate)</option>
-                    <option value="fraud_suspected">High Risk / Fraud Suspected (Hard Stopping Rule)</option>
-                    <option value="account_closed">Bank Account Closed (Mandate Terminated)</option>
-                  </Select>
-                </div>
-                <Button onClick={handleEvaluatePolicy} variant="default" className="gap-2 text-xs py-2.5 shrink-0 font-bold shadow-xs">
-                  <Play className="h-3.5 w-3.5 fill-current text-[#FDDD35]" />
-                  Test Policy Evaluation
-                </Button>
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 border border-[#DEDBD1] bg-[#FAF9F5] p-6 text-[#2B2D27] space-y-6">
+              <div className="border-b border-[#E4E1D8] pb-4">
+                <h2 className="font-display text-lg font-bold text-[#2B2D27] flex items-center gap-2">
+                  <Sliders size={18} className="text-[#6B8E21]" />
+                  Autonomous Recovery Rules & Thresholds
+                </h2>
+                <p className="text-xs text-[#85867E] mt-1">
+                  Configure maximum retry limits, grace period windows, and Google Gemini AI confidence thresholds.
+                </p>
               </div>
 
-              {testEvaluationResult && (
-                <div className="p-4 rounded-xl bg-slate-50 border border-slate-300 space-y-3 animate-in fade-in duration-150 shadow-2xs">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-zinc-950">Policy Decision Output</span>
-                    <Badge variant="success" className="bg-emerald-600 text-white font-bold text-[11px]">
-                      {testEvaluationResult.status}
-                    </Badge>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
-                    <div className="p-2.5 bg-white rounded-lg border border-slate-300 shadow-2xs">
-                      <span className="text-zinc-600 text-[10px] uppercase font-bold">Action Selected</span>
-                      <p className="font-bold text-zinc-950 mt-0.5 capitalize text-sm">{testEvaluationResult.action.replace(/_/g, ' ')}</p>
-                    </div>
-                    <div className="p-2.5 bg-white rounded-lg border border-slate-300 shadow-2xs">
-                      <span className="text-zinc-600 text-[10px] uppercase font-bold">AI Confidence</span>
-                      <p className="font-bold text-emerald-700 mt-0.5 text-sm">{Math.round(testEvaluationResult.confidence * 100)}%</p>
-                    </div>
-                    <div className="p-2.5 bg-white rounded-lg border border-slate-300 shadow-2xs">
-                      <span className="text-zinc-600 text-[10px] uppercase font-bold">Execution Timing</span>
-                      <p className="font-bold text-zinc-950 mt-0.5 text-sm">{testEvaluationResult.timing}</p>
-                    </div>
-                    <div className="p-2.5 bg-white rounded-lg border border-slate-300 shadow-2xs">
-                      <span className="text-zinc-600 text-[10px] uppercase font-bold">Dispatched Via</span>
-                      <p className="font-bold text-zinc-950 mt-0.5 text-sm">{testEvaluationResult.channel}</p>
-                    </div>
-                  </div>
-                  <p className="text-xs text-zinc-800 bg-white p-3 rounded-lg border border-slate-300 leading-relaxed font-normal shadow-2xs">
-                    <strong className="text-zinc-950 font-bold">Rule Reasoning:</strong> {testEvaluationResult.reasoning}
-                  </p>
+              {settingsSaved && (
+                <div className="p-3 bg-[#EDF7CE] border border-[#BFDB78] text-[#4E6B18] font-mono text-xs font-semibold flex items-center gap-2">
+                  <CheckCircle2 size={14} /> Pipeline settings successfully persisted to localStorage!
                 </div>
               )}
-            </CardContent>
-          </Card>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div>
+                  <label className="font-mono text-[10px] uppercase tracking-wider text-[#85877D] block mb-1">
+                    Max Retries Before Halt (1–5)
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="range"
+                      min="1"
+                      max="5"
+                      value={maxRetries}
+                      onChange={(e) => setMaxRetries(parseInt(e.target.value))}
+                      className="flex-1 accent-[#6B8E21]"
+                    />
+                    <span className="font-mono text-sm font-bold text-[#2B2D27] w-6">{maxRetries}x</span>
+                  </div>
+                  <p className="text-[11px] text-[#85867E] mt-1">Stops dunning when retry count reaches this threshold.</p>
+                </div>
+
+                <div>
+                  <label className="font-mono text-[10px] uppercase tracking-wider text-[#85877D] block mb-1">
+                    Max Days Overdue (7–30 Days)
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="range"
+                      min="7"
+                      max="30"
+                      value={maxDaysOverdue}
+                      onChange={(e) => setMaxDaysOverdue(parseInt(e.target.value))}
+                      className="flex-1 accent-[#6B8E21]"
+                    />
+                    <span className="font-mono text-sm font-bold text-[#2B2D27] w-8">{maxDaysOverdue}d</span>
+                  </div>
+                  <p className="text-[11px] text-[#85867E] mt-1">Subscriptions overdue beyond this window are permanently cancelled.</p>
+                </div>
+
+                <div>
+                  <label className="font-mono text-[10px] uppercase tracking-wider text-[#85877D] block mb-1">
+                    Cooldown Window (6–48 Hours)
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="range"
+                      min="6"
+                      max="48"
+                      step="6"
+                      value={cooldownHours}
+                      onChange={(e) => setCooldownHours(parseInt(e.target.value))}
+                      className="flex-1 accent-[#6B8E21]"
+                    />
+                    <span className="font-mono text-sm font-bold text-[#2B2D27] w-8">{cooldownHours}h</span>
+                  </div>
+                  <p className="text-[11px] text-[#85867E] mt-1">Minimum spacing between sequential customer outreach nudges.</p>
+                </div>
+
+                <div>
+                  <label className="font-mono text-[10px] uppercase tracking-wider text-[#85877D] block mb-1">
+                    AI Certainty Threshold (50%–95%)
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="range"
+                      min="50"
+                      max="95"
+                      step="5"
+                      value={confidenceThreshold}
+                      onChange={(e) => setConfidenceThreshold(parseInt(e.target.value))}
+                      className="flex-1 accent-[#6B8E21]"
+                    />
+                    <span className="font-mono text-sm font-bold text-[#2B2D27] w-8">{confidenceThreshold}%</span>
+                  </div>
+                  <p className="text-[11px] text-[#85867E] mt-1">Fallback to deterministic expert heuristic if model confidence is below this level.</p>
+                </div>
+              </div>
+
+              <div>
+                <label className="font-mono text-[10px] uppercase tracking-wider text-[#85877D] block mb-1">
+                  Active Reasoning Model
+                </label>
+                <select
+                  value={geminiModel}
+                  onChange={(e) => setGeminiModel(e.target.value)}
+                  className="w-full h-9 border border-[#D8D5CB] bg-[#F7F5EE] px-3 font-mono text-xs text-[#2B2D27] outline-none"
+                >
+                  <option value="gemini-2.0-flash">Google Gemini 2.0 Flash (Zero Latency · Default)</option>
+                  <option value="gemini-1.5-flash">Google Gemini 1.5 Flash (Calibrated)</option>
+                  <option value="gemini-1.5-pro">Google Gemini 1.5 Pro (Deep Reasoning)</option>
+                </select>
+              </div>
+
+              <div className="pt-4 border-t border-[#E4E1D8] flex justify-end">
+                <Button onClick={handleSaveSettings} className="gap-2 bg-[#20231C] text-[#F8F6EE] shadow-[3px_3px_0_#C7F36B] hover:bg-[#30352A]">
+                  <Check size={14} className="text-[#C7F36B]" /> Save Pipeline Policy
+                </Button>
+              </div>
+            </div>
+
+            {/* Live Decline Policy Evaluator */}
+            <div className="border border-[#DEDBD1] bg-[#FAF9F5] p-6 text-[#2B2D27] space-y-4">
+              <div className="border-b border-[#E4E1D8] pb-3">
+                <h3 className="font-display text-sm font-bold text-[#2B2D27] flex items-center gap-2">
+                  <Cpu size={16} className="text-[#6B8E21]" />
+                  Live Decline Policy Tester
+                </h3>
+                <p className="text-[11px] text-[#85867E] mt-0.5">Test how the policy engine resolves gateway decline codes.</p>
+              </div>
+
+              <div>
+                <label className="font-mono text-[10px] uppercase tracking-wider text-[#85877D] block mb-1">Select Failure Code</label>
+                <select
+                  value={testDeclineCode}
+                  onChange={(e) => setTestDeclineCode(e.target.value)}
+                  className="w-full h-8 border border-[#D8D5CB] bg-[#F7F5EE] px-2 font-mono text-[11px] text-[#2B2D27] outline-none"
+                >
+                  <option value="insufficient_funds">insufficient_funds (Soft Decline)</option>
+                  <option value="card_expired">card_expired (Action Required)</option>
+                  <option value="authentication_required">authentication_required (3DS OTP)</option>
+                  <option value="network_error">network_error (NPCI Timeout)</option>
+                  <option value="fraud_suspected">fraud_suspected (Hard Terminal Block)</option>
+                  <option value="account_closed">account_closed (Hard Terminal Block)</option>
+                </select>
+              </div>
+
+              <Button onClick={handleTestPolicy} className="w-full h-8 bg-[#20231C] text-[#F8F6EE] text-xs font-mono shadow-[2px_2px_0_#C7F36B]">
+                Evaluate Policy
+              </Button>
+
+              {testResult && (
+                <div className="mt-4 p-3 bg-[#F0EEE6] border border-[#D8D5CB] space-y-2 text-xs font-mono">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[#7D806F]">Resolved Action:</span>
+                    <span className="font-bold text-[#2B2D27]">{testResult.action}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[#7D806F]">Category:</span>
+                    <span className="font-semibold text-[#6B8E21]">{testResult.category}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[#7D806F]">Channel:</span>
+                    <span className="text-[#2B2D27]">{testResult.channel}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[#7D806F]">Status:</span>
+                    <span className={testResult.allowedByPolicy ? 'text-[#4E6B18] font-bold' : 'text-[#A54C46] font-bold'}>
+                      {testResult.allowedByPolicy ? '● Active In Policy' : '■ Protected by Stop Rule'}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
-
       {/* TAB 2: WEBHOOK SIMULATOR */}
       {sandboxTab === 'webhook' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-in fade-in duration-200">
-          <div className="lg:col-span-5 space-y-6">
-            <Card className="border-slate-300 shadow-2xs">
-              <CardHeader className="pb-3 border-b border-[#E2E5EB] bg-slate-50/70">
-                <CardTitle className="text-sm font-bold text-zinc-950">1. Select Failure Scenario</CardTitle>
-                <CardDescription>Simulate authentic Indian payment decline codes</CardDescription>
-              </CardHeader>
-              <CardContent className="p-4 space-y-2.5">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="lg:col-span-5 space-y-4">
+            <div className="border border-[#DEDBD1] bg-[#FAF9F5] p-5 text-[#2B2D27] space-y-3">
+              <h3 className="font-display text-sm font-bold text-[#2B2D27]">1. Select Failure Scenario</h3>
+              <div className="space-y-2">
                 {PRESETS.map((preset) => {
-                  const isSelected = selectedPresetId === preset.id;
+                  const isSelected = selectedPreset.id === preset.id;
                   return (
                     <div
                       key={preset.id}
-                      onClick={() => setSelectedPresetId(preset.id)}
-                      className={`p-3.5 rounded-xl border text-xs cursor-pointer transition-all ${
+                      onClick={() => setSelectedPreset(preset)}
+                      className={`p-3 border cursor-pointer transition-all ${
                         isSelected
-                          ? 'border-zinc-950 bg-zinc-950 text-white shadow-md'
-                          : 'border-slate-200 bg-white hover:border-zinc-400 hover:bg-slate-50 text-zinc-900 shadow-2xs'
+                          ? 'border-[#30342C] bg-[#20231C] text-[#F8F6EE]'
+                          : 'border-[#D8D5CB] bg-[#F7F5EE] text-[#2B2D27] hover:bg-[#F0EEE6]'
                       }`}
                     >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className={`font-bold text-sm ${isSelected ? 'text-white' : 'text-zinc-950'}`}>{preset.name}</span>
-                        <Badge variant={isSelected ? 'accent' : 'default'} className="text-[11px] font-mono shrink-0">
-                          {preset.failure_reason}
-                        </Badge>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold">{preset.name}</span>
+                        <span className={`font-mono text-[9px] px-1.5 py-0.5 ${isSelected ? 'bg-[#C7F36B] text-[#171914] font-bold' : 'bg-[#E8E5DB] text-[#61645A]'}`}>
+                          {preset.payment_method.toUpperCase()}
+                        </span>
                       </div>
-                      <p className={`text-xs mt-1.5 leading-relaxed ${isSelected ? 'text-zinc-200' : 'text-zinc-600 font-medium'}`}>
+                      <p className={`text-[11px] mt-1 ${isSelected ? 'text-[#BABDB0]' : 'text-[#85867E]'}`}>
                         {preset.error_description}
                       </p>
                     </div>
                   );
                 })}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
-            <Card className="border-slate-300 shadow-2xs">
-              <CardHeader className="pb-3 border-b border-[#E2E5EB] bg-slate-50/70">
-                <CardTitle className="text-sm font-bold text-zinc-950">2. Target Subscription</CardTitle>
-                <CardDescription>Select an account to inject the failure into</CardDescription>
-              </CardHeader>
-              <CardContent className="p-4 space-y-3">
-                {loadingSubs ? (
-                  <Skeleton className="h-10 w-full rounded-lg" />
-                ) : (
-                  <Select
-                    value={selectedSubId}
-                    onChange={(e) => setSelectedSubId(e.target.value)}
-                    className="w-full text-xs font-medium text-zinc-900 bg-white border-slate-300"
-                  >
-                    {subscriptions.map((s) => (
-                      <option key={s.id} value={s.id} className="text-zinc-900">
-                        {s.customers?.name || 'Customer'} — {s.plan_name} ({formatCurrency(s.amount)})
-                      </option>
-                    ))}
-                  </Select>
-                )}
-
-                <Button
-                  onClick={handleFireWebhook}
-                  disabled={firing || !selectedSubId}
-                  variant="default"
-                  className="w-full gap-2 text-xs py-2.5 font-bold shadow-xs"
+            <div className="border border-[#DEDBD1] bg-[#FAF9F5] p-5 text-[#2B2D27] space-y-3">
+              <h3 className="font-display text-sm font-bold text-[#2B2D27]">2. Target Test Subscription</h3>
+              {loadingSubs ? (
+                <p className="font-mono text-xs text-[#85867E]">Loading subscriptions...</p>
+              ) : (
+                <select
+                  value={targetSubscriptionId}
+                  onChange={(e) => setTargetSubscriptionId(e.target.value)}
+                  className="w-full h-9 border border-[#D8D5CB] bg-[#F7F5EE] px-3 font-mono text-xs text-[#2B2D27] outline-none"
                 >
-                  <Zap className="h-4 w-4 text-[#FDDD35]" />
-                  {firing ? 'Processing Autonomous Decision...' : 'Simulate Webhook Trigger'}
-                </Button>
-              </CardContent>
-            </Card>
+                  {subscriptions.map((sub) => (
+                    <option key={sub.id} value={sub.id}>
+                      {sub.customers?.name} — {formatCurrency(sub.amount)} ({sub.status})
+                    </option>
+                  ))}
+                </select>
+              )}
+              <Button
+                onClick={handleFireWebhook}
+                disabled={firing}
+                className="w-full h-10 gap-2 bg-[#20231C] text-[#F8F6EE] font-mono text-xs font-bold shadow-[3px_3px_0_#C7F36B] hover:bg-[#30352A]"
+              >
+                {firing ? <RefreshCw size={14} className="animate-spin text-[#C7F36B]" /> : <Zap size={14} className="text-[#C7F36B]" />}
+                {firing ? 'Ingesting Webhook...' : 'Inject Webhook Event (POST /api/webhooks/razorpay)'}
+              </Button>
+            </div>
           </div>
 
-          <div className="lg:col-span-7 space-y-6">
-            <Card className="border-slate-300 shadow-2xs">
-              <CardHeader className="pb-3 border-b border-[#E2E5EB] bg-slate-50/70 flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="text-sm font-bold text-zinc-950">3. JSON Webhook Payload</CardTitle>
-                  <CardDescription>Live simulated Razorpay payment.failed payload</CardDescription>
-                </div>
-                <span className="px-2.5 py-1 rounded-md bg-zinc-950 text-[#FDDD35] font-mono font-bold text-xs border border-zinc-800 shadow-2xs">
-                  application/json
-                </span>
-              </CardHeader>
-              <CardContent className="p-4">
-                <pre className="p-4 rounded-xl bg-zinc-950 text-emerald-400 font-mono text-xs overflow-x-auto border border-zinc-800 shadow-inner max-h-60 leading-relaxed">
-                  {JSON.stringify(currentPayload, null, 2)}
-                </pre>
-              </CardContent>
-            </Card>
-
-            {errorMsg && (
-              <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-3">
-                <AlertTriangle className="h-5 w-5 text-rose-600 shrink-0" />
-                <div>
-                  <p className="font-bold">Webhook Trigger Error</p>
-                  <p className="mt-0.5">{errorMsg}</p>
-                </div>
+          <div className="lg:col-span-7 border border-[#30342C] bg-[#171914] p-5 text-[#F2F0E6] space-y-4">
+            <div className="flex items-center justify-between border-b border-[#30342C] pb-3">
+              <div>
+                <p className="font-mono text-[9px] uppercase tracking-wider text-[#87915D]">Generated JSON Payload</p>
+                <h3 className="font-display text-sm font-bold text-white">Razorpay Webhook Event</h3>
               </div>
-            )}
+              <button
+                onClick={handleCopy}
+                className="flex items-center gap-1 font-mono text-[10px] text-[#C7F36B] hover:underline cursor-pointer"
+              >
+                {copiedPayload ? <Check size={12} /> : <Copy size={12} />}
+                {copiedPayload ? 'Copied' : 'Copy Payload'}
+              </button>
+            </div>
 
-            {result && (
-              <Card className="border-emerald-300 bg-emerald-50/20 shadow-2xs">
-                <CardHeader className="pb-3 border-b border-emerald-200 bg-emerald-50/60">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="p-1 rounded-md bg-emerald-600 text-white shadow-2xs">
-                        <Check className="h-3.5 w-3.5" />
-                      </div>
-                      <CardTitle className="text-sm font-bold text-emerald-950">
-                        Autonomous AI Execution Result
-                      </CardTitle>
-                    </div>
-                    <Badge variant="success" className="bg-emerald-600 text-white font-bold">HTTP 200 OK</Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-5 space-y-4">
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                    <div className="p-3 bg-white rounded-lg border border-emerald-200 shadow-2xs">
-                      <span className="text-zinc-600 text-[10px] uppercase font-bold">Action Selected</span>
-                      <p className="font-bold text-zinc-950 mt-0.5 capitalize text-sm">
-                        {result.data?.decision?.action?.replace(/_/g, ' ') || 'None'}
-                      </p>
-                    </div>
-                    <div className="p-3 bg-white rounded-lg border border-emerald-200 shadow-2xs">
-                      <span className="text-zinc-600 text-[10px] uppercase font-bold">AI Confidence</span>
-                      <p className="font-bold text-emerald-700 mt-0.5 text-sm">
-                        {Math.round((result.data?.decision?.confidence || 0.94) * 100)}%
-                      </p>
-                    </div>
-                    <div className="p-3 bg-white rounded-lg border border-emerald-200 shadow-2xs">
-                      <span className="text-zinc-600 text-[10px] uppercase font-bold">Execution Status</span>
-                      <p className="font-bold text-zinc-950 mt-0.5 capitalize text-sm">{result.data?.execution?.outcome || 'Success'}</p>
-                    </div>
-                    <div className="p-3 bg-white rounded-lg border border-emerald-200 shadow-2xs">
-                      <span className="text-zinc-600 text-[10px] uppercase font-bold">Recaptured</span>
-                      <p className="font-bold text-emerald-700 mt-0.5 text-sm">
-                        {formatCurrency(result.data?.execution?.amount_recovered || 0)}
-                      </p>
-                    </div>
-                  </div>
+            <pre className="p-4 bg-[#0E100D] border border-[#2B2D27] text-[#C7F36B] font-mono text-[11px] overflow-x-auto max-h-[340px]">
+              {JSON.stringify(currentPayload, null, 2)}
+            </pre>
 
-                  {result.data?.decision?.reasoning && (
-                    <div className="p-3.5 bg-white rounded-xl border border-emerald-200 flex items-start gap-2.5 text-xs text-zinc-800 shadow-2xs">
-                      <Brain className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
-                      <div>
-                        <span className="font-bold text-emerald-950 block mb-0.5 text-sm">Gemini Strategic Reasoning</span>
-                        <p className="leading-relaxed text-zinc-700 font-medium">{result.data.decision.reasoning}</p>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+            {webhookResult && (
+              <div className="p-4 bg-[#20231C] border border-[#30342C] space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-xs font-bold text-white">Ingestion Response:</span>
+                  <span className={`font-mono text-xs font-bold ${webhookResult.ok ? 'text-[#C7F36B]' : 'text-[#E3A5A0]'}`}>
+                    HTTP {webhookResult.status} {webhookResult.ok ? 'OK' : 'FAILED'}
+                  </span>
+                </div>
+                <pre className="text-[11px] font-mono text-[#D7D8CC] overflow-x-auto max-h-[140px]">
+                  {JSON.stringify(webhookResult.data, null, 2)}
+                </pre>
+              </div>
             )}
           </div>
         </div>
       )}
 
-      {/* TAB 3: TEMPLATE PREVIEWS */}
+      {/* TAB 3: NUDGE PREVIEWS */}
       {sandboxTab === 'templates' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-in fade-in duration-200">
-          <div className="lg:col-span-5 space-y-6">
-            <Card className="border-slate-300 shadow-2xs">
-              <CardHeader className="pb-3 border-b border-[#E2E5EB] bg-slate-50/70">
-                <CardTitle className="text-sm font-bold text-zinc-950">Select Touchpoint Template</CardTitle>
-                <CardDescription>Multi-channel dunning communication flows</CardDescription>
-              </CardHeader>
-              <CardContent className="p-4 space-y-2.5">
-                {Object.entries(MESSAGE_TEMPLATES).map(([key, tpl]: [string, any]) => {
-                  const isSelected = activeTemplateKey === key;
-                  return (
-                    <div
-                      key={key}
-                      onClick={() => {
-                        setActiveTemplateKey(key);
-                        setPreviewMode(key === 'sms_nudge' ? 'sms' : 'email');
-                      }}
-                      className={`p-3.5 rounded-xl border text-xs cursor-pointer transition-all ${
-                        isSelected
-                          ? 'border-zinc-950 bg-zinc-950 text-white shadow-md'
-                          : 'border-slate-200 bg-white hover:border-zinc-400 hover:bg-slate-50 text-zinc-900 shadow-2xs'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className={`font-bold text-sm capitalize ${isSelected ? 'text-white' : 'text-zinc-950'}`}>{key.replace(/_/g, ' ')}</span>
-                        <Badge variant={isSelected ? 'accent' : 'default'} className="text-[11px] font-bold shrink-0">
-                          {key === 'sms_nudge' ? 'SMS' : 'Email'}
-                        </Badge>
-                      </div>
-                      <p className={`text-xs mt-1.5 leading-relaxed truncate ${isSelected ? 'text-zinc-200' : 'text-zinc-600 font-medium'}`}>
-                        {tpl.subject || tpl.body.slice(0, 75) + '...'}
-                      </p>
-                    </div>
-                  );
-                })}
-              </CardContent>
-            </Card>
-
-            <Card className="border-slate-300 shadow-2xs">
-              <CardHeader className="pb-3 border-b border-[#E2E5EB] bg-slate-50/70">
-                <CardTitle className="text-sm font-bold text-zinc-950">Dynamic Variable Overrides</CardTitle>
-                <CardDescription>Live interpolation sandbox</CardDescription>
-              </CardHeader>
-              <CardContent className="p-4 space-y-3">
-                <div>
-                  <label className="text-xs font-bold text-zinc-800 mb-1 block">Customer Name</label>
-                  <Input value={customerName} onChange={(e) => setCustomerName(e.target.value)} className="border-slate-300 text-zinc-900 font-medium" />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-zinc-800 mb-1 block">Plan Name</label>
-                  <Input value={planName} onChange={(e) => setPlanName(e.target.value)} className="border-slate-300 text-zinc-900 font-medium" />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-zinc-800 mb-1 block">Pending Amount</label>
-                  <Input value={amount} onChange={(e) => setAmount(e.target.value)} className="border-slate-300 text-zinc-900 font-medium" />
-                </div>
-                <Button variant="outline" size="sm" className="w-full gap-2 text-xs font-bold border-slate-300 text-zinc-900 hover:bg-slate-100" onClick={handleCopy}>
-                  {copied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
-                  {copied ? 'Copied to Clipboard' : 'Copy Rendered Message'}
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="lg:col-span-7">
-            {previewMode === 'email' ? (
-              <div className="rounded-xl border border-slate-300 bg-white shadow-md overflow-hidden">
-                <div className="bg-zinc-950 px-4 py-3 border-b border-zinc-800 flex items-center justify-between text-white">
-                  <div className="flex items-center gap-1.5">
-                    <div className="h-2.5 w-2.5 rounded-full bg-rose-500" />
-                    <div className="h-2.5 w-2.5 rounded-full bg-amber-400" />
-                    <div className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
-                    <span className="text-xs font-semibold text-zinc-200 ml-2">Inbox — VaultBack Autonomous Nudge</span>
-                  </div>
-                  <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-zinc-800 text-[#FDDD35] border border-zinc-700">HTML Email</span>
-                </div>
-
-                <div className="p-5 border-b border-slate-200 bg-slate-50/70 space-y-2.5 text-xs">
-                  <div className="flex justify-between items-center">
-                    <span className="text-zinc-600 font-bold">From:</span>
-                    <span className="font-semibold text-zinc-950">VaultBack Recovery &lt;billing@vaultback.app&gt;</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-zinc-600 font-bold">To:</span>
-                    <span className="text-zinc-900 font-semibold">{customerName} &lt;customer@example.com&gt;</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-zinc-600 font-bold">Subject:</span>
-                    <span className="font-bold text-zinc-950">{renderedSubject}</span>
-                  </div>
-                </div>
-
-                <div className="p-6 bg-white space-y-5">
-                  <div className="flex items-center gap-2 pb-3 border-b border-slate-200">
-                    <div className="h-7 w-7 rounded-lg bg-zinc-950 flex items-center justify-center text-[#FDDD35] text-xs font-extrabold shadow-2xs border border-zinc-800">
-                      VB
-                    </div>
-                    <span className="font-extrabold text-sm text-zinc-950">VaultBack Recovery Portal</span>
-                  </div>
-
-                  <div className="text-xs text-zinc-900 font-normal leading-relaxed whitespace-pre-line">
-                    {renderedBody}
-                  </div>
-
-                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-300 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-xs font-bold text-zinc-600">Subscription Plan</p>
-                        <p className="text-sm font-bold text-zinc-950 mt-0.5">{planName}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs font-bold text-zinc-600">Pending Amount</p>
-                        <p className="text-lg font-bold text-emerald-800 mt-0.5">{amount}</p>
-                      </div>
-                    </div>
-
-                    <a
-                      href="#pay"
-                      onClick={(e) => e.preventDefault()}
-                      className="block w-full py-2.5 bg-zinc-950 hover:bg-zinc-800 text-white text-center text-xs font-bold rounded-lg shadow-xs transition-colors"
-                    >
-                      Update Payment Method / Pay Now
-                    </a>
-
-                    <p className="text-[11px] text-center text-zinc-600 font-medium flex items-center justify-center gap-1.5">
-                      <ShieldCheck className="h-4 w-4 text-emerald-600" />
-                      256-bit encrypted checkout powered by Razorpay Subscriptions
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="lg:col-span-4 border border-[#DEDBD1] bg-[#FAF9F5] p-5 text-[#2B2D27] space-y-4">
+            <h3 className="font-display text-sm font-bold text-[#2B2D27]">Touchpoint Templates</h3>
+            <div className="space-y-2">
+              {Object.keys(UI_TEMPLATES).map((key) => {
+                const t = UI_TEMPLATES[key];
+                const isSelected = selectedTemplateKey === key;
+                return (
+                  <div
+                    key={key}
+                    onClick={() => setSelectedTemplateKey(key)}
+                    className={`p-3 border cursor-pointer transition-all ${
+                      isSelected
+                        ? 'border-[#30342C] bg-[#20231C] text-[#F8F6EE]'
+                        : 'border-[#D8D5CB] bg-[#F7F5EE] text-[#2B2D27] hover:bg-[#F0EEE6]'
+                    }`}
+                  >
+                    <p className="text-xs font-bold">{t.title}</p>
+                    <p className={`text-[11px] mt-0.5 ${isSelected ? 'text-[#BABDB0]' : 'text-[#85867E]'}`}>
+                      {t.description}
                     </p>
                   </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="lg:col-span-8 border border-[#DEDBD1] bg-[#FAF9F5] p-6 text-[#2B2D27] space-y-6">
+            <div className="border-b border-[#E4E1D8] pb-4 flex items-center justify-between">
+              <div>
+                <span className="font-mono text-[9px] uppercase tracking-wider text-[#6B8E21]">Previewing Multi-Channel Touchpoint</span>
+                <h3 className="font-display text-lg font-bold text-[#2B2D27]">{currentTemplate.title}</h3>
+              </div>
+              <Badge variant="accent">{currentTemplate.channel.toUpperCase()}</Badge>
+            </div>
+
+            {/* Email Canvas Preview */}
+            <div className="p-6 bg-white border border-[#D8D5CB] space-y-4 max-w-xl mx-auto shadow-xs">
+              <div className="border-b border-[#E4E1D8] pb-3 space-y-1 font-mono text-[11px]">
+                <p><span className="font-bold text-[#85867D]">From:</span> billing@vaultback.app</p>
+                <p><span className="font-bold text-[#85867D]">To:</span> {previewCustomerName} &lt;customer@example.com&gt;</p>
+                <p><span className="font-bold text-[#85867D]">Subject:</span> {currentTemplate.subject.replace('{plan_name}', previewPlanName)}</p>
+              </div>
+
+              <div className="space-y-3 text-xs leading-relaxed text-[#2B2D27]">
+                <p>Hi <strong>{previewCustomerName}</strong>,</p>
+                <p>
+                  {currentTemplate.body
+                    .replace('{customer_name}', previewCustomerName)
+                    .replace('{plan_name}', previewPlanName)
+                    .replace('{amount}', `₹${previewAmount}`)}
+                </p>
+                <div className="pt-2">
+                  <button className="px-5 py-2.5 bg-[#20231C] text-[#F8F6EE] font-mono text-xs font-bold shadow-[2px_2px_0_#C7F36B]">
+                    {currentTemplate.cta_text || 'Update Payment Method →'}
+                  </button>
                 </div>
               </div>
-            ) : (
-              <div className="max-w-sm mx-auto">
-                <div className="rounded-[36px] border-8 border-zinc-950 bg-zinc-950 shadow-xl p-2.5 overflow-hidden">
-                  <div className="rounded-[24px] bg-slate-100 overflow-hidden flex flex-col h-[480px]">
-                    <div className="bg-slate-200 px-5 py-1.5 flex items-center justify-between text-[10px] font-semibold text-slate-700">
-                      <span>9:41</span>
-                      <div className="h-3 w-16 bg-black rounded-full mx-auto" />
-                      <span>5G 100%</span>
-                    </div>
-
-                    <div className="bg-white px-4 py-2.5 border-b border-slate-200 text-center">
-                      <div className="h-8 w-8 rounded-full bg-zinc-950 text-[#FDDD35] font-bold flex items-center justify-center mx-auto text-xs shadow-2xs">
-                        VB
-                      </div>
-                      <p className="font-bold text-xs text-zinc-950 mt-1">VAULTBACK-ALERTS</p>
-                      <p className="text-[10px] text-zinc-600 font-medium">Verified Business SMS</p>
-                    </div>
-
-                    <div className="flex-1 p-3.5 space-y-3 overflow-y-auto">
-                      <div className="max-w-[88%] bg-white rounded-2xl rounded-tl-xs p-3 shadow-2xs border border-slate-300 space-y-1.5">
-                        <p className="text-xs text-zinc-950 font-normal leading-relaxed">{renderedBody}</p>
-                        <p className="text-[11px] text-blue-700 underline font-bold">https://vaultback.app/pay/sub_preview89</p>
-                        <p className="text-[10px] text-zinc-500 text-right font-medium">Delivered</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
+            </div>
           </div>
         </div>
       )}
-
     </div>
   );
 }
