@@ -112,6 +112,28 @@ export interface AiDecision {
   retry_delay_hours: number | null;
   escalation_note: string | null;
   message_template: string | null;
+  diagnosis?: {
+    category: 'Soft Decline' | 'Token Invalidation' | 'Authentication Drop' | 'Network Timeout' | 'Hard Terminal Block' | 'Disputed Mandate';
+    root_cause: string;
+    recoverability_rating: 'High' | 'Medium' | 'Low' | 'Zero';
+  };
+  timing_strategy?: {
+    scheduled_retry_hours: number | null;
+    optimal_window_description: string;
+    target_time_ist?: string;
+  };
+  channel_orchestration?: {
+    primary_channel: 'email' | 'whatsapp' | 'sms' | 'silent_retry' | 'human_escalation';
+    template_id: string | null;
+    urgency_level: 'low' | 'medium' | 'high' | 'critical';
+  };
+  policy_guardrails?: {
+    max_retries_checked: boolean;
+    cooldown_honored: boolean;
+    non_terminal_verified: boolean;
+    status: 'PASSED' | 'OVERRIDDEN_BY_STOP_RULE';
+  };
+  projected_success_rate?: number;
 }
 
 export interface DashboardMetrics {

@@ -3,9 +3,26 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Brain, CheckCircle2, XCircle, Clock, SkipForward, X, ChevronDown, ChevronUp, Search, Activity, Zap, Check } from 'lucide-react';
+import { 
+  Brain, 
+  CheckCircle2, 
+  XCircle, 
+  Clock, 
+  SkipForward, 
+  X, 
+  ChevronDown, 
+  ChevronUp, 
+  Search, 
+  Activity, 
+  Zap, 
+  Check,
+  ShieldCheck,
+  Layers,
+  Clock3,
+  Calendar,
+  Sparkles
+} from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
-import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
 interface RecoveryModalProps {
@@ -43,20 +60,20 @@ export function RecoveryModal({ isOpen, onClose, isProcessing, result }: Recover
 
   if (!isOpen) return null;
 
-  const OUTCOME_CONFIG: Record<string, { icon: React.ReactNode; color: string }> = {
-    success: { icon: <CheckCircle2 className="h-4 w-4 text-[#6B8E21]" />, color: 'text-[#6B8E21]' },
-    pending: { icon: <Clock className="h-4 w-4 text-[#D3A12A]" />, color: 'text-[#D3A12A]' },
-    failed: { icon: <XCircle className="h-4 w-4 text-[#AA5B4F]" />, color: 'text-[#AA5B4F]' },
-    skipped: { icon: <SkipForward className="h-4 w-4 text-[#85867E]" />, color: 'text-[#85867E]' },
+  const OUTCOME_CONFIG: Record<string, { icon: React.ReactNode; color: string; label: string }> = {
+    success: { icon: <CheckCircle2 className="h-4 w-4 text-[#6B8E21]" />, color: 'text-[#6B8E21]', label: 'Recovered' },
+    pending: { icon: <Clock className="h-4 w-4 text-[#D3A12A]" />, color: 'text-[#D3A12A]', label: 'In Motion' },
+    failed: { icon: <XCircle className="h-4 w-4 text-[#AA5B4F]" />, color: 'text-[#AA5B4F]', label: 'Halted by Policy' },
+    skipped: { icon: <SkipForward className="h-4 w-4 text-[#85867E]" />, color: 'text-[#85867E]', label: 'Skipped (Cooldown)' },
   };
 
   const ACTION_LABELS: Record<string, string> = {
-    retry_payment: '🔄 Smart Retry Scheduled',
-    send_email_reminder: '📧 Email Dunning Nudge',
-    send_sms_nudge: '📱 SMS / WhatsApp Touchpoint',
-    request_payment_update: '💳 Update Payment Portal Link',
-    escalate: '⚠️ Human Review Escalation',
-    mark_unrecoverable: '✕ Stop Rule Enforced',
+    retry_payment: 'Smart Retry Scheduled',
+    send_email_reminder: 'Email Dunning Nudge',
+    send_sms_nudge: 'SMS / WhatsApp Touchpoint',
+    request_payment_update: 'Update Payment Link',
+    escalate: 'Human Review Escalation',
+    mark_unrecoverable: 'Stop Rule Enforced',
   };
 
   return (
@@ -69,7 +86,7 @@ export function RecoveryModal({ isOpen, onClose, isProcessing, result }: Recover
             <div className="flex items-center gap-2">
               <span className="font-display text-base font-bold text-[#2B2D27]">Autonomous Recovery Engine</span>
               <span className="font-mono text-[9px] uppercase px-2 py-0.5 bg-[#20231C] text-[#C7F36B] font-bold">
-                Gemini 2.0 Flash
+                Gemini 2.0 Flash + Bounded Safety Spine
               </span>
             </div>
             <p className="font-mono text-[10px] text-[#85867E] mt-0.5">Live bounded decision execution monitor</p>
@@ -83,11 +100,11 @@ export function RecoveryModal({ isOpen, onClose, isProcessing, result }: Recover
         <div className="bg-[#FAF9F5] px-6 py-4 border-b border-[#EBE8DF] flex items-center justify-center gap-6 sm:gap-10">
           <Step active={stage >= 1} current={stage === 1} label="01 Detect" desc="Scanning at-risk" />
           <div className={cn('h-0.5 w-12 sm:w-16 transition-colors', stage >= 2 ? 'bg-[#A4C34A]' : 'bg-[#E0DED4]')} />
-          <Step active={stage >= 2} current={stage === 2} label="02 Decide" desc="Gemini AI loop" />
+          <Step active={stage >= 2} current={stage === 2} label="02 Diagnose" desc="Gemini AI loop" />
           <div className={cn('h-0.5 w-12 sm:w-16 transition-colors', stage >= 3 ? 'bg-[#A4C34A]' : 'bg-[#E0DED4]')} />
-          <Step active={stage >= 3} current={stage === 3} label="03 Execute" desc="Dispatching nudges" />
+          <Step active={stage >= 3} current={stage === 3} label="03 Intervene" desc="Dispatching nudges" />
           <div className={cn('h-0.5 w-12 sm:w-16 transition-colors', stage >= 4 ? 'bg-[#A4C34A]' : 'bg-[#E0DED4]')} />
-          <Step active={stage >= 4} current={stage === 4} label="04 Complete" desc="Ledger updated" />
+          <Step active={stage >= 4} current={stage === 4} label="04 Audit" desc="Ledger committed" />
         </div>
 
         {/* Modal Body */}
@@ -99,12 +116,12 @@ export function RecoveryModal({ isOpen, onClose, isProcessing, result }: Recover
               </div>
               <div>
                 <h3 className="font-display text-lg font-bold text-[#2B2D27]">
-                  {stage === 1 && 'Scanning Past Due Subscriptions...'}
-                  {stage === 2 && 'Gemini Flash Evaluating Recovery Guardrails...'}
-                  {stage === 3 && 'Dispatching Retries & Touchpoint Nudges...'}
+                  {stage === 1 && 'Detecting & Stratifying Involuntary Churn Signals...'}
+                  {stage === 2 && 'Gemini 2.0 Flash Diagnosing Root Causes & Liquidity Windows...'}
+                  {stage === 3 && 'Enforcing Anti-Fatigue Guardrails & Dispatching Interventions...'}
                 </h3>
                 <p className="font-mono text-xs text-[#85867E] max-w-sm mt-1">
-                  Evaluating failure codes, merchant rules, customer payment histories, and stopping thresholds.
+                  Evaluating failure codes, issuer decline reasons, customer LTV, and anti-spam retry limits.
                 </p>
               </div>
             </div>
@@ -132,7 +149,11 @@ export function RecoveryModal({ isOpen, onClose, isProcessing, result }: Recover
 
               {/* Action Decision Breakdown */}
               <div className="space-y-3">
-                <h4 className="font-display text-sm font-bold text-[#2B2D27]">Autonomous Recovery Interventions</h4>
+                <div className="flex items-center justify-between">
+                  <h4 className="font-display text-sm font-bold text-[#2B2D27]">Autonomous Recovery Interventions</h4>
+                  <span className="font-mono text-[10px] text-[#85867E]">Click row for deep diagnostic reasoning</span>
+                </div>
+
                 <div className="divide-y divide-[#EBE8DF] border border-[#D8D5CB] bg-white">
                   {result.actions?.map((action: any) => {
                     const isExpanded = expandedAction === action.id;
@@ -163,9 +184,23 @@ export function RecoveryModal({ isOpen, onClose, isProcessing, result }: Recover
                         </div>
 
                         {isExpanded && (
-                          <div className="mt-3 p-3 bg-[#F7F5EE] border border-[#E4E1D8] font-mono text-xs text-[#474941] space-y-1">
-                            <p className="text-[10px] uppercase font-bold text-[#85877D]">Gemini AI Reasoning:</p>
-                            <p className="text-xs leading-relaxed">{action.ai_reasoning || 'Automated bounded policy intervention executed.'}</p>
+                          <div className="mt-3 p-4 bg-[#F7F5EE] border border-[#E4E1D8] font-mono text-xs text-[#474941] space-y-2.5">
+                            <div className="flex items-center justify-between border-b border-[#E4E1D8] pb-2">
+                              <span className="text-[10px] uppercase font-bold text-[#85877D] flex items-center gap-1.5">
+                                <Sparkles size={12} className="text-[#6B8E21]" />
+                                AI Root-Cause Diagnostic:
+                              </span>
+                              <span className="text-[10px] font-bold text-[#4E6B18] bg-[#EDF7CE] border border-[#BFDB78] px-2 py-0.5">
+                                Verified by Guardrail Spine
+                              </span>
+                            </div>
+                            <p className="text-xs leading-relaxed text-[#2B2D27]">{action.ai_reasoning || 'Automated bounded policy intervention executed.'}</p>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-[10px] text-[#707866]">
+                              <div>Max Retries: ≤ 3</div>
+                              <div>Cooldown: 24h</div>
+                              <div>Anti-Fatigue: Active</div>
+                              <div>Stop Rule: Enforced</div>
+                            </div>
                           </div>
                         )}
                       </div>

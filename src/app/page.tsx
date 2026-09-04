@@ -515,65 +515,120 @@ export default function MasterDashboardPage() {
         <aside className="border border-[#DEDBD1] bg-[#E9EDDC]">
           <div className="border-b border-[#CDD5BA] px-5 py-4">
             <div className="flex items-center justify-between">
-              <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-[#78845B]">
+              <span className="inline-flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.18em] text-[#78845B]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#6C8733]" />
                 Selected intervention
-              </p>
-              <span className="font-mono text-[9px] text-[#768064]">
+              </span>
+              <span className="font-mono text-[9px] font-bold text-[#768064]">
                 {activeSub ? `SUB-${activeSub.id.slice(0, 6)}` : 'RR-0428'}
               </span>
             </div>
             <h3 className="mt-3 font-display text-[1.45rem] font-semibold leading-tight tracking-[-0.055em] text-[#273020]">
-              {activeSub?.status === 'active' ? 'Healthy Retention' : 'Smart Retry + Dunning'}<br />
+              {activeSub?.status === 'active' ? 'Healthy Retention' : activeSub?.failure_reason === 'card_expired' ? '1-Click Update Portal' : activeSub?.failure_reason === 'authentication_required' ? '3DS OTP Recovery' : activeSub?.failure_reason === 'fraud_suspected' ? 'Immediate Risk Halt' : 'Smart Retry + Dunning'}<br />
               <span className="text-[#6C8733]">for {activeSub?.customers?.name || 'Acme Platforms'}</span>
             </h3>
-            <p className="mt-2 text-xs leading-5 text-[#68705B]">
-              {activeSub?.plan_name || 'Growth Plan'} · {formatCurrency(activeSub?.amount || 18400)} exposure
-            </p>
+            <div className="mt-2 flex items-center gap-2 text-xs font-mono text-[#68705B]">
+              <span>{activeSub?.plan_name || 'Growth Plan'}</span>
+              <span>·</span>
+              <span className="font-bold text-[#273020]">{formatCurrency(activeSub?.amount || 18400)}</span>
+            </div>
           </div>
 
-          <div className="px-5 py-5">
-            <div className="mb-4 flex items-center gap-2">
-              <Sparkles size={15} className="text-[#6C8733]" />
-              <span className="text-xs font-semibold text-[#3D492E]">Why this move</span>
-            </div>
-            <p className="text-sm leading-6 text-[#4F5845]">
-              {activeSub?.status === 'active'
-                ? 'Zero involuntary churn risk. Subscription token is healthy and valid at payment switch.'
-                : 'High recoverability with low customer friction. The agent will attempt one exponential soft retry before escalating.'}
-            </p>
-
-            <div className="mt-5 space-y-2.5 border-y border-[#CDD5BA] py-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-[#707866]">Max attempts</span>
-                <span className="font-mono text-[10px] font-semibold text-[#354128]">3</span>
+          <div className="px-5 py-4 space-y-4">
+            {/* Diagnosis Badge */}
+            <div className="p-3 bg-[#DEE5CF] border border-[#CBD5B7] space-y-1">
+              <div className="flex items-center justify-between font-mono text-[9px] uppercase tracking-wider text-[#68744F]">
+                <span>Root-Cause Diagnosis</span>
+                <span className="font-bold text-[#3D4B26]">
+                  {activeSub?.failure_reason === 'insufficient_funds' ? 'Soft Decline' : activeSub?.failure_reason === 'card_expired' ? 'Token Invalidation' : activeSub?.failure_reason === 'authentication_required' ? 'Auth Drop' : activeSub?.failure_reason === 'network_error' ? 'Switch Timeout' : activeSub?.failure_reason === 'fraud_suspected' ? 'Hard Block' : 'Transient Soft Decline'}
+                </span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-[#707866]">Cooldown</span>
-                <span className="font-mono text-[10px] font-semibold text-[#354128]">24 hours</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-[#707866]">Stop rule</span>
-                <span className="font-mono text-[10px] font-semibold text-[#A15C4E]">Hard decline</span>
-              </div>
-            </div>
-
-            <div className="mt-5 flex items-start gap-2.5">
-              <ShieldCheck size={15} className="mt-0.5 shrink-0 text-[#6C8733]" />
-              <p className="text-[11px] leading-5 text-[#68705B]">
-                No message will send after a customer opts out, pays, or reaches the attempt cap.
+              <p className="text-xs text-[#273020] font-medium leading-snug">
+                {activeSub?.failure_reason === 'insufficient_funds'
+                  ? 'Transient balance shortfall. High recapture yield via morning clearing retry.'
+                  : activeSub?.failure_reason === 'card_expired'
+                  ? 'Card expiration passed. Automatic retry paused until customer updates payment token.'
+                  : activeSub?.failure_reason === 'authentication_required'
+                  ? 'Customer dropped out of 3DS challenge. SMS/WhatsApp deep-link queued.'
+                  : activeSub?.failure_reason === 'fraud_suspected'
+                  ? 'Issuer risk threshold exceeded. Bounded policy enforces zero-retry halt.'
+                  : activeSub?.status === 'active'
+                  ? 'Token healthy and active at gateway switch.'
+                  : 'Issuer soft decline. Scheduling exponential smart retry with jitter.'}
               </p>
             </div>
 
-            <Button
-              onClick={handleSimulateSingle}
-              className="mt-5 h-10 w-full gap-2 rounded-xs bg-[#26321E] text-xs font-semibold text-[#F4F4E9] hover:bg-[#334229] active:scale-[0.97]"
-            >
-              <Zap size={14} className="text-[#C7F36B]" />
-              Simulate intervention
-            </Button>
+            {/* Why This Move */}
+            <div>
+              <div className="mb-1 flex items-center gap-1.5 font-mono text-[10px] uppercase font-bold text-[#3D492E]">
+                <Sparkles size={13} className="text-[#6C8733]" />
+                Strategy Rationale
+              </div>
+              <p className="text-xs leading-relaxed text-[#4F5845]">
+                {activeSub?.status === 'active'
+                  ? 'Zero involuntary churn risk. Subscription token is healthy and valid at payment switch.'
+                  : activeSub?.failure_reason === 'card_expired'
+                  ? 'Blind retries will fail 100% of the time. 1-click tokenized update email dispatched to prevent permanent cohort churn.'
+                  : activeSub?.failure_reason === 'fraud_suspected'
+                  ? 'Protecting merchant account from chargeback penalties. Auto-escalated to human review.'
+                  : 'High recoverability with low customer friction. The agent will attempt one exponential soft retry before escalating.'}
+              </p>
+            </div>
+
+            {/* Limits Table */}
+            <div className="space-y-2 border-y border-[#CDD5BA] py-3 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-[#707866]">Channel Chosen</span>
+                <span className="font-mono text-[10px] font-bold text-[#354128]">
+                  {activeSub?.failure_reason === 'card_expired' ? 'Email Portal' : activeSub?.failure_reason === 'authentication_required' ? 'WhatsApp Nudge' : activeSub?.failure_reason === 'fraud_suspected' ? 'Risk Review' : 'Smart Silent Retry'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[#707866]">Optimal Window</span>
+                <span className="font-mono text-[10px] font-bold text-[#354128]">
+                  {activeSub?.failure_reason === 'insufficient_funds' ? '06:15 IST (Clearing)' : 'Immediate'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[#707866]">Max Attempts</span>
+                <span className="font-mono text-[10px] font-bold text-[#354128]">3 tries</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[#707866]">Cooldown</span>
+                <span className="font-mono text-[10px] font-bold text-[#354128]">24 hours</span>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-2 text-[11px] leading-5 text-[#68705B]">
+              <ShieldCheck size={14} className="mt-0.5 shrink-0 text-[#6C8733]" />
+              <span>Anti-fatigue limit enforced: Zero messages sent after customer pays or opts out.</span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <Button
+                onClick={handleSimulateSingle}
+                className="h-9 gap-1.5 rounded-xs bg-[#26321E] text-xs font-semibold text-[#F4F4E9] hover:bg-[#334229] active:scale-[0.97]"
+              >
+                <Zap size={13} className="text-[#C7F36B]" />
+                Simulate Move
+              </Button>
+              <Button
+                onClick={() => {
+                  if (activeSub) {
+                    setSelectedCustomerId(activeSub.customer_id);
+                    setDrawerOpen(true);
+                  }
+                }}
+                variant="outline"
+                className="h-9 gap-1.5 rounded-xs border-[#B9C4A3] bg-transparent text-xs font-semibold text-[#273020] hover:bg-[#DDE5CF]"
+              >
+                <UserRound size={13} />
+                360° Profile
+              </Button>
+            </div>
           </div>
 
-          <div className="border-t border-[#CDD5BA] bg-[#E1E7CE] px-5 py-3">
+          <div className="border-t border-[#CDD5BA] bg-[#E1E7CE] px-5 py-2.5">
             <div className="flex items-center justify-between">
               <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#72805C]">
                 Policy status
