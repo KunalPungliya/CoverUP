@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { 
   LayoutDashboard, 
@@ -17,7 +17,9 @@ import {
   ShieldCheck,
   Activity,
   BellRing,
-  GitBranch
+  GitBranch,
+  Command,
+  Keyboard
 } from 'lucide-react';
 import { DemoBanner } from './demo-banner';
 
@@ -25,22 +27,26 @@ interface NavItem {
   href: string;
   label: string;
   count?: string;
+  shortcut?: string;
   icon: React.ComponentType<{ className?: string; size?: number; strokeWidth?: number }>;
 }
 
 const mainNavItems: NavItem[] = [
-  { href: '/', label: 'Overview', icon: LayoutDashboard },
-  { href: '/subscriptions', label: 'Recovery queue', count: '148', icon: ListFilter },
-  { href: '/recovery', label: 'Recovery batches', icon: GitBranch },
-  { href: '/simulator', label: 'Developer Sandbox', icon: Zap },
-  { href: '/analytics', label: 'Analytics & ROI', icon: BarChart3 },
-  { href: '/audit', label: 'Audit trail', icon: FileClock },
+  { href: '/', label: 'Overview', shortcut: 'G O', icon: LayoutDashboard },
+  { href: '/subscriptions', label: 'Recovery queue', count: '148', shortcut: 'G Q', icon: ListFilter },
+  { href: '/recovery', label: 'Recovery batches', shortcut: 'G R', icon: GitBranch },
+  { href: '/simulator', label: 'Developer Sandbox', shortcut: 'G S', icon: Zap },
+  { href: '/analytics', label: 'Analytics & ROI', shortcut: 'G A', icon: BarChart3 },
+  { href: '/audit', label: 'Audit trail', shortcut: 'G L', icon: FileClock },
 ];
 
 export function Sidebar({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileNav, setMobileNav] = useState(false);
   const [currentTime, setCurrentTime] = useState('09:42:18');
+  const [showShortcutsModal, setShowShortcutsModal] = useState(false);
+  const [lastKey, setLastKey] = useState<string | null>(null);
 
   useEffect(() => {
     const updateTime = () => {
@@ -51,6 +57,52 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
     const interval = setInterval(updateTime, 1000);
     return () => clearInterval(interval);
   }, []);
+
+  // Global Keyboard Shortcuts Listener
+  useEffect(() => {
+    let keyTimeout: NodeJS.Timeout;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger when user is typing in an input/textarea
+      const target = e.target as HTMLElement;
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) return;
+
+      if (e.key === '?') {
+        e.preventDefault();
+        setShowShortcutsModal(prev => !prev);
+        return;
+      }
+
+      if (e.key === 'Escape') {
+        setShowShortcutsModal(false);
+        return;
+      }
+
+      if (e.key.toLowerCase() === 'g') {
+        setLastKey('g');
+        clearTimeout(keyTimeout);
+        keyTimeout = setTimeout(() => setLastKey(null), 1200);
+        return;
+      }
+
+      if (lastKey === 'g') {
+        setLastKey(null);
+        const key = e.key.toLowerCase();
+        if (key === 'o') router.push('/');
+        else if (key === 'q') router.push('/subscriptions');
+        else if (key === 'r') router.push('/recovery');
+        else if (key === 's') router.push('/simulator');
+        else if (key === 'a') router.push('/analytics');
+        else if (key === 'l') router.push('/audit');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      clearTimeout(keyTimeout);
+    };
+  }, [lastKey, router]);
 
   return (
     <div className="min-h-screen bg-[#171914] text-[#F2F0E6] selection:bg-[#C7F36B] selection:text-[#1C2016]">
@@ -77,7 +129,7 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
           {mobileNav && (
             <button
               onClick={() => setMobileNav(false)}
-              className="ml-auto p-1.5 text-zinc-400 hover:text-white lg:hidden"
+              className="ml-auto p-1.5 text-zinc-400 hover:text-white lg:hidden cursor-pointer"
               aria-label="Close menu"
             >
               <X size={18} />
@@ -116,21 +168,39 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
                   </span>
                   {item.label}
                 </span>
-                {item.count && (
-                  <span className="font-mono text-[10px] text-[#7D8174]">
-                    {item.count}
-                  </span>
-                )}
+                <div className="flex items-center gap-1.5">
+                  {item.count && (
+                    <span className="font-mono text-[10px] text-[#7D8174]">
+                      {item.count}
+                    </span>
+                  )}
+                  {item.shortcut && (
+                    <span className="hidden lg:inline-block font-mono text-[9px] text-[#55584E] opacity-0 group-hover:opacity-100 transition-opacity">
+                      {item.shortcut}
+                    </span>
+                  )}
+                </div>
               </Link>
             );
           })}
         </nav>
 
         {/* Bottom Rail: Live Guardrail Status & User Profile */}
-        <div className="mt-auto border-t border-[#30342C] pt-5">
-          <div className="mb-3 px-2 font-mono text-[9px] uppercase tracking-[0.2em] text-[#71766A]">
-            Live guardrail
+        <div className="mt-auto border-t border-[#30342C] pt-5 space-y-4">
+          <div className="flex items-center justify-between px-2">
+            <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-[#71766A]">
+              Live guardrail
+            </div>
+            <button
+              onClick={() => setShowShortcutsModal(true)}
+              className="flex items-center gap-1 text-[10px] font-mono text-[#7D8174] hover:text-[#C7F36B] transition-colors cursor-pointer"
+              title="Keyboard Shortcuts (?)"
+            >
+              <Keyboard size={12} />
+              <span>?</span>
+            </button>
           </div>
+
           <div className="flex items-center gap-3 px-2">
             <span className="relative flex h-2.5 w-2.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#C7F36B] opacity-60" />
@@ -144,7 +214,7 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
             </div>
           </div>
 
-          <div className="mt-6 flex items-center gap-3 px-2 text-left text-[#9FA297]">
+          <div className="flex items-center gap-3 px-2 text-left text-[#9FA297]">
             <div className="grid h-7 w-7 place-items-center rounded-full bg-[#34382F] text-[10px] font-semibold text-white">
               AK
             </div>
@@ -195,9 +265,18 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="flex items-center gap-2.5">
+            <button
+              onClick={() => setShowShortcutsModal(true)}
+              className="hidden lg:flex items-center gap-1.5 border border-[#30342C] bg-[#20231C] px-2.5 py-1.5 font-mono text-[10px] text-[#9FA297] hover:text-[#C7F36B] transition-colors cursor-pointer"
+            >
+              <Keyboard size={12} />
+              <span>Shortcuts</span>
+              <kbd className="px-1 bg-[#171914] text-[9px] text-[#C7F36B] border border-[#3C4135]">?</kbd>
+            </button>
+
             <span className="hidden items-center gap-2 border border-[#D8D5CB] bg-[#FAF9F5] px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-[#777970] md:flex">
               <span className="h-1.5 w-1.5 rounded-full bg-[#9BBD49]" />
-              Demo data · 03 Sep 2026
+              Demo data · 04 Sep 2026
             </span>
             <div className="inline-flex items-center gap-2 px-3 py-1.5 border border-[#30342C] bg-[#20231C] text-[11px] font-mono text-[#E4E7D7]">
               <span className="h-2 w-2 rounded-full bg-[#C7F36B]" />
@@ -213,6 +292,65 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
           {children}
         </main>
       </div>
+
+      {/* Global Keyboard Shortcuts Modal */}
+      {showShortcutsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#11130F]/80 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="relative w-full max-w-md bg-[#FAF9F5] border border-[#DEDBD1] text-[#2B2D27] shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-[#E4E1D8] pb-3">
+              <div className="flex items-center gap-2">
+                <Keyboard size={18} className="text-[#6B8E21]" />
+                <h3 className="font-display text-base font-bold text-[#2B2D27]">
+                  Keyboard Shortcuts
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowShortcutsModal(false)}
+                className="p-1 text-[#85867E] hover:text-[#2B2D27] cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="space-y-2.5 font-mono text-xs">
+              <p className="text-[10px] uppercase font-bold text-[#85877D] tracking-wider mb-2">Navigation</p>
+              {[
+                { keys: ['g', 'o'], label: 'Go to Overview' },
+                { keys: ['g', 'q'], label: 'Go to Recovery Queue' },
+                { keys: ['g', 'r'], label: 'Go to Recovery Batches' },
+                { keys: ['g', 's'], label: 'Go to Developer Sandbox' },
+                { keys: ['g', 'a'], label: 'Go to Analytics & ROI' },
+                { keys: ['g', 'l'], label: 'Go to Audit Ledger' },
+              ].map(item => (
+                <div key={item.label} className="flex items-center justify-between py-1 border-b border-[#EBE8DF]">
+                  <span className="text-[#474941]">{item.label}</span>
+                  <div className="flex items-center gap-1">
+                    {item.keys.map(k => (
+                      <kbd key={k} className="px-1.5 py-0.5 bg-[#E8E5DB] text-[#2B2D27] border border-[#D8D5CB] text-[10px] font-bold uppercase">
+                        {k}
+                      </kbd>
+                    ))}
+                  </div>
+                </div>
+              ))}
+
+              <p className="text-[10px] uppercase font-bold text-[#85877D] tracking-wider pt-2 mb-2">Global Actions</p>
+              <div className="flex items-center justify-between py-1 border-b border-[#EBE8DF]">
+                <span className="text-[#474941]">Toggle this cheat sheet</span>
+                <kbd className="px-1.5 py-0.5 bg-[#E8E5DB] text-[#2B2D27] border border-[#D8D5CB] text-[10px] font-bold">?</kbd>
+              </div>
+              <div className="flex items-center justify-between py-1">
+                <span className="text-[#474941]">Close drawer or modal</span>
+                <kbd className="px-1.5 py-0.5 bg-[#E8E5DB] text-[#2B2D27] border border-[#D8D5CB] text-[10px] font-bold">Esc</kbd>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-[#E4E1D8] text-[11px] font-mono text-[#85867E] text-center">
+              Press any shortcut sequence to navigate instantaneously.
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

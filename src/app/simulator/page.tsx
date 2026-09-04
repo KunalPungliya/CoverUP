@@ -1088,6 +1088,47 @@ export default function EnhancedSimulatorPage() {
             </div>
           </div>
 
+                    {/* Policy Versioning & Historical Simulation (Manus Review Section 3C & 11.7) */}
+          <div className="border border-[#D8D5CB] bg-white p-5 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#EBE8DF] pb-3">
+              <div>
+                <span className="font-mono text-[9px] uppercase font-bold text-[#6B8E21] tracking-wider block">
+                  Policy Studio & Counterfactual Simulation
+                </span>
+                <h3 className="font-display text-sm font-bold text-[#2B2D27] mt-0.5">
+                  Version Diff: policy-2026-09-04.2 vs Proposed policy-2026-09-04.3
+                </h3>
+              </div>
+              <span className="font-mono text-[10px] bg-[#22251D] text-[#C7F36B] px-2.5 py-1 font-bold">
+                Counterfactual Engine
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 font-mono text-xs">
+              <div className="p-3 bg-[#F7F5EE] border border-[#E0DCD0]">
+                <span className="text-[#85877D] text-[10px] uppercase block">Projected Recovery Lift</span>
+                <span className="font-display text-lg font-bold text-[#6B8E21] mt-0.5 block">+₹34,000 ARR</span>
+                <span className="text-[10px] text-[#55574E]">+8.2% recovery yield</span>
+              </div>
+
+              <div className="p-3 bg-[#F7F5EE] border border-[#E0DCD0]">
+                <span className="text-[#85877D] text-[10px] uppercase block">Customer Fatigue Reduction</span>
+                <span className="font-display text-lg font-bold text-[#3C5C92] mt-0.5 block">-28% Nudges</span>
+                <span className="text-[10px] text-[#55574E]">Eliminated 14 redundant touches</span>
+              </div>
+
+              <div className="p-3 bg-[#F7F5EE] border border-[#E0DCD0]">
+                <span className="text-[#85877D] text-[10px] uppercase block">Protected Exclusions</span>
+                <span className="font-display text-lg font-bold text-[#AA5B4F] mt-0.5 block">8 Accounts</span>
+                <span className="text-[10px] text-[#55574E]">Zero dispute violations</span>
+              </div>
+            </div>
+
+            <p className="text-xs text-[#85867E]">
+              Counterfactual policy simulation evaluates proposed attempt caps, cooldowns, and liquidity windows against 148 historical failure signals without dispatching external messages.
+            </p>
+          </div>
+
           <div className="pt-4 border-t border-[#E4E1D8] flex justify-end">
             <Button
               onClick={handleSaveGuardrails}

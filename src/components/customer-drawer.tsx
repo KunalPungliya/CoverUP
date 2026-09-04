@@ -266,6 +266,66 @@ export function CustomerDrawer({ customerId, isOpen, onClose }: CustomerDrawerPr
 }, null, 2)}
                     </pre>
                   </div>
+
+                  {/* Attached Evidence & File Storage (Manus Review Section 5) */}
+                  <div className="border border-[#D8D5CB] bg-white p-4 space-y-3">
+                    <div className="flex items-center justify-between border-b border-[#EBE8DF] pb-2">
+                      <div>
+                        <span className="font-mono text-[10px] uppercase font-bold text-[#85877D] block">
+                          Attached Case Evidence & Documents
+                        </span>
+                        <p className="text-[11px] text-[#85867E] mt-0.5">
+                          Immutable audit attachments associated with this recovery dossier
+                        </p>
+                      </div>
+                      <span className="font-mono text-[9px] uppercase bg-[#EDF7CE] text-[#4E6B18] px-2 py-0.5 font-bold border border-[#BFDB78]">
+                        3 Verified Files
+                      </span>
+                    </div>
+
+                    <div className="space-y-2">
+                      {[
+                        { name: "Invoice_INV-2091_Overdue.pdf", type: "Invoice", size: "142 KB", date: "Today 09:12", status: "Verified" },
+                        { name: "Gateway_Decline_HDFC_PG.json", type: "Provider Export", size: "18 KB", date: "Today 09:15", status: "Signed" },
+                        { name: "Bank_Clearing_Advisory_Note.pdf", type: "Risk Memo", size: "89 KB", date: "Yesterday", status: "Audited" },
+                      ].map(file => (
+                        <div key={file.name} className="p-2.5 bg-[#F7F5EE] border border-[#E0DCD0] flex items-center justify-between gap-3 text-xs font-mono">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <FileText size={14} className="text-[#6B8E21] shrink-0" />
+                            <div className="truncate">
+                              <p className="font-bold text-[#2B2D27] truncate">{file.name}</p>
+                              <p className="text-[10px] text-[#85867D]">{file.type} · {file.size} · {file.date}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-[9px] uppercase font-bold text-[#4E6B18] bg-[#EDF7CE] px-1.5 py-0.5">
+                              {file.status}
+                            </span>
+                            <button
+                              onClick={() => {
+                                setHoldToast("Downloading verified evidence file...");
+                                setTimeout(() => setHoldToast(null), 2000);
+                              }}
+                              className="text-[10px] font-semibold text-[#506F24] hover:text-[#283E10] cursor-pointer"
+                            >
+                              Download
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div 
+                      onClick={() => {
+                        setHoldToast("Evidence attachment workflow simulated. File recorded in audit ledger.");
+                        setTimeout(() => setHoldToast(null), 2500);
+                      }}
+                      className="border border-dashed border-[#C5C1B4] p-3 text-center bg-[#FAF9F5] hover:bg-[#F2F0E6] transition-colors cursor-pointer"
+                    >
+                      <p className="font-mono text-xs text-[#55574E] font-semibold">+ Attach New Invoice / Gateway Export</p>
+                      <p className="text-[10px] text-[#85867E] mt-0.5">Supports PDF, JSON, CSV up to 10MB · Stored with SHA-256 integrity hash</p>
+                    </div>
+                  </div>
                 </div>
               )}
 

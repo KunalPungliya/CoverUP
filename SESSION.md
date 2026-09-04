@@ -294,3 +294,9 @@ The database resides in Supabase PostgreSQL (`supabase/schema.sql`).
   - Added direct **"Recovery batches"** link (`/recovery`) to the persistent left navigation sidebar with branch icon.
   - Linked the live batch status badge on the main dashboard directly to `/recovery`.
   - Staged, committed, and pushed all updates to GitHub `origin/main`.
+
+- **Phase 11: Global Keyboard Shortcuts, Case Evidence Attachments & Counterfactual Policy Diff (2026-09-04)**:
+  - Implemented global keyboard navigation (`g o`, `g q`, `g r`, `g s`, `g a`, `g l`) and `?` cheat sheet modal in `src/components/sidebar.tsx`.
+  - Added attached case evidence files (Invoices, Gateway Logs, Risk Memos) with simulated upload and download actions in `src/components/customer-drawer.tsx`.
+  - Added counterfactual policy simulation and version diff in `src/app/simulator/page.tsx`.
+  - Verified 100% zero-error build on all 21 Next.js routes.
