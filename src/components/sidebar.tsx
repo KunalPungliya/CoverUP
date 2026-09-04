@@ -16,7 +16,8 @@ import {
   ChevronRight,
   ShieldCheck,
   Activity,
-  BellRing
+  BellRing,
+  GitBranch
 } from 'lucide-react';
 import { DemoBanner } from './demo-banner';
 
@@ -30,6 +31,7 @@ interface NavItem {
 const mainNavItems: NavItem[] = [
   { href: '/', label: 'Overview', icon: LayoutDashboard },
   { href: '/subscriptions', label: 'Recovery queue', count: '148', icon: ListFilter },
+  { href: '/recovery', label: 'Recovery batches', icon: GitBranch },
   { href: '/simulator', label: 'Developer Sandbox', icon: Zap },
   { href: '/analytics', label: 'Analytics & ROI', icon: BarChart3 },
   { href: '/audit', label: 'Audit trail', icon: FileClock },

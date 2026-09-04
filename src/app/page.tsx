@@ -356,10 +356,10 @@ export default function MasterDashboardPage() {
       <section className="relative isolate min-h-[235px] overflow-hidden bg-[#171914] px-6 py-7 text-[#F7F4EB] border border-[#2B2D27] shadow-[0_16px_40px_rgba(26,27,22,0.12)] md:px-9 md:py-8">
         <div className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,#171914_0%,rgba(23,25,20,.97)_35%,rgba(23,25,20,.45)_75%,rgba(23,25,20,.25)_100%)]" />
         <div className="relative max-w-[570px]">
-          <div className="mb-5 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-[#C7F36B]">
+          <Link href="/recovery" className="mb-5 inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-[#C7F36B] hover:underline cursor-pointer">
             <span className="h-1.5 w-1.5 rounded-full bg-[#C7F36B]" />
-            Live Supabase Batch · {metrics?.recentBatches?.[0]?.id?.slice(0, 8) ? `#${metrics.recentBatches[0].id.slice(0, 8)}` : '#RR-2026-09-04-A'}
-          </div>
+            Live Supabase Batch · {metrics?.recentBatches?.[0]?.id?.slice(0, 8) ? `#${metrics.recentBatches[0].id.slice(0, 8)}` : '#RR-2026-09-04-A'} ↗
+          </Link>
           <h2 className="max-w-[560px] font-display text-[clamp(2rem,4vw,3.5rem)] font-semibold leading-[0.98] tracking-[-0.06em]">
             {formatCurrency(atRiskAmount)} at risk.<br />
             <span className="text-[#C7F36B]">{formatCurrency(recoveredAmount)} already back.</span>
