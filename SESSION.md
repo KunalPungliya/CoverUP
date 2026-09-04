@@ -289,3 +289,8 @@ The database resides in Supabase PostgreSQL (`supabase/schema.sql`).
   - Upgraded `/recovery/[batchId]` with recovery conversion progress bars, detailed outcome filters, AI rationale inspector, and Customer Drawer integration.
   - Upgraded `/customers/[customerId]` with Customer 360° telemetry, contract cards, and historical intervention logs.
   - Verified zero errors across all 21 Next.js routes and 9 API routes.
+
+- **Phase 10: Navigation Rail Integration & Recovery Batches Accessibility (2026-09-04)**:
+  - Added direct **"Recovery batches"** link (`/recovery`) to the persistent left navigation sidebar with branch icon.
+  - Linked the live batch status badge on the main dashboard directly to `/recovery`.
+  - Staged, committed, and pushed all updates to GitHub `origin/main`.
