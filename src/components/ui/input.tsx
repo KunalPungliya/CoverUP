@@ -14,9 +14,9 @@ export function Input({ icon, className, ...props }: InputProps) {
       )}
       <input
         className={cn(
-          'h-9 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-900',
-          'placeholder:text-gray-400',
-          'focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600',
+          'h-9 w-full border border-[#D8D5CB] bg-[#F7F5EE] px-3 font-mono text-xs text-[#2B2D27]',
+          'placeholder:text-[#9A9B91]',
+          'focus:outline-none focus:border-[#9AB54D]',
           'disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-2xs',
           icon && 'pl-9',
           className

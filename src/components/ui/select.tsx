@@ -8,8 +8,8 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
     return (
       <select
         className={cn(
-          'flex h-9 w-full rounded-lg border border-gray-200 bg-white px-3 py-1 text-sm text-gray-900',
-          'shadow-2xs transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600',
+          'flex h-9 w-full border border-[#D8D5CB] bg-[#F7F5EE] px-3 py-1 font-mono text-xs text-[#2B2D27]',
+          'shadow-2xs transition-all focus:outline-none focus:border-[#9AB54D]',
           'disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer',
           className
         )}
