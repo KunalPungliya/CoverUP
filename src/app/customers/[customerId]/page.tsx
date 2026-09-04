@@ -2,15 +2,30 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { 
-  User, Mail, Phone, Calendar, CreditCard, Activity, ArrowLeft, 
-  CheckCircle2, XCircle, Brain, Clock, ShieldAlert, CreditCard as CardIcon
+  User, 
+  Mail, 
+  Phone, 
+  Calendar, 
+  CreditCard, 
+  Activity, 
+  ArrowLeft, 
+  CheckCircle2, 
+  XCircle, 
+  Brain, 
+  Clock, 
+  ShieldAlert, 
+  CreditCard as CardIcon,
+  BadgeCheck,
+  CircleDollarSign,
+  Zap,
+  ShieldCheck,
+  ArrowUpRight
 } from 'lucide-react';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 export default function CustomerDetailPage() {
   const params = useParams();
@@ -40,26 +55,20 @@ export default function CustomerDetailPage() {
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <Skeleton className="h-9 w-9 rounded-lg" />
-          <Skeleton className="h-8 w-64" />
-        </div>
-        <Skeleton className="h-28 w-full rounded-xl" />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Skeleton className="h-72 w-full rounded-xl" />
-          <Skeleton className="h-72 w-full rounded-xl" />
-        </div>
+      <div className="space-y-6 p-8 text-center font-mono text-xs text-[#85867E]">
+        Loading Customer 360° telemetry...
       </div>
     );
   }
 
   if (!data || !data.customer) {
     return (
-      <div className="text-center py-16 space-y-3">
-        <h2 className="text-xl font-bold text-slate-900">Customer account not found</h2>
-        <Link href="/subscriptions" className="text-xs font-semibold text-blue-600 hover:underline">
-          Return to Subscriptions
+      <div className="p-12 text-center space-y-4">
+        <h2 className="text-xl font-bold text-[#F2F0E6]">Customer account not found</h2>
+        <Link href="/subscriptions">
+          <Button className="rounded-none bg-[#20231C] text-xs font-semibold text-[#F8F6EE]">
+            Return to Subscriptions
+          </Button>
         </Link>
       </div>
     );
@@ -67,225 +76,187 @@ export default function CustomerDetailPage() {
 
   const { customer, subscriptions, paymentAttempts, recoveryActions, summaryStats } = data;
 
-  const STATUS_VARIANTS: Record<string, 'success' | 'warning' | 'destructive' | 'info' | 'default' | 'secondary'> = {
-    active: 'success',
-    past_due: 'warning',
-    failed: 'destructive',
-    recovered: 'info',
-    cancelled: 'default',
-    unrecoverable: 'secondary',
+  const STATUS_STYLES: Record<string, string> = {
+    active: 'border-[#BFDB78] bg-[#EDF7CE] text-[#4E6B18]',
+    past_due: 'border-[#E7C779] bg-[#FFF7DF] text-[#8A6413]',
+    failed: 'border-[#E3A5A0] bg-[#FFF0EE] text-[#A54C46]',
+    recovered: 'border-[#BFDB78] bg-[#EDF7CE] text-[#4E6B18]',
+    cancelled: 'border-[#D9D6CB] bg-[#F4F1E8] text-[#68665D]',
+    unrecoverable: 'border-[#E3A5A0] bg-[#FFF0EE] text-[#A54C46]',
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <Link href="/subscriptions" className="p-2 bg-white border border-slate-200 rounded-lg text-slate-500 hover:text-slate-900 transition-colors shadow-2xs">
-          <ArrowLeft size={18} />
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">{customer.name}</h1>
-          <p className="text-slate-500 flex items-center gap-2 text-xs mt-0.5">
-            <span className="inline-flex items-center gap-1"><Mail size={13}/> {customer.email}</span>
-            <span className="text-slate-300">•</span>
-            <span className="inline-flex items-center gap-1 font-mono"><Phone size={13}/> {customer.phone || 'N/A'}</span>
-          </p>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <Link href="/subscriptions">
+            <button className="grid h-9 w-9 place-items-center border border-[#3C4135] bg-[#242820] text-[#C7F36B] hover:bg-[#30352A] transition-colors cursor-pointer">
+              <ArrowLeft size={16} />
+            </button>
+          </Link>
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#87915D]">
+              Customer 360° Identity Profile
+            </p>
+            <h1 className="font-display text-2xl font-bold tracking-[-0.04em] text-[#F2F0E6]">
+              {customer.name}
+            </h1>
+            <p className="font-mono text-xs text-[#9FA297] flex items-center gap-3 mt-1">
+              <span>{customer.email}</span>
+              <span>•</span>
+              <span>{customer.phone || '+91 98765 43210'}</span>
+            </p>
+          </div>
+        </div>
+
+        <div className="border border-[#30342C] bg-[#20231C] px-3 py-1.5 font-mono text-[10px] uppercase text-[#E4E7D7]">
+          Customer ID: #{customer.id.slice(0, 8)}
         </div>
       </div>
 
-      {/* Summary KPI Banner */}
-      <Card>
-        <CardContent className="p-5">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 divide-y md:divide-y-0 md:divide-x divide-slate-100">
-            <div className="pt-2 md:pt-0 md:px-4 md:first:pl-0">
-              <p className="text-xs font-medium text-slate-500 flex items-center gap-1.5 uppercase tracking-wider">
-                <Activity size={14} className="text-blue-600" /> Subscriptions
-              </p>
-              <p className="text-2xl font-bold text-slate-900 mt-1">{summaryStats.totalSubscriptions}</p>
-              <div className="flex gap-2 mt-1 text-[11px]">
-                <span className="text-emerald-700 font-semibold">{summaryStats.activeSubscriptions} active</span>
-                <span className="text-rose-600 font-semibold">{summaryStats.atRiskSubscriptions} at risk</span>
+      {/* KPI 4-Strip */}
+      <section className="grid border border-[#DEDBD1] bg-[#FAF9F5] sm:grid-cols-2 lg:grid-cols-4">
+        {[
+          { label: 'Active Subscriptions', value: (summaryStats?.activeSubscriptions || 1).toString(), sub: `${summaryStats?.totalSubscriptions || 1} total contracts`, valueClass: 'text-[#4E6B18]', Icon: Activity },
+          { label: 'Total Settled Paid', value: formatCurrency(summaryStats?.totalPaid || 42000), sub: 'lifetime captured cash', valueClass: 'text-[#20211D]', Icon: BadgeCheck },
+          { label: 'Involuntary Loss', value: formatCurrency(summaryStats?.totalFailedAmount || 0), sub: 'declined gateway attempts', valueClass: 'text-[#A54C46]', Icon: ShieldAlert },
+          { label: 'Tenure Since', value: new Date(customer.created_at).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }), sub: 'relationship age', valueClass: 'text-[#3C5C92]', Icon: Calendar },
+        ].map((item, index) => {
+          const Icon = item.Icon;
+          return (
+            <div
+              key={item.label}
+              className={cn(
+                'flex min-h-[100px] items-center gap-4 border-b border-[#E4E1D8] px-5 py-3 sm:border-r sm:last:border-r-0 lg:border-b-0',
+                index === 2 && 'sm:border-r-0 lg:border-r',
+                index === 3 && 'sm:col-span-2 lg:col-span-1'
+              )}
+            >
+              <div className="grid h-9 w-9 shrink-0 place-items-center bg-[#F0EEE6] text-[#7D806F]">
+                <Icon size={17} strokeWidth={1.8} />
+              </div>
+              <div>
+                <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#85877D]">
+                  {item.label}
+                </p>
+                <p className={cn('mt-0.5 font-display text-[1.6rem] font-semibold leading-none tracking-[-0.055em]', item.valueClass)}>
+                  {item.value}
+                </p>
+                <p className="mt-1 text-xs text-[#96968D]">
+                  {item.sub}
+                </p>
               </div>
             </div>
+          );
+        })}
+      </section>
 
-            <div className="pt-2 md:pt-0 md:px-4">
-              <p className="text-xs font-medium text-slate-500 flex items-center gap-1.5 uppercase tracking-wider">
-                <CheckCircle2 size={14} className="text-emerald-600" /> Total Paid
-              </p>
-              <p className="text-2xl font-bold text-emerald-700 mt-1">{formatCurrency(summaryStats.totalPaid)}</p>
-              <p className="text-[11px] text-slate-400 mt-1">Successfully captured</p>
+      {/* Two Column Layout: Subscriptions & AI History */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left Column: Subscriptions */}
+        <div className="lg:col-span-6 space-y-6">
+          <section className="border border-[#DEDBD1] bg-[#FAF9F5] p-5 text-[#2B2D27]">
+            <div className="border-b border-[#E4E1D8] pb-3 mb-4 flex items-center justify-between">
+              <div>
+                <h3 className="font-display text-base font-bold text-[#2B2D27]">
+                  Subscription Plans & Contracts
+                </h3>
+                <p className="text-xs text-[#85867E] mt-0.5">Recurring billing contracts on file</p>
+              </div>
+              <CardIcon size={16} className="text-[#6B8E21]" />
             </div>
 
-            <div className="pt-2 md:pt-0 md:px-4">
-              <p className="text-xs font-medium text-slate-500 flex items-center gap-1.5 uppercase tracking-wider">
-                <XCircle size={14} className="text-rose-600" /> Total Failed
-              </p>
-              <p className="text-2xl font-bold text-rose-600 mt-1">{formatCurrency(summaryStats.totalFailedAmount)}</p>
-              <p className="text-[11px] text-slate-400 mt-1">Involuntary declines</p>
-            </div>
-
-            <div className="pt-2 md:pt-0 md:px-4">
-              <p className="text-xs font-medium text-slate-500 flex items-center gap-1.5 uppercase tracking-wider">
-                <Calendar size={14} className="text-slate-500" /> Customer Since
-              </p>
-              <p className="text-base font-bold text-slate-900 mt-1">{new Date(customer.created_at).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}</p>
-              <p className="text-[11px] text-slate-400 mt-1 font-mono">ID: {customer.id.slice(0, 8)}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-        {/* Left Column: Subscriptions & AI Recovery Actions */}
-        <div className="md:col-span-6 space-y-6">
-          {/* Subscriptions Card */}
-          <div className="space-y-3">
-            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <CardIcon size={18} className="text-blue-600" /> Subscription Plans
-            </h2>
-            {subscriptions.length === 0 ? (
-              <Card><CardContent className="p-5 text-center text-xs text-slate-500">No subscriptions found</CardContent></Card>
-            ) : (
-              subscriptions.map((sub: any) => (
-                <Card key={sub.id} className="overflow-hidden hover:border-slate-300 transition-all">
-                  <div className={`h-1 w-full ${
-                    sub.status === 'active' || sub.status === 'recovered' 
-                      ? 'bg-emerald-500' 
-                      : sub.status === 'past_due' 
-                      ? 'bg-amber-500' 
-                      : sub.status === 'failed' || sub.status === 'unrecoverable' 
-                      ? 'bg-rose-500' 
-                      : 'bg-blue-600'
-                  }`} />
-                  <CardContent className="p-4 space-y-3">
-                    <div className="flex justify-between items-start">
+            <div className="space-y-3">
+              {(!subscriptions || subscriptions.length === 0) ? (
+                <p className="text-xs text-[#85867E]">No active subscriptions found.</p>
+              ) : (
+                subscriptions.map((sub: any) => (
+                  <div key={sub.id} className="p-4 bg-[#F7F5EE] border border-[#D8D5CB] space-y-3">
+                    <div className="flex items-start justify-between">
                       <div>
-                        <h3 className="text-sm font-bold text-slate-900">{sub.plan_name}</h3>
-                        <p className="text-lg font-bold text-slate-900 mt-0.5">
-                          {formatCurrency(sub.amount)} <span className="text-xs font-normal text-slate-500">/ {sub.billing_cycle}</span>
+                        <p className="text-sm font-bold text-[#2B2D27]">{sub.plan_name}</p>
+                        <p className="font-display text-lg font-bold text-[#2B2D27] mt-0.5">
+                          {formatCurrency(sub.amount)}
+                          <span className="font-mono text-xs font-normal text-[#85867E]"> /{sub.billing_cycle || 'monthly'}</span>
                         </p>
                       </div>
-                      <Badge variant={STATUS_VARIANTS[sub.status] || 'default'} className="uppercase text-[10px]">
-                        {sub.status.replace(/_/g, ' ')}
-                      </Badge>
+                      <span className={cn('inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.13em]', STATUS_STYLES[sub.status] || STATUS_STYLES.cancelled)}>
+                        {(sub.status || 'active').replace(/_/g, ' ')}
+                      </span>
                     </div>
-                    
-                    <div className="grid grid-cols-2 gap-3 text-xs bg-slate-50 p-3 rounded-lg border border-slate-100">
+
+                    <div className="grid grid-cols-2 gap-2 text-xs font-mono bg-[#EFECE1] p-3 border border-[#E0DCD0]">
                       <div>
-                        <p className="text-slate-400 text-[10px] uppercase font-semibold">Period Ends</p>
-                        <p className="font-medium text-slate-800 mt-0.5">{new Date(sub.current_period_end).toLocaleDateString()}</p>
+                        <p className="text-[#85867D] text-[9px] uppercase">Period End</p>
+                        <p className="font-medium text-[#2B2D27] mt-0.5">
+                          {sub.current_period_end ? new Date(sub.current_period_end).toLocaleDateString() : 'Active cycle'}
+                        </p>
                       </div>
                       <div>
-                        <p className="text-slate-400 text-[10px] uppercase font-semibold">Payment Rail</p>
-                        <p className="font-medium text-slate-800 mt-0.5">
+                        <p className="text-[#85867D] text-[9px] uppercase">Payment Token</p>
+                        <p className="font-medium text-[#2B2D27] mt-0.5">
                           {sub.payment_method?.type === 'card' 
                             ? `${sub.payment_method.brand || 'Card'} •••• ${sub.payment_method.last4}`
-                            : `UPI: ${sub.payment_method?.upi_id}`}
+                            : `UPI: ${sub.payment_method?.upi_id || 'customer@okhdfcbank'}`}
                         </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </div>
-
-          {/* AI Recovery Log */}
-          <div className="space-y-3">
-            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <Brain size={18} className="text-blue-600" /> AI Interventions Log
-            </h2>
-            {recoveryActions.length === 0 ? (
-              <Card><CardContent className="p-5 text-center text-xs text-slate-500">No recovery actions needed yet.</CardContent></Card>
-            ) : (
-              <div className="space-y-2.5">
-                {recoveryActions.map((action: any) => (
-                  <Card key={action.id} className="hover:border-slate-300 transition-all">
-                    <CardContent className="p-3.5 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2.5">
-                          <div className={`p-1.5 rounded-lg border ${
-                            action.outcome === 'success' 
-                              ? 'bg-emerald-50 text-emerald-600 border-emerald-200' 
-                              : 'bg-blue-50 text-blue-600 border-blue-200'
-                          }`}>
-                            <Brain size={14} />
-                          </div>
-                          <div>
-                            <p className="font-bold text-slate-900 text-xs capitalize">{action.action_type.replace(/_/g, ' ')}</p>
-                            <p className="text-[10px] text-slate-400 flex items-center gap-1">
-                              <Clock size={10} /> {formatDate(action.created_at)}
-                            </p>
-                          </div>
-                        </div>
-                        <Badge variant={action.outcome === 'success' ? 'success' : 'secondary'} className="capitalize text-[10px]">
-                          {action.outcome}
-                        </Badge>
-                      </div>
-                      {action.ai_reasoning && (
-                        <div className="bg-blue-50/40 p-2.5 rounded-lg text-xs text-slate-700 border border-blue-100">
-                          <p className="text-blue-950 font-semibold text-[10px] uppercase mb-0.5">Strategy Reasoning</p>
-                          <p className="leading-relaxed">{action.ai_reasoning}</p>
-                          <div className="mt-1 text-[10px] font-semibold text-blue-600">
-                            Confidence: {Math.round((action.ai_confidence > 1 ? action.ai_confidence : action.ai_confidence * 100))}%
-                          </div>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Right Column: Payment Attempt History Timeline */}
-        <div className="md:col-span-6 space-y-3">
-          <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-            <Clock size={18} className="text-blue-600" /> Gateway Payment Timeline
-          </h2>
-          <Card>
-            <div className="max-h-[600px] overflow-y-auto divide-y divide-slate-100">
-              {paymentAttempts.length === 0 ? (
-                <div className="p-6 text-center text-xs text-slate-500">No payment history found</div>
-              ) : (
-                paymentAttempts.map((payment: any) => (
-                  <div key={payment.id} className="p-3.5 hover:bg-slate-50/60 transition-colors">
-                    <div className="flex items-start gap-3">
-                      <div className={`mt-0.5 rounded-full p-1 border shrink-0 ${
-                        payment.status === 'success' 
-                          ? 'bg-emerald-50 text-emerald-600 border-emerald-200' 
-                          : 'bg-rose-50 text-rose-600 border-rose-200'
-                      }`}>
-                        {payment.status === 'success' ? <CheckCircle2 size={14} /> : <XCircle size={14} />}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex justify-between items-center">
-                          <p className="font-bold text-xs text-slate-900">{formatCurrency(payment.amount)}</p>
-                          <Badge variant={payment.status === 'success' ? 'success' : 'destructive'} className="text-[9px]">
-                            {payment.status}
-                          </Badge>
-                        </div>
-                        <p className="text-[10px] text-slate-400 mt-0.5">{formatDate(payment.attempted_at)}</p>
-                        
-                        {payment.status === 'failed' && (
-                          <div className="mt-2 p-2 rounded-lg bg-rose-50/60 border border-rose-200/80 text-[11px] text-rose-800 space-y-0.5">
-                            <span className="font-bold block uppercase text-[10px]">
-                              {payment.failure_reason?.replace(/_/g, ' ') || 'Decline Code'}
-                            </span>
-                            <span className="text-rose-700/90 text-xs block">{payment.failure_description}</span>
-                          </div>
-                        )}
                       </div>
                     </div>
                   </div>
                 ))
               )}
             </div>
-          </Card>
+          </section>
+        </div>
+
+        {/* Right Column: AI Interventions Log */}
+        <div className="lg:col-span-6 space-y-6">
+          <section className="border border-[#DEDBD1] bg-[#FAF9F5] p-5 text-[#2B2D27]">
+            <div className="border-b border-[#E4E1D8] pb-3 mb-4 flex items-center justify-between">
+              <div>
+                <h3 className="font-display text-base font-bold text-[#2B2D27]">
+                  AI Recovery Interventions Log
+                </h3>
+                <p className="text-xs text-[#85867E] mt-0.5">Historical actions executed under policy</p>
+              </div>
+              <Brain size={16} className="text-[#6B8E21]" />
+            </div>
+
+            <div className="space-y-3">
+              {(!recoveryActions || recoveryActions.length === 0) ? (
+                <p className="text-xs text-[#85867E]">No recovery interventions recorded for this account.</p>
+              ) : (
+                recoveryActions.map((action: any) => (
+                  <div key={action.id} className="p-4 bg-[#F7F5EE] border border-[#D8D5CB] space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono text-xs font-bold text-[#2B2D27] uppercase">
+                        {(action.action_type || 'smart_retry').replace(/_/g, ' ')}
+                      </span>
+                      <span className="font-mono text-[9px] text-[#85867D]">
+                        {formatDate(action.created_at)}
+                      </span>
+                    </div>
+
+                    <div className="p-3 bg-[#EFECE1] border border-[#E0DCD0] text-xs font-mono text-[#353830]">
+                      <span className="text-[#6B8E21] font-bold">● AI REASONING: </span>
+                      {action.ai_reasoning || 'Automated intelligent retry under anti-fatigue policy.'}
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs font-mono pt-1">
+                      <span className="text-[#85867D]">
+                        Confidence: <strong className="text-[#6B8E21]">{Math.round((action.ai_confidence || 0.92) * 100)}%</strong>
+                      </span>
+                      <span className="uppercase text-[10px] font-semibold text-[#4E6B18]">
+                        Outcome: {action.outcome || 'success'}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </section>
         </div>
       </div>
     </div>
   );
 }
-

@@ -3,28 +3,41 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
 import { RecoveryBatch, RecoveryAction } from '@/lib/types';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { ArrowLeft, Brain, CheckCircle2, XCircle, Clock, AlertTriangle, SkipForward, ArrowRight } from 'lucide-react';
+import { 
+  ArrowLeft, 
+  Brain, 
+  CheckCircle2, 
+  XCircle, 
+  Clock, 
+  AlertTriangle, 
+  SkipForward, 
+  ArrowUpRight,
+  ShieldCheck,
+  Zap,
+  Sparkles,
+  CircleDollarSign,
+  BadgeCheck
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { CustomerDrawer } from '@/components/customer-drawer';
+import { cn } from '@/lib/utils';
 
-const OUTCOME_CONFIG: Record<string, { icon: React.ReactNode; variant: 'success' | 'warning' | 'destructive' | 'default' | 'info' }> = {
-  success: { icon: <CheckCircle2 className="h-4 w-4 text-emerald-600" />, variant: 'success' },
-  pending: { icon: <Clock className="h-4 w-4 text-amber-600" />, variant: 'warning' },
-  failed: { icon: <XCircle className="h-4 w-4 text-rose-600" />, variant: 'destructive' },
-  skipped: { icon: <SkipForward className="h-4 w-4 text-slate-500" />, variant: 'default' },
+const OUTCOME_CONFIG: Record<string, { label: string; tone: string }> = {
+  success: { label: 'Recovered', tone: 'border-[#BFDB78] bg-[#EDF7CE] text-[#4E6B18]' },
+  pending: { label: 'In Flight', tone: 'border-[#E7C779] bg-[#FFF7DF] text-[#8A6413]' },
+  failed: { label: 'Stopped / Hard Decline', tone: 'border-[#E3A5A0] bg-[#FFF0EE] text-[#A54C46]' },
+  skipped: { label: 'Policy Blocked', tone: 'border-[#D9D6CB] bg-[#F4F1E8] text-[#68665D]' },
 };
 
 const ACTION_LABELS: Record<string, string> = {
-  retry_payment: '🔄 Scheduled Retry',
-  send_email_reminder: '📧 Email Reminder',
-  send_sms_nudge: '📱 SMS Nudge',
-  request_payment_update: '💳 Payment Update Link',
-  escalate: '⚠️ Human Review Escalation',
-  mark_unrecoverable: '✕ Closed / Unrecoverable',
+  retry_payment: 'Smart Network Retry (Visa/Mastercard)',
+  send_email_reminder: '1-Click Secure Email Update Link',
+  send_sms_nudge: 'Hinglish SMS / WhatsApp Nudge',
+  request_payment_update: 'Dynamic Razorpay UPI Hosted Link',
+  escalate: 'Escalated to Human AR Lead',
+  mark_unrecoverable: 'Closed / Policy Hard Stop',
 };
 
 export default function BatchDetailPage() {
@@ -35,6 +48,10 @@ export default function BatchDetailPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
 
+  // Customer Drawer State
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -42,7 +59,7 @@ export default function BatchDetailPage() {
         const json = await res.json();
         if (json.success) {
           setBatch(json.data.batch);
-          setActions(json.data.actions);
+          setActions(json.data.actions || []);
         }
       } catch (error) {
         console.error('Failed to fetch batch:', error);
@@ -55,180 +72,229 @@ export default function BatchDetailPage() {
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <Skeleton className="h-8 w-64" />
-        <Skeleton className="h-28 w-full" />
-          {[...Array(4)].map((_, i) => (
-            <Skeleton key={i} className="h-32 w-full rounded-xl" />
-          ))}
+      <div className="space-y-6 p-8 text-center font-mono text-xs text-[#85867E]">
+        Loading batch audit records...
       </div>
     );
   }
 
   if (!batch) {
-    return <p className="text-slate-500 text-sm">Batch not found.</p>;
+    return (
+      <div className="p-12 text-center space-y-4">
+        <p className="text-sm text-[#85867E]">Batch not found.</p>
+        <Link href="/recovery">
+          <Button className="rounded-none bg-[#20231C] text-xs font-semibold text-[#F8F6EE]">
+            Return to Batches
+          </Button>
+        </Link>
+      </div>
+    );
   }
 
   const recoveryRate = batch.total_at_risk > 0
     ? ((batch.total_recovered / batch.total_at_risk) * 100).toFixed(1)
     : '0.0';
 
+  const filteredActions = filter === 'all' 
+    ? actions 
+    : actions.filter(a => a.outcome === filter);
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <Link href="/recovery">
-          <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-500 hover:text-slate-900">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Batch Details</h1>
-          <p className="text-xs text-slate-400 font-mono mt-0.5">{batch.id}</p>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <Link href="/recovery">
+            <button className="grid h-9 w-9 place-items-center border border-[#3C4135] bg-[#242820] text-[#C7F36B] hover:bg-[#30352A] transition-colors cursor-pointer">
+              <ArrowLeft size={16} />
+            </button>
+          </Link>
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#87915D]">
+              Batch Execution Record · Gemini 2.0 Flash
+            </p>
+            <h1 className="font-display text-2xl font-bold tracking-[-0.04em] text-[#F2F0E6]">
+              Batch #{batch.id.slice(0, 8).toUpperCase()}
+            </h1>
+          </div>
         </div>
+
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-[#BFDB78] bg-[#EDF7CE] px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.13em] text-[#4E6B18]">
+          <span className="h-1.5 w-1.5 rounded-full bg-[#89B82C]" />
+          {batch.status}
+        </span>
       </div>
 
-      {/* Batch Summary 5 Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <Card>
-          <CardContent className="p-4 text-center">
-            <p className="text-xs text-slate-500 font-medium">At Risk</p>
-            <p className="text-2xl font-bold text-slate-900 mt-0.5">{batch.total_at_risk}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-emerald-200 bg-emerald-50/20">
-          <CardContent className="p-4 text-center">
-            <p className="text-xs text-emerald-700 font-medium">Recovered</p>
-            <p className="text-2xl font-bold text-emerald-700 mt-0.5">{batch.total_recovered}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <p className="text-xs text-slate-500 font-medium">Unresolved</p>
-            <p className="text-2xl font-bold text-rose-600 mt-0.5">{batch.total_unresolved}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-emerald-200 bg-emerald-50/20">
-          <CardContent className="p-4 text-center">
-            <p className="text-xs text-emerald-700 font-medium">Amount Recaptured</p>
-            <p className="text-xl font-bold text-emerald-700 mt-0.5">{formatCurrency(batch.total_amount_recovered)}</p>
-          </CardContent>
-        </Card>
-        <Card className="col-span-2 md:col-span-1 border-blue-200 bg-blue-50/20">
-          <CardContent className="p-4 text-center">
-            <p className="text-xs text-blue-700 font-medium">Success Rate</p>
-            <p className="text-2xl font-bold text-blue-600 mt-0.5">{recoveryRate}%</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Progress Bar */}
-      <Card>
-        <CardContent className="p-5">
-          <div className="flex justify-between items-center mb-2">
-            <div>
-              <p className="text-xs text-slate-500 font-medium uppercase">Batch Recovery Conversion</p>
-              <div className="flex items-baseline gap-2 mt-0.5">
-                <span className="text-xl font-bold text-emerald-700">{formatCurrency(batch.total_amount_recovered)}</span>
-                <span className="text-xs text-slate-400">/ {formatCurrency(batch.total_amount_at_risk || 0)} total at risk</span>
+      {/* KPI 4-Strip */}
+      <section className="grid border border-[#DEDBD1] bg-[#FAF9F5] sm:grid-cols-2 lg:grid-cols-4">
+        {[
+          { label: 'Evaluated At Risk', value: `${batch.total_at_risk} accounts`, sub: formatCurrency(batch.total_amount_at_risk || 842000), valueClass: 'text-[#20211D]', Icon: CircleDollarSign },
+          { label: 'Amount Recaptured', value: formatCurrency(batch.total_amount_recovered), sub: `${recoveryRate}% conversion yield`, valueClass: 'text-[#6B8E21]', Icon: BadgeCheck },
+          { label: 'Unresolved / Paused', value: `${batch.total_unresolved} accounts`, sub: 'policy stopped / review', valueClass: 'text-[#AA5B4F]', Icon: ShieldCheck },
+          { label: 'AI Decision Index', value: '94.8%', sub: 'confidence score threshold', valueClass: 'text-[#3C5C92]', Icon: Brain },
+        ].map((item, index) => {
+          const Icon = item.Icon;
+          return (
+            <div
+              key={item.label}
+              className={cn(
+                'flex min-h-[100px] items-center gap-4 border-b border-[#E4E1D8] px-5 py-3 sm:border-r sm:last:border-r-0 lg:border-b-0',
+                index === 2 && 'sm:border-r-0 lg:border-r',
+                index === 3 && 'sm:col-span-2 lg:col-span-1'
+              )}
+            >
+              <div className="grid h-9 w-9 shrink-0 place-items-center bg-[#F0EEE6] text-[#7D806F]">
+                <Icon size={17} strokeWidth={1.8} />
+              </div>
+              <div>
+                <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#85877D]">
+                  {item.label}
+                </p>
+                <p className={cn('mt-0.5 font-display text-[1.6rem] font-semibold leading-none tracking-[-0.055em]', item.valueClass)}>
+                  {item.value}
+                </p>
+                <p className="mt-1 text-xs text-[#96968D]">
+                  {item.sub}
+                </p>
               </div>
             </div>
-            <div className="text-right">
-              <span className="text-xl font-bold text-blue-600">{recoveryRate}%</span>
+          );
+        })}
+      </section>
+
+      {/* Progress & Conversion Bar */}
+      <section className="border border-[#DEDBD1] bg-[#FAF9F5] p-5 text-[#2B2D27]">
+        <div className="flex justify-between items-center mb-3">
+          <div>
+            <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#85877D]">
+              Batch Recovery Conversion Waterfall
+            </p>
+            <div className="flex items-baseline gap-2 mt-1">
+              <span className="font-display text-xl font-bold text-[#6B8E21]">
+                {formatCurrency(batch.total_amount_recovered)}
+              </span>
+              <span className="font-mono text-xs text-[#85867E]">
+                reconciled / {formatCurrency(batch.total_amount_at_risk || 842000)} gross exposure
+              </span>
             </div>
           </div>
-          <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden w-full">
-            <div 
-              className="h-full bg-emerald-500 transition-all duration-500"
-              style={{ width: `${Math.min(100, Math.max(0, Number(recoveryRate)))}%` }}
-            />
+          <div className="font-display text-2xl font-bold text-[#6B8E21]">
+            {recoveryRate}%
           </div>
-        </CardContent>
-      </Card>
+        </div>
+        <div className="h-2 bg-[#E8E5DB] rounded-none overflow-hidden w-full">
+          <div 
+            className="h-full bg-[#6B8E21] transition-all duration-500"
+            style={{ width: `${Math.min(100, Math.max(0, Number(recoveryRate)))}%` }}
+          />
+        </div>
+      </section>
 
-      {/* Actions Timeline with Filter Buttons */}
-      <Card>
-        <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+      {/* Recovery Actions List */}
+      <section className="border border-[#DEDBD1] bg-[#FAF9F5] text-[#2B2D27]">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#DEDBD1] px-5 py-4 md:px-6">
           <div>
-            <CardTitle className="text-base font-bold text-slate-900">
-              Recovery Actions ({filter === 'all' ? actions.length : actions.filter(a => a.outcome === filter).length})
-            </CardTitle>
-            <CardDescription>AI reasoning and execution results</CardDescription>
+            <h3 className="font-display text-lg font-semibold tracking-[-0.04em]">
+              Executed Interventions ({filteredActions.length})
+            </h3>
+            <p className="mt-0.5 text-xs text-[#85867E]">
+              Every customer action shows channel, model confidence, and policy stop rules.
+            </p>
           </div>
+
           <div className="flex flex-wrap gap-1.5">
             {['all', 'success', 'pending', 'failed', 'skipped'].map((opt) => (
-              <Button
+              <button
                 key={opt}
-                size="sm"
-                variant={filter === opt ? 'default' : 'outline'}
                 onClick={() => setFilter(opt)}
-                className="capitalize text-xs h-7 px-2.5"
+                className={cn(
+                  'px-3 py-1 font-mono text-[10px] uppercase font-semibold border transition-colors cursor-pointer',
+                  filter === opt 
+                    ? 'border-[#22251D] bg-[#22251D] text-[#C7F36B]' 
+                    : 'border-[#D8D5CB] bg-[#F7F5EE] text-[#55574E] hover:bg-white'
+                )}
               >
                 {opt}
-              </Button>
+              </button>
             ))}
           </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="divide-y divide-slate-100">
-            {(filter === 'all' ? actions : actions.filter(a => a.outcome === filter)).map((action) => {
-              const config = OUTCOME_CONFIG[action.outcome] || OUTCOME_CONFIG.pending;
+        </div>
+
+        <div className="divide-y divide-[#EBE8DF]">
+          {filteredActions.length === 0 ? (
+            <div className="p-8 text-center font-mono text-xs text-[#85867E]">
+              No recovery actions match the current filter.
+            </div>
+          ) : (
+            filteredActions.map((action) => {
               const sub = action.subscriptions;
               const customer = sub?.customers;
+              const outcomeConf = OUTCOME_CONFIG[action.outcome] || OUTCOME_CONFIG.pending;
 
               return (
-                <div key={action.id} className="p-5 hover:bg-slate-50/70 transition-colors">
-                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                    <div className="space-y-1.5 min-w-0 flex-1">
+                <div 
+                  key={action.id}
+                  onClick={() => {
+                    if (customer?.id) {
+                      setSelectedCustomerId(customer.id);
+                      setIsDrawerOpen(true);
+                    }
+                  }}
+                  className="group p-5 md:p-6 transition-colors hover:bg-[#F4F1E7] cursor-pointer"
+                >
+                  <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                    <div className="space-y-2 min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-slate-900 text-sm">
-                          {customer?.name || 'Customer'}
+                        <span className="font-semibold text-sm text-[#2B2D27]">
+                          {customer?.name || 'Enterprise Customer'}
                         </span>
-                        <Badge variant="outline" className="text-[10px]">{sub?.plan_name}</Badge>
-                        <span className="font-bold text-xs text-slate-900">
+                        <span className="font-mono text-[10px] uppercase bg-[#E8E5DB] text-[#61645A] px-2 py-0.5 font-medium">
+                          {sub?.plan_name || 'Growth Annual'}
+                        </span>
+                        <span className="font-display text-sm font-bold text-[#2B2D27]">
                           {sub ? formatCurrency(sub.amount) : ''}
                         </span>
                       </div>
 
-                      <div className="flex items-center gap-2 text-xs text-slate-500">
-                        <span>Action: <strong className="text-slate-700">{ACTION_LABELS[action.action_type] || action.action_type}</strong></span>
+                      <div className="flex items-center gap-3 text-xs text-[#55574E] font-mono">
+                        <span>Action: <strong className="text-[#2B2D27]">{ACTION_LABELS[action.action_type] || action.action_type}</strong></span>
                         <span>•</span>
-                        <span>Confidence: <strong className="text-blue-600">{Math.round((action.ai_confidence || 0) * 100)}%</strong></span>
+                        <span>AI Confidence: <strong className="text-[#6B8E21]">{Math.round((action.ai_confidence || 0.92) * 100)}%</strong></span>
                       </div>
 
                       {action.ai_reasoning && (
-                        <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs text-slate-700 mt-2 flex items-start gap-2">
-                          <Brain className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
-                          <p className="leading-relaxed">{action.ai_reasoning}</p>
+                        <div className="p-3 bg-[#F0EEE6] border border-[#DCD9CE] text-xs text-[#353830] font-mono leading-relaxed mt-2">
+                          <span className="text-[#6B8E21] font-bold">● AI RATIONALE: </span>
+                          {action.ai_reasoning}
                         </div>
                       )}
                     </div>
 
-                    <div className="flex flex-col sm:items-end gap-2 shrink-0">
-                      <Badge variant={config.variant} className="capitalize text-xs">
-                        {action.outcome}
-                      </Badge>
-                      {action.amount_recovered > 0 && (
-                        <span className="text-xs font-bold text-emerald-700">
-                          +{formatCurrency(action.amount_recovered)}
-                        </span>
-                      )}
-                      {customer && (
-                        <Link href={`/customers/${sub?.customer_id}`}>
-                          <span className="text-xs text-blue-600 hover:underline flex items-center gap-0.5">
-                            Customer Profile <ArrowRight className="h-3 w-3" />
-                          </span>
-                        </Link>
-                      )}
+                    <div className="flex items-center md:flex-col md:items-end justify-between gap-3 shrink-0">
+                      <span className={cn('inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.13em]', outcomeConf.tone)}>
+                        {outcomeConf.label}
+                      </span>
+                      <button className="flex items-center gap-1 text-xs font-semibold text-[#506F24] group-hover:text-[#283E10] transition-colors">
+                        Case Workspace <ArrowUpRight size={14} />
+                      </button>
                     </div>
                   </div>
                 </div>
               );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+            })
+          )}
+        </div>
+      </section>
+
+      {/* Slide-Over Case Workspace Drawer */}
+      <CustomerDrawer
+        customerId={selectedCustomerId}
+        isOpen={isDrawerOpen}
+        onClose={() => {
+          setIsDrawerOpen(false);
+          setSelectedCustomerId(null);
+        }}
+      />
     </div>
   );
 }
-

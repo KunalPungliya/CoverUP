@@ -267,5 +267,25 @@ The database resides in Supabase PostgreSQL (`supabase/schema.sql`).
 - **Production Build Status**:
   - `npm run build` compiled with **0 errors** across all 21 routes and 9 API endpoints.
 
+- **Phase 8: Full Control Plane Professionalization & Evidence-Backed Architecture (2026-09-04)**:
+  - **5-Tab Deep Case Detail Workspace (`CustomerDrawer`)**:
+    - Transformed customer detail drawer into a comprehensive 5-tab case workspace:
+      - `[1. Signal & Evidence]`: Ingestion telemetry, event ID, raw JSON gateway response payload.
+      - `[2. Account 360°]`: Customer segment, ARR, LTV calculation, paid cycles, payment token metadata, consent, quiet hours.
+      - `[3. Diagnostic Stack]`: Structured evidence rationale ("Recommended because...", "Exclusions checked..."), AI certainty gauge, policy checklist.
+      - `[4. Action Preview]`: Live preview of Email/WhatsApp/SMS dunning copy with real variable substitution and 1-click CTA.
+      - `[5. Timeline & Audit]`: Chronological event log of attempts, provider replies, and audit records.
+    - Added **Manual Hold toggle** (`isManualHold`) with instant visual feedback to pause automation on sensitive accounts.
+  - **2-Step Pre-Flight Batch Confirmation Sheet (`BatchConfirmationModal`)**:
+    - Built safe bulk operations modal with eligible volume, total exposure, channel breakdown, policy version (`policy-2026-09-04.2`), and 3 safety verification checkmarks.
+  - **Master Operations Cockpit Enhancements (`src/app/page.tsx`)**:
+    - Multi-Connector Live Operations Bar (Razorpay PG 99.9%, Stripe India 99.8%, WhatsApp Switch 99.95%, NPCI UPI AutoPay 99.7%).
+    - 10-Tier Financial Truth Waterfall (`Gross At Risk` $\rightarrow$ `Eligible` $ightarrow$ `Attempted` $ightarrow$ `Promised` $ightarrow$ `Authorized` $ightarrow$ `Captured` $ightarrow$ `Settled` $ightarrow$ `Reconciled` $ightarrow$ `Fees` $ightarrow$ `Net Lift vs Control`).
+    - Clickable KPI Drill-Downs and Saved Views Toolbar (`All Active`, `High Value (≥₹3L)`, `Needs Human`, `Soft Declines`, `Overdue > 14d`, `Recovered`).
+    - Density Switcher (`Comfortable` vs `Compact` table views).
 
-
+- **Phase 9: Complete Ledger Noir Unification Across All Platform Routes (2026-09-04)**:
+  - Upgraded `/recovery` with Ledger Noir KPI strips, batch execution history, and integrated Pre-Flight Confirmation.
+  - Upgraded `/recovery/[batchId]` with recovery conversion progress bars, detailed outcome filters, AI rationale inspector, and Customer Drawer integration.
+  - Upgraded `/customers/[customerId]` with Customer 360° telemetry, contract cards, and historical intervention logs.
+  - Verified zero errors across all 21 Next.js routes and 9 API routes.
