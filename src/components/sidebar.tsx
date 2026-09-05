@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { 
@@ -257,11 +258,18 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
         "fixed inset-y-0 left-0 z-40 flex w-[244px] flex-col border-r border-[#2B2D27] bg-[#171914] px-5 py-6 text-[#F4F0E5] transition-transform duration-200 lg:translate-x-0",
         mobileNav ? "translate-x-0 shadow-2xl" : "-translate-x-full"
       )}>
-        {/* Brand Header */}
+        {/* Brand Header with User's Uploaded Logo */}
         <div className="flex items-center gap-3 px-1">
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="grid h-9 w-9 place-items-center bg-[#C7F36B] text-[#171914] shadow-[4px_4px_0_#5E6F31] transition-transform group-hover:scale-105">
-              <span className="font-display font-black text-xl tracking-tighter text-[#171914]">S</span>
+            <div className="relative h-9 w-9 overflow-hidden rounded-md border border-[#30342C] bg-[#11130F] shadow-[3px_3px_0_#5E6F31] transition-transform group-hover:scale-105 shrink-0 flex items-center justify-center p-0.5">
+              <Image 
+                src="/logo.png" 
+                alt="SettleIQ Logo" 
+                width={32} 
+                height={32} 
+                className="h-full w-full object-contain rounded-xs"
+                priority
+              />
             </div>
             <div>
               <p className="font-display text-[15px] font-bold tracking-[-0.04em] text-white">
@@ -395,7 +403,7 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
 
       {/* Main Operating Area */}
       <div className="min-h-screen lg:pl-[244px] flex flex-col">
-        {/* Top Operational Bar (Shortcuts button removed) */}
+        {/* Top Operational Bar */}
         <header className="sticky top-0 z-20 flex h-[68px] items-center justify-between border-b border-[#30342C] bg-[#171914]/95 px-5 text-[#F2F0E6] backdrop-blur md:px-8">
           <div className="flex items-center gap-3">
             <button
@@ -406,8 +414,14 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
               <Menu size={18} />
             </button>
             <div className="flex items-center gap-2.5 pr-3 sm:border-r sm:border-[#30342C]">
-              <div className="grid h-7 w-7 place-items-center bg-[#C7F36B] text-[#171914]">
-                <span className="font-display font-black text-xs text-[#171914]">S</span>
+              <div className="relative h-7 w-7 overflow-hidden rounded-sm border border-[#30342C] bg-[#11130F] shrink-0 flex items-center justify-center p-0.5">
+                <Image 
+                  src="/logo.png" 
+                  alt="SettleIQ Logo" 
+                  width={24} 
+                  height={24} 
+                  className="h-full w-full object-contain rounded-xs"
+                />
               </div>
               <span className="hidden font-display text-sm font-bold tracking-[-0.05em] sm:block">
                 Settle<span className="text-[#C7F36B]">IQ</span>

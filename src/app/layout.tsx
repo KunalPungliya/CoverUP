@@ -25,6 +25,11 @@ const ibmPlexMono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: 'SettleIQ — Autonomous Revenue Recovery OS',
   description: 'A bounded autonomous revenue operations agent for finance and growth teams that recovers involuntary churn across Indian payment rails.',
+  icons: {
+    icon: '/logo.png',
+    shortcut: '/logo.png',
+    apple: '/logo.png',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
