@@ -149,6 +149,9 @@ export default function MasterDashboardPage() {
   // Fetch real database data
   const fetchData = useCallback(async () => {
     try {
+      if (typeof window !== 'undefined' && !sessionStorage.getItem('settleiq_auth_session')) {
+        return;
+      }
       const [resMetrics, resSubs, resAudit] = await Promise.all([
         fetch('/api/dashboard').then((r) => r.json()),
         fetch('/api/subscriptions?limit=50').then((r) => r.json()),

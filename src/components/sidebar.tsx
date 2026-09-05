@@ -244,27 +244,36 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
     };
   }, [showOperatorModal, showArchitectureModal]);
 
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+
   // Authentication check on mount
   useEffect(() => {
+    if (pathname === '/login') {
+      setIsAuthenticated(true);
+      return;
+    }
     try {
-      const hasAuth = localStorage.getItem('settleiq_auth_session');
-      if (!hasAuth && pathname !== '/login') {
-        router.push('/login');
+      const hasAuth = sessionStorage.getItem('settleiq_auth_session');
+      if (!hasAuth) {
+        setIsAuthenticated(false);
+        router.replace('/login');
         return;
       }
-      const savedOpId = localStorage.getItem('settleiq_active_operator');
+      setIsAuthenticated(true);
+      const savedOpId = sessionStorage.getItem('settleiq_active_operator') || localStorage.getItem('settleiq_active_operator');
       if (savedOpId) {
         const found = OPERATOR_PROFILES.find(op => op.id === savedOpId);
         if (found) setCurrentOperator(found);
       }
     } catch {
-      // ignore
+      setIsAuthenticated(true);
     }
   }, [pathname, router]);
 
   const handleSelectOperator = (op: OperatorProfile) => {
     setCurrentOperator(op);
     try {
+      sessionStorage.setItem('settleiq_active_operator', op.id);
       localStorage.setItem('settleiq_active_operator', op.id);
     } catch {
       // ignore
@@ -273,10 +282,14 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
 
   const handleSignOut = () => {
     try {
+      sessionStorage.removeItem('settleiq_auth_session');
+      sessionStorage.removeItem('settleiq_active_operator');
+      sessionStorage.removeItem('settleiq_session_started');
       localStorage.removeItem('settleiq_auth_session');
     } catch {}
     setShowOperatorModal(false);
-    router.push('/login');
+    setIsAuthenticated(false);
+    router.replace('/login');
   };
 
   const handleCopySession = () => {
@@ -287,6 +300,15 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
 
   if (isLoginPage) {
     return <>{children}</>;
+  }
+
+  if (isAuthenticated === false || isAuthenticated === null) {
+    return (
+      <div className="min-h-screen bg-[#11130F] flex flex-col items-center justify-center text-[#9FA297] font-mono text-xs gap-3">
+        <div className="h-6 w-6 border-2 border-[#C7F36B] border-t-transparent rounded-full animate-spin" />
+        <p className="text-[#C7F36B] uppercase tracking-widest text-[11px]">Connecting Zero-Trust Security Gateway...</p>
+      </div>
+    );
   }
 
   return (

@@ -56,22 +56,28 @@ export default function LoginPage() {
     setTimeout(() => {
       setAuthStep('Establishing secure session channel...');
       try {
-        localStorage.setItem('settleiq_auth_session', 'true');
+        sessionStorage.setItem('settleiq_auth_session', 'true');
+        sessionStorage.setItem('settleiq_active_operator', selectedOp.id);
+        sessionStorage.setItem('settleiq_session_started', new Date().toISOString());
         localStorage.setItem('settleiq_active_operator', selectedOp.id);
-        localStorage.setItem('settleiq_session_started', new Date().toISOString());
       } catch {
         // ignore
       }
     }, 900);
 
     setTimeout(() => {
-      router.push('/');
+      router.replace('/');
     }, 1300);
   };
 
   const handleGuestAccess = () => {
-    handleSelectOperator(OPERATOR_PROFILES[0]);
-    handleLogin();
+    try {
+      sessionStorage.setItem('settleiq_auth_session', 'true');
+      sessionStorage.setItem('settleiq_active_operator', OPERATOR_PROFILES[0].id);
+      sessionStorage.setItem('settleiq_session_started', new Date().toISOString());
+      localStorage.setItem('settleiq_active_operator', OPERATOR_PROFILES[0].id);
+    } catch {}
+    router.replace('/');
   };
 
   return (
@@ -158,7 +164,7 @@ export default function LoginPage() {
                 <span className="font-display font-bold text-lg sm:text-xl text-white mt-0.5 block">
                   68.4%
                 </span>
-                <span className="font-mono text-[9px] text-[#C7F36B]">148 cases active</span>
+                <span className="font-mono text-[9px] text-[#C7F36B]">Active recovery pipeline</span>
               </div>
 
               <div className="p-3 bg-[#1F231B] border border-[#2F3428]">

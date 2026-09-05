@@ -463,7 +463,7 @@ The database resides in Supabase PostgreSQL (`supabase/schema.sql`).
 
 ### Phase 24: Dynamic Guardrail Sliders & Live Counterfactual Policy Diff (Latest Milestone)
 1. **Interactive Guardrail Sliders & State Persistence**:
-   - All sliders in **Developer Sandbox $ightarrow$ Guardrail Spine & Limits** are 100% interactive and state-managed:
+   - All sliders in **Developer Sandbox → Guardrail Spine & Limits** are 100% interactive and state-managed:
      - **Max Retries Before Halt (1–5x)**: Controls max autonomous attempt cap.
      - **Minimum Cooldown Spacing (6–48h)**: Controls anti-fatigue quiet window.
      - **Max Grace Period Window (7–30d)**: Controls maximum allowed overdue threshold.
@@ -477,3 +477,14 @@ The database resides in Supabase PostgreSQL (`supabase/schema.sql`).
    - Updated historical simulation baseline to 100 subscriptions.
 3. **Production Verification**:
    - `npm run build` passed with 0 TypeScript/ESLint errors across all 23 routes.
+
+### Phase 25: Login Page Entry Flow & Session-Based Zero-Trust Authentication Gate (Latest Milestone)
+1. **Root Entry & Zero-Trust Session Gate**:
+   - Migrated active auth token enforcement from persistent `localStorage` to scoped `sessionStorage` (`settleiq_auth_session`).
+   - When launching `npm run dev` or opening `http://localhost:3000` in a new browser tab/session, unauthenticated sessions immediately navigate to `/login` to showcase the full Project Intelligence dashboard, Gemini reasoning telemetry, and 1-click Operator profiles.
+2. **Seamless Navigation & Sign Out**:
+   - Upon operator selection / 1-click login / Demo bypass, secure session tokens are initialized and the user is routed to `/`.
+   - Sign Out button cleanly flushes `sessionStorage` and `localStorage`, redirecting directly back to `/login`.
+   - Removed static `148` string from login page metrics in favor of dynamic `Active recovery pipeline`.
+3. **Production Verification**:
+   - `npm run build` passed cleanly with 0 TypeScript/ESLint errors across all 23 routes.
