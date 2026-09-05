@@ -267,7 +267,7 @@ export default function AnalyticsPage() {
 
               <div>
                 <div className="flex items-center justify-between mb-1.5 font-mono text-xs">
-                  <span className="text-[#707866] uppercase text-[10px]">VaultBack Autonomous Recovery Rate</span>
+                  <span className="text-[#707866] uppercase text-[10px]">SettleIQ Autonomous Recovery Rate</span>
                   <span className="font-bold text-[#4E6B18]">{recoveryRate}%</span>
                 </div>
                 <input

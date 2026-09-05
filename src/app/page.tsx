@@ -269,7 +269,7 @@ export default function MasterDashboardPage() {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `vaultback_audit_${Date.now()}.csv`);
+    link.setAttribute("download", `settleiq_audit_${Date.now()}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -1035,7 +1035,7 @@ export default function MasterDashboardPage() {
       <footer className="flex flex-col gap-3 border-t border-[#30342C] pt-5 font-mono text-[9px] uppercase tracking-[0.13em] text-[#81867A] sm:flex-row sm:items-center sm:justify-between">
         <span className="flex items-center gap-2">
           <Terminal size={13} />
-          VaultBack OS · Connected to Supabase & Gemini Flash AI
+          SettleIQ OS · Connected to Supabase & Gemini Flash AI
         </span>
         <span>
           Autonomous multi-channel dunning & smart retry execution · Press Esc to close views

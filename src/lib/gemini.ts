@@ -4,7 +4,7 @@ import { formatCurrency } from './utils';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
-const SYSTEM_PROMPT = `You are VaultBack's Senior Autonomous Revenue Recovery & Churn Prevention AI.
+const SYSTEM_PROMPT = `You are SettleIQ's Senior Autonomous Revenue Recovery & Churn Prevention AI.
 Your purpose is to evaluate failed subscription charges across payment rails (Cards, UPI AutoPay, e-NACH mandates, NetBanking) and determine the optimal, bounded, anti-fatigue recovery strategy.
 
 Respond with strict JSON matching the schema below.

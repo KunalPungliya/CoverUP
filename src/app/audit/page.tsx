@@ -77,7 +77,7 @@ export default function AuditPage() {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `vaultback_audit_log_${Date.now()}.csv`);
+    link.setAttribute("download", `settleiq_audit_log_${Date.now()}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

@@ -156,7 +156,7 @@ export default function EnhancedSimulatorPage() {
   // Initial Data Load
   useEffect(() => {
     // Load persisted settings
-    const saved = localStorage.getItem('vaultback_pipeline_settings');
+    const saved = localStorage.getItem('settleiq_pipeline_settings');
     if (saved) {
       try {
         const p = JSON.parse(saved);
@@ -192,7 +192,7 @@ export default function EnhancedSimulatorPage() {
 
   const handleSaveGuardrails = () => {
     const config = { maxRetries, maxDaysOverdue, cooldownHours, geminiModel, confidenceThreshold };
-    localStorage.setItem('vaultback_pipeline_settings', JSON.stringify(config));
+    localStorage.setItem('settleiq_pipeline_settings', JSON.stringify(config));
     setSettingsSavedToast(true);
     setTimeout(() => setSettingsSavedToast(false), 3000);
   };
@@ -237,7 +237,7 @@ export default function EnhancedSimulatorPage() {
   const currentWebhookPayload = useMemo(() => {
     return {
       entity: 'event',
-      account_id: 'acc_vaultback_demo_live',
+      account_id: 'acc_settleiq_demo_live',
       event: 'payment.failed',
       contains: ['payment'],
       payload: {
@@ -865,7 +865,7 @@ export default function EnhancedSimulatorPage() {
             {studioChannel === 'email' && (
               <div className="p-6 bg-white border border-[#D8D5CB] space-y-4 max-w-xl mx-auto shadow-sm w-full">
                 <div className="border-b border-[#E4E1D8] pb-3 space-y-1 font-mono text-[11px]">
-                  <p><span className="font-bold text-[#85867D]">From:</span> billing@vaultback.app</p>
+                  <p><span className="font-bold text-[#85867D]">From:</span> billing@settleiq.app</p>
                   <p><span className="font-bold text-[#85867D]">To:</span> {studioCustomerName} &lt;customer@example.com&gt;</p>
                   <p><span className="font-bold text-[#85867D]">Subject:</span> {studioLang === 'hinglish' ? `Quick heads-up: ${studioPlanName} payment mein thoda issue aaya` : `Action needed: ${studioPlanName} subscription payment issue`}</p>
                 </div>
@@ -883,7 +883,7 @@ export default function EnhancedSimulatorPage() {
                     </button>
                   </div>
                   <p className="text-[11px] text-[#85867E] pt-2">
-                    Secure 256-bit tokenized portal powered by VaultBack. Zero password required.
+                    Secure 256-bit tokenized portal powered by SettleIQ. Zero password required.
                   </p>
                 </div>
               </div>
@@ -893,7 +893,7 @@ export default function EnhancedSimulatorPage() {
             {studioChannel === 'whatsapp' && (
               <div className="max-w-md mx-auto w-full bg-[#E5DDD5] p-5 rounded-xl shadow-sm space-y-3">
                 <div className="flex items-center justify-between border-b border-[#D4CDC5] pb-2 text-[11px] font-mono text-[#606060]">
-                  <span className="font-bold text-[#075E54]">VaultBack Verified Business ✓</span>
+                  <span className="font-bold text-[#075E54]">SettleIQ Verified Business ✓</span>
                   <span>10:42 AM</span>
                 </div>
 
@@ -909,7 +909,7 @@ export default function EnhancedSimulatorPage() {
                       : 'To prevent service suspension, update your payment details via our secure link:'}
                   </p>
                   <div className="p-2 bg-[#F7F5EE] border border-[#D8D5CB] font-mono text-[11px] text-[#345689] flex items-center justify-between">
-                    <span>https://pay.vaultback.app/u/78f9</span>
+                    <span>https://pay.settleiq.app/u/78f9</span>
                     <ExternalLink size={12} />
                   </div>
                   <div className="pt-1 flex items-center gap-2">

@@ -23,7 +23,7 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'VaultBack — Autonomous Revenue Recovery OS',
+  title: 'SettleIQ — Autonomous Revenue Recovery OS',
   description: 'A bounded autonomous revenue operations agent for finance and growth teams that recovers involuntary churn across Indian payment rails.',
 };
 

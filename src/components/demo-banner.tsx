@@ -7,7 +7,7 @@ export function DemoBanner() {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    const hasSeenDemo = localStorage.getItem('vaultback-welcome-dismissed');
+    const hasSeenDemo = localStorage.getItem('settleiq-welcome-dismissed');
     if (!hasSeenDemo) {
       const timer = setTimeout(() => setIsVisible(true), 0);
       return () => clearTimeout(timer);
@@ -16,7 +16,7 @@ export function DemoBanner() {
 
   const handleDismiss = () => {
     setIsVisible(false);
-    localStorage.setItem('vaultback-welcome-dismissed', 'true');
+    localStorage.setItem('settleiq-welcome-dismissed', 'true');
   };
 
   if (!isVisible) return null;
@@ -29,7 +29,7 @@ export function DemoBanner() {
         </div>
         <div>
           <h4 className="text-xs font-bold text-[#2B2D27]">
-            Welcome to VaultBack — Autonomous Revenue Recovery OS
+            Welcome to SettleIQ — Autonomous Revenue Recovery OS
           </h4>
           <p className="text-xs text-[#85867E] mt-0.5">
             A bounded autonomy agent for finance and growth teams that intercepts involuntary payment failures across Indian payment rails.
