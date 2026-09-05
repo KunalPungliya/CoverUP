@@ -153,6 +153,7 @@ export const OPERATOR_PROFILES: OperatorProfile[] = [
 export function Sidebar({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const isLoginPage = pathname === '/login';
   const [mobileNav, setMobileNav] = useState(false);
   const [currentTime, setCurrentTime] = useState('09:42:18');
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
@@ -176,9 +177,14 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
     return () => clearInterval(interval);
   }, []);
 
-  // Load saved operator from local storage
+  // Authentication check on mount
   useEffect(() => {
     try {
+      const hasAuth = localStorage.getItem('settleiq_auth_session');
+      if (!hasAuth && pathname !== '/login') {
+        router.push('/login');
+        return;
+      }
       const savedOpId = localStorage.getItem('settleiq_active_operator');
       if (savedOpId) {
         const found = OPERATOR_PROFILES.find(op => op.id === savedOpId);
@@ -187,7 +193,7 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
     } catch {
       // ignore
     }
-  }, []);
+  }, [pathname, router]);
 
   const handleSelectOperator = (op: OperatorProfile) => {
     setCurrentOperator(op);
@@ -196,6 +202,14 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
     } catch {
       // ignore
     }
+  };
+
+  const handleSignOut = () => {
+    try {
+      localStorage.removeItem('settleiq_auth_session');
+    } catch {}
+    setShowOperatorModal(false);
+    router.push('/login');
   };
 
   const handleCopySession = () => {
@@ -250,6 +264,10 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
       clearTimeout(keyTimeout);
     };
   }, [lastKey, router]);
+
+  if (isLoginPage) {
+    return <>{children}</>;
+  }
 
   return (
     <div className="min-h-screen bg-[#171914] text-[#F2F0E6] selection:bg-[#C7F36B] selection:text-[#1C2016]">
@@ -662,14 +680,22 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
             {/* Footer Buttons */}
             <div className="flex items-center justify-between border-t border-[#E4E1D8] pt-3">
               <span className="font-mono text-[10px] text-[#85877D]">
-                Session ID: <code className="text-[#2B2D27]">SIQ-SESSION-${currentOperator.id.slice(0, 4).toUpperCase()}-LIVE</code>
+                Session: <code className="text-[#2B2D27]">SIQ-${currentOperator.id.slice(0, 4).toUpperCase()}-LIVE</code>
               </span>
-              <button
-                onClick={() => setShowOperatorModal(false)}
-                className="px-4 py-2 bg-[#171914] text-[#C7F36B] font-mono text-xs font-bold uppercase tracking-wider hover:bg-[#252820] cursor-pointer transition-colors"
-              >
-                Close Workspace
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleSignOut}
+                  className="px-3 py-1.5 bg-transparent hover:bg-[#EBE8DF] text-[#71766A] hover:text-[#B91C1C] font-mono text-xs font-semibold uppercase tracking-wider border border-[#D8D5CB] cursor-pointer transition-colors"
+                >
+                  Sign Out
+                </button>
+                <button
+                  onClick={() => setShowOperatorModal(false)}
+                  className="px-4 py-1.5 bg-[#171914] text-[#C7F36B] font-mono text-xs font-bold uppercase tracking-wider hover:bg-[#252820] cursor-pointer transition-colors"
+                >
+                  Done
+                </button>
+              </div>
             </div>
           </div>
         </div>

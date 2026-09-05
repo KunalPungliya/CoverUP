@@ -337,3 +337,20 @@ The database resides in Supabase PostgreSQL (`supabase/schema.sql`).
 1. **Background Box Removal**:
    - Removed permanent background and border boxes from the shortcut trigger (`[⌨ ?]`) and the active operator profile tile (Aarav Kapoor).
    - Applied seamless, borderless styling with gentle hover states (`hover:bg-[#20231D]`) that blend with the dark canvas.
+
+
+### Phase 15: Initial Enterprise Login Portal & Project Intelligence Dashboard
+1. **Initial Entry Point Enforcement**:
+   - Implemented authentication check on initial run / unauthenticated visit: routes users directly to the high-impact `/login` experience before accessing the master recovery dashboard.
+2. **Left Panel: Project Intelligence & Architecture Overview**:
+   - High-impact mission statement, involuntary churn problem & solution breakdown across Indian payment rails.
+   - Live revenue metrics: ₹18.42L Rescued YTD, 68.4% Autonomous Win Rate, <780ms Gemini 2.0 Flash Latency, 100% Bounded Anti-Fatigue Rules.
+   - Interactive 4-stage pipeline execution loop cards (Webhook Ingestion $\rightarrow$ Guardrails $\rightarrow$ Gemini Reasoning $\rightarrow$ Multi-Channel Execution).
+   - Regulatory compliance badges (RBI e-Mandate Circular 2021, PCI-DSS L1, SOC2 Ready).
+3. **Right Panel: 1-Click Operator Auto-Fill & Terminal Handshake**:
+   - Quick-access operator member directory: **Aarav Kapoor** (Revenue Operations Lead), **Priya Sharma** (Chief Risk Officer), **Vikram Malhotra** (Senior Recovery Specialist), and **Elena Rostova** (AI Alignment Analyst).
+   - Clicking any member card immediately auto-populates email and security passcode.
+   - Interactive authentication handshake animation with clearance verification before routing to `/`.
+   - "Sign Out / Switch Operator" integration inside the Operator Workspace modal.
+4. **Production Build Verification**:
+   - `npm run build` passed with **23/23 routes** generated cleanly.
