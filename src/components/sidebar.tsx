@@ -358,10 +358,10 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
 
             <button
               onClick={() => setShowShortcutsModal(true)}
-              className="flex items-center gap-1 border border-[#30342C] bg-[#20231C] px-2 py-1 text-[10px] font-mono text-[#9FA297] hover:text-[#C7F36B] hover:border-[#3E4336] transition-colors cursor-pointer rounded-xs"
+              className="flex items-center gap-1 text-[10px] font-mono text-[#7D8174] hover:text-[#C7F36B] transition-colors cursor-pointer px-1.5 py-1"
               title="Global Keyboard Shortcuts (?)"
             >
-              <Keyboard size={11} className="text-[#C7F36B]" />
+              <Keyboard size={12} className="text-[#A2A699] group-hover:text-[#C7F36B]" />
               <span className="font-bold text-[10px]">?</span>
             </button>
           </div>
@@ -369,10 +369,10 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
           {/* Interactive Operator Profile Switcher Button */}
           <button
             onClick={() => setShowOperatorModal(true)}
-            className="w-full flex items-center gap-2.5 p-2 rounded-xs text-left bg-[#1C2018] hover:bg-[#23271E] border border-[#2B2F25] hover:border-[#3E4534] transition-all cursor-pointer group"
+            className="w-full flex items-center gap-2.5 px-1 py-1.5 rounded-xs text-left hover:bg-[#20231D] transition-colors cursor-pointer group"
             title="Open Operator Workspace & Switch Profile"
           >
-            <div className="grid h-7 w-7 place-items-center rounded-full bg-[#34382F] text-[10px] font-semibold text-[#C7F36B] border border-[#444A3C] group-hover:border-[#C7F36B] transition-colors shrink-0">
+            <div className="grid h-7 w-7 place-items-center rounded-full bg-[#34382F] text-[10px] font-semibold text-white group-hover:text-[#C7F36B] transition-colors shrink-0">
               {currentOperator.initials}
             </div>
             <div className="min-w-0 flex-1">

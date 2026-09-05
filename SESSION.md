@@ -331,3 +331,9 @@ The database resides in Supabase PostgreSQL (`supabase/schema.sql`).
    - Configured root layout metadata `icons` for browser tabs and mobile bookmarking.
 3. **Production Verification**:
    - Verified zero-error build (`npm run build`) with 22 routes generated.
+
+
+### Phase 14: Seamless Sidebar Bottom Rail Refinement
+1. **Background Box Removal**:
+   - Removed permanent background and border boxes from the shortcut trigger (`[⌨ ?]`) and the active operator profile tile (Aarav Kapoor).
+   - Applied seamless, borderless styling with gentle hover states (`hover:bg-[#20231D]`) that blend with the dark canvas.
