@@ -216,7 +216,27 @@ export default function MasterDashboardPage() {
         setRecoveryResult(json.data);
         setStage(5);
         await fetchData();
-        showToast('Recovery Batch Complete', `Evaluated ${json.data?.total_processed || 0} subscriptions.`, 'success');
+        const evaluatedCount = json.data?.summary?.totalProcessed ?? json.data?.total_processed ?? json.data?.results?.length ?? 0;
+        showToast('Recovery Batch Complete', `Evaluated ${evaluatedCount} subscriptions.`, 'success');
+
+        // Play crisp audio chime if enabled in shift session guardrails
+        try {
+          const soundEnabled = localStorage.getItem('settleiq_guardrail_sound') !== 'false';
+          if (soundEnabled) {
+            const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.12);
+            gain.gain.setValueAtTime(0.15, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.28);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.28);
+          }
+        } catch {}
       } else {
         showToast('Recovery Stopped', json.error || 'Execution stopped by policy.');
       }

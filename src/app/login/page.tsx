@@ -24,6 +24,7 @@ import {
   Cpu
 } from 'lucide-react';
 import { OPERATOR_PROFILES, OperatorProfile } from '@/components/sidebar';
+import { ArchitectureModal } from '@/components/architecture-modal';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -33,6 +34,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [showArchModal, setShowArchModal] = useState(false);
   const [authStep, setAuthStep] = useState<string | null>(null);
 
   // When clicking an operator profile, auto-fill credentials
@@ -92,9 +94,6 @@ export default function LoginPage() {
               <span className="font-display text-base font-bold tracking-tight text-white">
                 Settle<span className="text-[#C7F36B]">IQ</span>
               </span>
-              <span className="font-mono text-[9px] px-1.5 py-0.2 bg-[#2B3420] text-[#C7F36B] border border-[#44542E] uppercase">
-                Terminal Auth
-              </span>
             </div>
             <p className="font-mono text-[9px] uppercase tracking-wider text-[#7D8174]">
               Autonomous Revenue Recovery OS
@@ -107,6 +106,12 @@ export default function LoginPage() {
             <span className="h-1.5 w-1.5 rounded-full bg-[#C7F36B] animate-pulse" />
             Zero-Trust Gateway Online
           </span>
+          <button
+            onClick={() => setShowArchModal(true)}
+            className="px-2.5 py-1 bg-[#20231C] hover:bg-[#282C22] border border-[#30342C] hover:border-[#3E4534] text-[#C7F36B] transition-colors cursor-pointer flex items-center gap-1.5"
+          >
+            <span>📐 System Blueprint</span>
+          </button>
           <button
             onClick={handleGuestAccess}
             className="px-2.5 py-1 bg-[#20231C] hover:bg-[#282C22] border border-[#30342C] hover:border-[#3E4534] text-[#E4E7D7] transition-colors cursor-pointer"
@@ -411,6 +416,7 @@ export default function LoginPage() {
         <span>SettleIQ Autonomous Revenue Recovery OS · Razorpay Hackathon 2025</span>
         <span>Bounded Interventions · Zero Spam · Full Regulatory Auditability</span>
       </footer>
+      <ArchitectureModal isOpen={showArchModal} onClose={() => setShowArchModal(false)} />
     </div>
   );
 }

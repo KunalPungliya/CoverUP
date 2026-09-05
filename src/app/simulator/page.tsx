@@ -136,7 +136,7 @@ export default function EnhancedSimulatorPage() {
   const [copiedPayload, setCopiedPayload] = useState<boolean>(false);
 
   // TAB 3: Dynamic Nudge Studio State
-  const [studioChannel, setStudioChannel] = useState<'email' | 'whatsapp' | 'inapp'>('email');
+  const [studioChannel, setStudioChannel] = useState<'email' | 'whatsapp'>('email');
   const [studioLang, setStudioLang] = useState<'en' | 'hinglish'>('en');
   const [studioCustomerName, setStudioCustomerName] = useState('Aarav Mehta');
   const [studioPlanName, setStudioPlanName] = useState('Developer Pro');
@@ -191,7 +191,7 @@ export default function EnhancedSimulatorPage() {
   }, []);
 
   const handleSaveGuardrails = () => {
-    const config = { maxRetries, maxDaysOverdue, cooldownHours, geminiModel, confidenceThreshold };
+    const config = { maxRetries, maxDaysOverdue, cooldownHours, geminiModel, confidenceThreshold, fraudBlockEnabled, antiOverdraftEnabled };
     localStorage.setItem('settleiq_pipeline_settings', JSON.stringify(config));
     setSettingsSavedToast(true);
     setTimeout(() => setSettingsSavedToast(false), 3000);
@@ -766,7 +766,6 @@ export default function EnhancedSimulatorPage() {
               {[
                 { id: 'email', label: '1-Click Hosted Email Canvas', icon: Mail },
                 { id: 'whatsapp', label: 'WhatsApp / SMS Rich Chat Bubble', icon: MessageSquare },
-                { id: 'inapp', label: 'In-App User Notification Toast', icon: Bell },
               ].map((c) => {
                 const Icon = c.icon;
                 const isSel = studioChannel === c.id;
@@ -924,25 +923,7 @@ export default function EnhancedSimulatorPage() {
               </div>
             )}
 
-            {/* IN-APP TOAST BANNER */}
-            {studioChannel === 'inapp' && (
-              <div className="max-w-lg mx-auto w-full p-4 bg-[#20231C] border border-[#30342C] text-[#F8F6EE] shadow-2xl flex items-start justify-between gap-4">
-                <div className="flex items-start gap-3">
-                  <div className="grid h-8 w-8 place-items-center bg-[#C7F36B] text-[#171914] shrink-0 font-bold">
-                    !
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-white">Payment update required for {studioPlanName}</h4>
-                    <p className="text-[11px] text-[#A3A79B] mt-0.5">
-                      Your latest invoice of {studioAmount} could not be authorized. Please refresh your payment card.
-                    </p>
-                  </div>
-                </div>
-                <button className="px-3 py-1.5 bg-[#C7F36B] text-[#171914] font-mono text-[11px] font-bold shrink-0">
-                  Update Now
-                </button>
-              </div>
-            )}
+
           </div>
         </div>
       )}
@@ -1096,36 +1077,48 @@ export default function EnhancedSimulatorPage() {
                   Policy Studio & Counterfactual Simulation
                 </span>
                 <h3 className="font-display text-sm font-bold text-[#2B2D27] mt-0.5">
-                  Version Diff: policy-2026-09-04.2 vs Proposed policy-2026-09-04.3
+                  Version Diff: policy-2026-09-04.2 vs Proposed ({maxRetries}x Retries · {cooldownHours}h Cooldown · {confidenceThreshold}% AI)
                 </h3>
               </div>
               <span className="font-mono text-[10px] bg-[#22251D] text-[#C7F36B] px-2.5 py-1 font-bold">
-                Counterfactual Engine
+                Counterfactual Engine · Live Diff
               </span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 font-mono text-xs">
               <div className="p-3 bg-[#F7F5EE] border border-[#E0DCD0]">
                 <span className="text-[#85877D] text-[10px] uppercase block">Projected Recovery Lift</span>
-                <span className="font-display text-lg font-bold text-[#6B8E21] mt-0.5 block">+₹34,000 ARR</span>
-                <span className="text-[10px] text-[#55574E]">+8.2% recovery yield</span>
+                <span className="font-display text-lg font-bold text-[#6B8E21] mt-0.5 block">
+                  +₹{(Math.round(maxRetries * 11500 + (48 - cooldownHours) * 450 + (confidenceThreshold >= 80 ? 4000 : 0))).toLocaleString('en-IN')} ARR
+                </span>
+                <span className="text-[10px] text-[#55574E]">
+                  +{(maxRetries * 2.4 + (48 - cooldownHours) * 0.1).toFixed(1)}% recovery yield
+                </span>
               </div>
 
               <div className="p-3 bg-[#F7F5EE] border border-[#E0DCD0]">
                 <span className="text-[#85877D] text-[10px] uppercase block">Customer Fatigue Reduction</span>
-                <span className="font-display text-lg font-bold text-[#3C5C92] mt-0.5 block">-28% Nudges</span>
-                <span className="text-[10px] text-[#55574E]">Eliminated 14 redundant touches</span>
+                <span className="font-display text-lg font-bold text-[#3C5C92] mt-0.5 block">
+                  -{Math.round((cooldownHours / 48) * 32 + (5 - maxRetries) * 3)}% Nudges
+                </span>
+                <span className="text-[10px] text-[#55574E]">
+                  Eliminated {Math.round((cooldownHours / 48) * 14 + (5 - maxRetries) * 2)} redundant touches
+                </span>
               </div>
 
               <div className="p-3 bg-[#F7F5EE] border border-[#E0DCD0]">
                 <span className="text-[#85877D] text-[10px] uppercase block">Protected Exclusions</span>
-                <span className="font-display text-lg font-bold text-[#AA5B4F] mt-0.5 block">8 Accounts</span>
-                <span className="text-[10px] text-[#55574E]">Zero dispute violations</span>
+                <span className="font-display text-lg font-bold text-[#AA5B4F] mt-0.5 block">
+                  {fraudBlockEnabled ? (antiOverdraftEnabled ? 9 : 6) : (antiOverdraftEnabled ? 3 : 0)} Accounts
+                </span>
+                <span className="text-[10px] text-[#55574E]">
+                  {fraudBlockEnabled ? 'Zero dispute violations' : 'Unprotected from fraud'}
+                </span>
               </div>
             </div>
 
             <p className="text-xs text-[#85867E]">
-              Counterfactual policy simulation evaluates proposed attempt caps, cooldowns, and liquidity windows against 148 historical failure signals without dispatching external messages.
+              Counterfactual policy simulation evaluates proposed attempt caps, cooldowns, and liquidity windows against 100 historical failure signals without dispatching external messages.
             </p>
           </div>
 

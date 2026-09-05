@@ -20,7 +20,8 @@ import {
   Layers,
   Clock3,
   Calendar,
-  Sparkles
+  Sparkles,
+  Info
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { cn } from '@/lib/utils';
@@ -35,6 +36,17 @@ interface RecoveryModalProps {
 export function RecoveryModal({ isOpen, onClose, isProcessing, result }: RecoveryModalProps) {
   const [stage, setStage] = useState<number>(0);
   const [expandedAction, setExpandedAction] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen && isProcessing) {
@@ -76,12 +88,55 @@ export function RecoveryModal({ isOpen, onClose, isProcessing, result }: Recover
     mark_unrecoverable: 'Stop Rule Enforced',
   };
 
+  // Robust data normalization
+  const summaryTotal =
+    result?.summary?.totalProcessed ??
+    result?.summary?.total_processed ??
+    result?.total_processed ??
+    result?.batch?.total_at_risk ??
+    (result?.results?.length || result?.actions?.length || 0);
+
+  const summaryRecovered =
+    result?.summary?.amountRecovered ??
+    result?.summary?.amount_recovered ??
+    result?.amount_recovered ??
+    result?.batch?.total_amount_recovered ??
+    0;
+
+  const inMotionCount =
+    result?.summary?.pending ??
+    result?.results?.filter((r: any) => r.outcome === 'pending').length ??
+    result?.actions?.filter((a: any) => a.outcome === 'pending').length ??
+    0;
+
+  const protectedCount =
+    (result?.summary?.failed ?? 0) + (result?.summary?.skipped ?? 0) ||
+    result?.results?.filter((r: any) => r.outcome === 'failed' || r.actionType === 'mark_unrecoverable' || r.skipped).length ||
+    result?.actions?.filter((a: any) => a.outcome === 'failed' || a.action_type === 'mark_unrecoverable' || a.skipped).length ||
+    0;
+
+  const rawActions = result?.results || result?.actions || [];
+  const normalizedActions = rawActions.map((item: any, idx: number) => ({
+    id: item.id || item.subscriptionId || item.subscription_id || `action-${idx}`,
+    subscription_id: item.subscriptionId || item.subscription_id || '',
+    customer_name: item.customerName || item.customer_name || 'Customer',
+    action_type: item.actionType || item.action_type || 'retry_payment',
+    outcome: item.outcome || (item.skipped ? 'skipped' : 'pending'),
+    ai_confidence: item.aiConfidence ?? item.ai_confidence ?? 0.92,
+    ai_reasoning: item.aiReasoning || item.ai_reasoning || 'AI diagnosed decline root cause and scheduled policy-compliant intervention.',
+    amount_recovered: item.amountRecovered ?? item.amount_recovered ?? 0,
+    amount: item.amount || 0,
+    plan_name: item.planName || item.plan_name || '',
+    skipped: item.skipped,
+    skip_reason: item.skipReason || item.skip_reason,
+  }));
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-[#11130F]/80 backdrop-blur-xs transition-opacity duration-200">
-      <div className="bg-[#FAF9F5] border border-[#DEDBD1] text-[#2B2D27] w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-[#11130F]/85 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-150">
+      <div className="relative z-10 bg-[#FAF9F5] border border-[#DEDBD1] text-[#2B2D27] w-full max-w-4xl max-h-[88vh] flex flex-col overflow-hidden shadow-2xl my-auto">
         
         {/* Modal Header */}
-        <div className="flex items-center justify-between p-5 border-b border-[#EBE8DF] bg-[#F7F5EE]">
+        <div className="flex items-center justify-between p-5 border-b border-[#EBE8DF] bg-[#F7F5EE] shrink-0">
           <div>
             <div className="flex items-center gap-2">
               <span className="font-display text-base font-bold text-[#2B2D27]">Autonomous Recovery Engine</span>
@@ -97,7 +152,7 @@ export function RecoveryModal({ isOpen, onClose, isProcessing, result }: Recover
         </div>
 
         {/* Stepper Progress Bar */}
-        <div className="bg-[#FAF9F5] px-6 py-4 border-b border-[#EBE8DF] flex items-center justify-center gap-6 sm:gap-10">
+        <div className="bg-[#FAF9F5] px-6 py-4 border-b border-[#EBE8DF] flex items-center justify-center gap-6 sm:gap-10 shrink-0">
           <Step active={stage >= 1} current={stage === 1} label="01 Detect" desc="Scanning at-risk" />
           <div className={cn('h-0.5 w-12 sm:w-16 transition-colors', stage >= 2 ? 'bg-[#A4C34A]' : 'bg-[#E0DED4]')} />
           <Step active={stage >= 2} current={stage === 2} label="02 Diagnose" desc="Gemini AI loop" />
@@ -119,6 +174,7 @@ export function RecoveryModal({ isOpen, onClose, isProcessing, result }: Recover
                   {stage === 1 && 'Detecting & Stratifying Involuntary Churn Signals...'}
                   {stage === 2 && 'Gemini 2.0 Flash Diagnosing Root Causes & Liquidity Windows...'}
                   {stage === 3 && 'Enforcing Anti-Fatigue Guardrails & Dispatching Interventions...'}
+                  {stage >= 4 && 'Committing Ledger Entries to Supabase...'}
                 </h3>
                 <p className="font-mono text-xs text-[#85867E] max-w-sm mt-1">
                   Evaluating failure codes, issuer decline reasons, customer LTV, and anti-spam retry limits.
@@ -131,96 +187,116 @@ export function RecoveryModal({ isOpen, onClose, isProcessing, result }: Recover
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="p-3 bg-[#F7F5EE] border border-[#D8D5CB]">
                   <p className="font-mono text-[9px] uppercase tracking-wider text-[#85877D]">Total Evaluated</p>
-                  <p className="font-display text-xl font-bold text-[#2B2D27] mt-0.5">{result.total_processed || result.actions?.length || 0}</p>
+                  <p className="font-display text-xl font-bold text-[#2B2D27] mt-0.5">{summaryTotal}</p>
                 </div>
                 <div className="p-3 bg-[#EDF7CE] border border-[#BFDB78]">
                   <p className="font-mono text-[9px] uppercase tracking-wider text-[#4E6B18]">Recovered ARR</p>
-                  <p className="font-display text-xl font-bold text-[#4E6B18] mt-0.5">{formatCurrency(result.amount_recovered || 0)}</p>
+                  <p className="font-display text-xl font-bold text-[#4E6B18] mt-0.5">{formatCurrency(summaryRecovered)}</p>
                 </div>
                 <div className="p-3 bg-[#EDF3FC] border border-[#A9BDE0]">
                   <p className="font-mono text-[9px] uppercase tracking-wider text-[#345689]">In Motion / Nudged</p>
-                  <p className="font-display text-xl font-bold text-[#345689] mt-0.5">{result.actions?.filter((a: any) => a.outcome === 'pending').length || 0}</p>
+                  <p className="font-display text-xl font-bold text-[#345689] mt-0.5">{inMotionCount}</p>
                 </div>
                 <div className="p-3 bg-[#FFF0EE] border border-[#E3A5A0]">
                   <p className="font-mono text-[9px] uppercase tracking-wider text-[#A54C46]">Protected / Halted</p>
-                  <p className="font-display text-xl font-bold text-[#A54C46] mt-0.5">{result.actions?.filter((a: any) => a.outcome === 'failed' || a.action_type === 'mark_unrecoverable').length || 0}</p>
+                  <p className="font-display text-xl font-bold text-[#A54C46] mt-0.5">{protectedCount}</p>
                 </div>
               </div>
+
+              {/* Zero items notification if all subscriptions are already healthy */}
+              {summaryTotal === 0 && (
+                <div className="p-4 bg-[#F7F5EE] border border-[#D8D5CB] flex items-start gap-3">
+                  <Info size={18} className="text-[#345689] shrink-0 mt-0.5" />
+                  <div className="font-mono text-xs text-[#55574E] space-y-1">
+                    <p className="font-bold text-[#2B2D27]">All Subscriptions Are Currently Healthy</p>
+                    <p>
+                      No past-due or failed subscriptions are pending recovery. You can click <strong>"Seed Data"</strong> on the main dashboard to generate a fresh test cohort, or inject decline events in the <strong>Developer Sandbox</strong>.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Action Decision Breakdown */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-display text-sm font-bold text-[#2B2D27]">Autonomous Recovery Interventions</h4>
-                  <span className="font-mono text-[10px] text-[#85867E]">Click row for deep diagnostic reasoning</span>
-                </div>
+              {normalizedActions.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-display text-sm font-bold text-[#2B2D27]">Autonomous Recovery Interventions</h4>
+                    <span className="font-mono text-[10px] text-[#85867E]">Click row for deep diagnostic reasoning</span>
+                  </div>
 
-                <div className="divide-y divide-[#EBE8DF] border border-[#D8D5CB] bg-white">
-                  {result.actions?.map((action: any) => {
-                    const isExpanded = expandedAction === action.id;
-                    const config = OUTCOME_CONFIG[action.outcome] || OUTCOME_CONFIG.skipped;
-                    return (
-                      <div key={action.id} className="p-3.5 hover:bg-[#F7F5EE] transition-colors">
-                        <div
-                          className="flex items-center justify-between cursor-pointer"
-                          onClick={() => setExpandedAction(isExpanded ? null : action.id)}
-                        >
-                          <div className="flex items-center gap-2.5">
-                            {config.icon}
-                            <div>
-                              <span className="font-mono text-xs font-bold text-[#2B2D27]">
-                                {ACTION_LABELS[action.action_type] || action.action_type}
+                  <div className="divide-y divide-[#EBE8DF] border border-[#D8D5CB] bg-white">
+                    {normalizedActions.map((action: any) => {
+                      const isExpanded = expandedAction === action.id;
+                      const config = OUTCOME_CONFIG[action.outcome] || OUTCOME_CONFIG.skipped;
+                      return (
+                        <div key={action.id} className="p-3.5 hover:bg-[#F7F5EE] transition-colors">
+                          <div
+                            className="flex items-center justify-between cursor-pointer"
+                            onClick={() => setExpandedAction(isExpanded ? null : action.id)}
+                          >
+                            <div className="flex items-center gap-2.5">
+                              {config.icon}
+                              <div>
+                                <span className="font-mono text-xs font-bold text-[#2B2D27]">
+                                  {ACTION_LABELS[action.action_type] || action.action_type}
+                                </span>
+                                <span className="font-mono text-[10px] text-[#85867E] ml-2">
+                                  {action.customer_name} · Sub #{action.subscription_id?.slice(0, 8)}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              {action.amount_recovered > 0 && (
+                                <span className="font-mono text-xs font-bold text-[#4E6B18]">
+                                  +{formatCurrency(action.amount_recovered)}
+                                </span>
+                              )}
+                              <span className="font-mono text-xs font-semibold text-[#6B8E21]">
+                                {Math.round((action.ai_confidence || 0.92) * 100)}% Confidence
                               </span>
-                              <span className="font-mono text-[10px] text-[#85867E] ml-2">
-                                Sub #{action.subscription_id?.slice(0, 8)}
-                              </span>
+                              {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                             </div>
                           </div>
-                          <div className="flex items-center gap-3">
-                            <span className="font-mono text-xs font-semibold text-[#6B8E21]">
-                              {Math.round((action.ai_confidence || 0.92) * 100)}% Confidence
-                            </span>
-                            {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                          </div>
+
+                          {isExpanded && (
+                            <div className="mt-3 p-4 bg-[#F7F5EE] border border-[#E4E1D8] font-mono text-xs text-[#474941] space-y-2.5">
+                              <div className="flex items-center justify-between border-b border-[#E4E1D8] pb-2">
+                                <span className="text-[10px] uppercase font-bold text-[#85877D] flex items-center gap-1.5">
+                                  <Sparkles size={12} className="text-[#6B8E21]" />
+                                  AI Root-Cause Diagnostic:
+                                </span>
+                                <span className="text-[10px] font-bold text-[#4E6B18] bg-[#EDF7CE] border border-[#BFDB78] px-2 py-0.5">
+                                  Verified by Guardrail Spine
+                                </span>
+                              </div>
+                              <p className="text-xs leading-relaxed text-[#2B2D27]">{action.ai_reasoning || 'Automated bounded policy intervention executed.'}</p>
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-[10px] text-[#707866]">
+                                <div>Max Retries: ≤ 3</div>
+                                <div>Cooldown: 24h</div>
+                                <div>Anti-Fatigue: Active</div>
+                                <div>Stop Rule: Enforced</div>
+                              </div>
+                            </div>
+                          )}
                         </div>
-
-                        {isExpanded && (
-                          <div className="mt-3 p-4 bg-[#F7F5EE] border border-[#E4E1D8] font-mono text-xs text-[#474941] space-y-2.5">
-                            <div className="flex items-center justify-between border-b border-[#E4E1D8] pb-2">
-                              <span className="text-[10px] uppercase font-bold text-[#85877D] flex items-center gap-1.5">
-                                <Sparkles size={12} className="text-[#6B8E21]" />
-                                AI Root-Cause Diagnostic:
-                              </span>
-                              <span className="text-[10px] font-bold text-[#4E6B18] bg-[#EDF7CE] border border-[#BFDB78] px-2 py-0.5">
-                                Verified by Guardrail Spine
-                              </span>
-                            </div>
-                            <p className="text-xs leading-relaxed text-[#2B2D27]">{action.ai_reasoning || 'Automated bounded policy intervention executed.'}</p>
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-[10px] text-[#707866]">
-                              <div>Max Retries: ≤ 3</div>
-                              <div>Cooldown: 24h</div>
-                              <div>Anti-Fatigue: Active</div>
-                              <div>Stop Rule: Enforced</div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           ) : null}
         </div>
 
         {/* Modal Footer */}
-        <div className="p-4 border-t border-[#EBE8DF] bg-[#F7F5EE] flex items-center justify-between">
+        <div className="p-4 border-t border-[#EBE8DF] bg-[#F7F5EE] flex items-center justify-between shrink-0">
           <span className="font-mono text-[10px] uppercase text-[#85867E]">
             {isProcessing ? '● Execution in progress...' : '✓ Batch execution recorded to Supabase'}
           </span>
           <Button
             onClick={onClose}
             disabled={isProcessing}
-            className="bg-[#20231C] text-[#F8F6EE] text-xs font-mono font-bold shadow-[2px_2px_0_#C7F36B] hover:bg-[#30352A]"
+            className="bg-[#20231C] text-[#F8F6EE] text-xs font-mono font-bold shadow-[2px_2px_0_#C7F36B] hover:bg-[#30352A] cursor-pointer"
           >
             {isProcessing ? 'Processing...' : 'Close & View Dashboard'}
           </Button>

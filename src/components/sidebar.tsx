@@ -19,36 +19,37 @@ import {
   Activity, 
   BellRing, 
   GitBranch, 
-  Keyboard,
-  User,
-  Shield,
-  CheckCircle2,
-  Copy,
-  Check,
-  Lock,
-  Sliders,
-  Laptop,
-  Clock,
-  Sparkles,
-  ArrowRightLeft
+  User, 
+  Shield, 
+  CheckCircle2, 
+  Copy, 
+  Check, 
+  Lock, 
+  Sliders, 
+  Laptop, 
+  Clock, 
+  Sparkles, 
+  ArrowRightLeft,
+  Layers
 } from 'lucide-react';
 import { DemoBanner } from './demo-banner';
+import { ArchitectureModal } from './architecture-modal';
+import { HeartbeatPulse } from './heartbeat-pulse';
 
 interface NavItem {
   href: string;
   label: string;
   count?: string;
-  shortcut?: string;
   icon: React.ComponentType<{ className?: string; size?: number; strokeWidth?: number }>;
 }
 
 const mainNavItems: NavItem[] = [
-  { href: '/', label: 'Overview', shortcut: 'G O', icon: LayoutDashboard },
-  { href: '/subscriptions', label: 'Recovery queue', count: '148', shortcut: 'G Q', icon: ListFilter },
-  { href: '/recovery', label: 'Recovery batches', shortcut: 'G R', icon: GitBranch },
-  { href: '/simulator', label: 'Developer Sandbox', shortcut: 'G S', icon: Zap },
-  { href: '/analytics', label: 'Analytics & ROI', shortcut: 'G A', icon: BarChart3 },
-  { href: '/audit', label: 'Audit trail', shortcut: 'G L', icon: FileClock },
+  { href: '/', label: 'Overview', icon: LayoutDashboard },
+  { href: '/subscriptions', label: 'Recovery queue', icon: ListFilter },
+  { href: '/recovery', label: 'Recovery batches', icon: GitBranch },
+  { href: '/simulator', label: 'Developer Sandbox', icon: Zap },
+  { href: '/analytics', label: 'Analytics & ROI', icon: BarChart3 },
+  { href: '/audit', label: 'Audit trail', icon: FileClock },
 ];
 
 export interface OperatorProfile {
@@ -150,22 +151,76 @@ export const OPERATOR_PROFILES: OperatorProfile[] = [
   }
 ];
 
+function playTerminalPing() {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.12);
+    gain.gain.setValueAtTime(0.12, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.25);
+  } catch {}
+}
+
 export function Sidebar({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const isLoginPage = pathname === '/login';
   const [mobileNav, setMobileNav] = useState(false);
   const [currentTime, setCurrentTime] = useState('09:42:18');
-  const [showShortcutsModal, setShowShortcutsModal] = useState(false);
   const [showOperatorModal, setShowOperatorModal] = useState(false);
+  const [showArchitectureModal, setShowArchitectureModal] = useState(false);
   const [currentOperator, setCurrentOperator] = useState<OperatorProfile>(OPERATOR_PROFILES[0]);
-  const [lastKey, setLastKey] = useState<string | null>(null);
   const [copiedSession, setCopiedSession] = useState(false);
   
   // Guardrail preference toggles inside operator modal
   const [autoEscalate, setAutoEscalate] = useState(true);
   const [soundAlerts, setSoundAlerts] = useState(true);
   const [highValueAlerts, setHighValueAlerts] = useState(true);
+
+  // Load preferences from localStorage on mount
+  useEffect(() => {
+    try {
+      const savedEscalate = localStorage.getItem('settleiq_guardrail_auto_escalate');
+      if (savedEscalate !== null) setAutoEscalate(savedEscalate === 'true');
+
+      const savedHighValue = localStorage.getItem('settleiq_guardrail_high_value');
+      if (savedHighValue !== null) setHighValueAlerts(savedHighValue === 'true');
+
+      const savedSound = localStorage.getItem('settleiq_guardrail_sound');
+      if (savedSound !== null) setSoundAlerts(savedSound === 'true');
+    } catch {}
+  }, []);
+
+  const handleToggleAutoEscalate = (val: boolean) => {
+    setAutoEscalate(val);
+    try {
+      localStorage.setItem('settleiq_guardrail_auto_escalate', String(val));
+    } catch {}
+  };
+
+  const handleToggleHighValue = (val: boolean) => {
+    setHighValueAlerts(val);
+    try {
+      localStorage.setItem('settleiq_guardrail_high_value', String(val));
+    } catch {}
+  };
+
+  const handleToggleSound = (val: boolean) => {
+    setSoundAlerts(val);
+    try {
+      localStorage.setItem('settleiq_guardrail_sound', String(val));
+    } catch {}
+    if (val) {
+      playTerminalPing();
+    }
+  };
 
   useEffect(() => {
     const updateTime = () => {
@@ -176,6 +231,18 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
     const interval = setInterval(updateTime, 1000);
     return () => clearInterval(interval);
   }, []);
+
+  // Lock background scroll when operator modal is open
+  useEffect(() => {
+    if (showOperatorModal || showArchitectureModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [showOperatorModal, showArchitectureModal]);
 
   // Authentication check on mount
   useEffect(() => {
@@ -217,53 +284,6 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
     setCopiedSession(true);
     setTimeout(() => setCopiedSession(false), 2000);
   };
-
-  // Global Keyboard Shortcuts Listener
-  useEffect(() => {
-    let keyTimeout: NodeJS.Timeout;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger when user is typing in an input/textarea
-      const target = e.target as HTMLElement;
-      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) return;
-
-      if (e.key === '?') {
-        e.preventDefault();
-        setShowShortcutsModal(prev => !prev);
-        return;
-      }
-
-      if (e.key === 'Escape') {
-        setShowShortcutsModal(false);
-        setShowOperatorModal(false);
-        return;
-      }
-
-      if (e.key.toLowerCase() === 'g') {
-        setLastKey('g');
-        clearTimeout(keyTimeout);
-        keyTimeout = setTimeout(() => setLastKey(null), 1200);
-        return;
-      }
-
-      if (lastKey === 'g') {
-        setLastKey(null);
-        const key = e.key.toLowerCase();
-        if (key === 'o') router.push('/');
-        else if (key === 'q') router.push('/subscriptions');
-        else if (key === 'r') router.push('/recovery');
-        else if (key === 's') router.push('/simulator');
-        else if (key === 'a') router.push('/analytics');
-        else if (key === 'l') router.push('/audit');
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      clearTimeout(keyTimeout);
-    };
-  }, [lastKey, router]);
 
   if (isLoginPage) {
     return <>{children}</>;
@@ -340,54 +360,21 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
                   </span>
                   {item.label}
                 </span>
-                <div className="flex items-center gap-1.5">
-                  {item.count && (
-                    <span className="font-mono text-[10px] text-[#7D8174]">
-                      {item.count}
-                    </span>
-                  )}
-                  {item.shortcut && (
-                    <span className="hidden lg:inline-block font-mono text-[9px] text-[#55584E] opacity-0 group-hover:opacity-100 transition-opacity">
-                      {item.shortcut}
-                    </span>
-                  )}
-                </div>
+                {item.count && (
+                  <span className="font-mono text-[10px] text-[#7D8174]">
+                    {item.count}
+                  </span>
+                )}
               </Link>
             );
           })}
         </nav>
 
-        {/* Bottom Rail: Agent Status + Inline Shortcuts Trigger + Dynamic Operator Profile */}
-        <div className="mt-auto border-t border-[#30342C] pt-4 space-y-3">
-          {/* Agent Online Status with Inline Shortcut Button */}
-          <div className="flex items-center justify-between px-1">
-            <div className="flex items-center gap-2.5">
-              <span className="relative flex h-2.5 w-2.5 shrink-0">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#C7F36B] opacity-60" />
-                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#C7F36B]" />
-              </span>
-              <div>
-                <p className="text-xs font-medium text-[#D7D8CC]">Agent online</p>
-                <p className="font-mono text-[9px] text-[#7D8174]">
-                  sync {currentTime}
-                </p>
-              </div>
-            </div>
-
-            <button
-              onClick={() => setShowShortcutsModal(true)}
-              className="flex items-center gap-1 text-[10px] font-mono text-[#7D8174] hover:text-[#C7F36B] transition-colors cursor-pointer px-1.5 py-1"
-              title="Global Keyboard Shortcuts (?)"
-            >
-              <Keyboard size={12} className="text-[#A2A699] group-hover:text-[#C7F36B]" />
-              <span className="font-bold text-[10px]">?</span>
-            </button>
-          </div>
-
-          {/* Interactive Operator Profile Switcher Button */}
+        {/* Bottom Rail: Operator Profile Switcher Only */}
+        <div className="mt-auto border-t border-[#30342C] pt-3">
           <button
             onClick={() => setShowOperatorModal(true)}
-            className="w-full flex items-center gap-2.5 px-1 py-1.5 rounded-xs text-left hover:bg-[#20231D] transition-colors cursor-pointer group"
+            className="w-full flex items-center gap-2.5 px-2 py-2 rounded-xs text-left hover:bg-[#20231D] transition-colors cursor-pointer group"
             title="Open Operator Workspace & Switch Profile"
           >
             <div className="grid h-7 w-7 place-items-center rounded-full bg-[#34382F] text-[10px] font-semibold text-white group-hover:text-[#C7F36B] transition-colors shrink-0">
@@ -421,7 +408,7 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
 
       {/* Main Operating Area */}
       <div className="min-h-screen lg:pl-[244px] flex flex-col">
-        {/* Top Operational Bar */}
+        {/* Top Operational Bar: Only Brand + Workspace on left, Agent Online on right */}
         <header className="sticky top-0 z-20 flex h-[68px] items-center justify-between border-b border-[#30342C] bg-[#171914]/95 px-5 text-[#F2F0E6] backdrop-blur md:px-8">
           <div className="flex items-center gap-3">
             <button
@@ -454,15 +441,15 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
             </div>
           </div>
 
+          {/* Top Header Right: Only Agent online indicator */}
           <div className="flex items-center gap-2.5">
-            <span className="hidden items-center gap-2 border border-[#D8D5CB] bg-[#FAF9F5] px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-[#777970] md:flex">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#9BBD49]" />
-              Demo data · 04 Sep 2026
-            </span>
             <div className="inline-flex items-center gap-2 px-3 py-1.5 border border-[#30342C] bg-[#20231C] text-[11px] font-mono text-[#E4E7D7]">
-              <span className="h-2 w-2 rounded-full bg-[#C7F36B]" />
-              <span className="hidden sm:inline text-[#9FA297]">Autonomous Engine:</span>
-              <span className="font-bold text-[#C7F36B]">Active</span>
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#C7F36B] opacity-60" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-[#C7F36B]" />
+              </span>
+              <span className="font-medium text-[#D7D8CC]">Agent online</span>
+              <span className="text-[#7D8174] font-mono text-[10px]">· sync {currentTime}</span>
             </div>
           </div>
         </header>
@@ -471,13 +458,14 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
         <main className="flex-1 p-5 md:p-8">
           <DemoBanner />
           {children}
+          <HeartbeatPulse />
         </main>
       </div>
 
-      {/* Interactive Operator Profile Modal */}
+      {/* Interactive Operator Profile Modal (Includes Blueprint Trigger & Role Switcher) */}
       {showOperatorModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#11130F]/80 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="relative w-full max-w-xl bg-[#FAF9F5] border border-[#DEDBD1] text-[#2B2D27] shadow-2xl p-6 sm:p-7 space-y-5 max-h-[92vh] overflow-y-auto">
+          <div className="relative w-full max-w-xl bg-[#FAF9F5] border border-[#DEDBD1] text-[#2B2D27] shadow-2xl p-5 sm:p-6 space-y-4 max-h-[86vh] overflow-y-auto my-auto">
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-[#E4E1D8] pb-4">
               <div className="flex items-center gap-2.5">
@@ -573,6 +561,32 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
               </div>
             </div>
 
+            {/* System Architecture Blueprint Trigger Option */}
+            <div className="p-3.5 bg-[#171914] border border-[#2F3428] flex items-center justify-between gap-3 shadow-xs">
+              <div className="flex items-center gap-2.5">
+                <div className="grid h-8 w-8 place-items-center bg-[#242820] text-[#C7F36B] shrink-0">
+                  <Layers size={15} />
+                </div>
+                <div>
+                  <span className="text-xs font-bold text-white block">System Architecture & Blueprint</span>
+                  <span className="text-[10px] font-mono text-[#85877D] block">
+                    5-stage pipeline data flow, financial waterfall & RBI compliance spec
+                  </span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowOperatorModal(false);
+                  setShowArchitectureModal(true);
+                }}
+                className="px-3 py-1.5 bg-[#2B3420] hover:bg-[#38452A] border border-[#44542E] text-[#C7F36B] font-mono text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer shrink-0"
+              >
+                Open Blueprint →
+              </button>
+            </div>
+
             {/* Operator Switcher Section */}
             <div className="space-y-2.5">
               <div className="flex items-center justify-between">
@@ -631,47 +645,76 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
 
             {/* Operator Preferences & Guardrail Policies */}
             <div className="space-y-2 border-t border-[#E4E1D8] pt-3 font-mono text-xs">
-              <span className="text-[10px] uppercase font-bold text-[#85877D] tracking-wider block mb-2">
-                Shift Session Guardrails
-              </span>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] uppercase font-bold text-[#85877D] tracking-wider block">
+                  Shift Session Guardrails
+                </span>
+                <span className="text-[9px] font-bold text-[#4F6C18] bg-[#EDF7CE] border border-[#BFDB78] px-1.5 py-0.5">
+                  {[autoEscalate, highValueAlerts, soundAlerts].filter(Boolean).length}/3 Active Policies
+                </span>
+              </div>
 
               <div className="space-y-2">
-                <label className="flex items-center justify-between p-2 bg-white border border-[#E4E1D8] cursor-pointer hover:bg-[#F9F8F5]">
+                <label className={cn(
+                  "flex items-center justify-between p-2.5 border transition-all cursor-pointer rounded-xs",
+                  autoEscalate ? "bg-white border-[#171914] shadow-xs" : "bg-[#FAF9F5] border-[#E4E1D8] opacity-75 hover:opacity-100"
+                )}>
                   <div>
-                    <p className="text-xs font-medium text-[#2B2D27]">Auto-Escalate Disputed Mandates</p>
-                    <p className="text-[10px] text-[#85877D]">Trigger human-in-the-loop review for disputed charges</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs font-semibold text-[#2B2D27]">Auto-Escalate Disputed Mandates</p>
+                      <span className={cn("text-[8px] font-bold px-1.5 py-0.2 uppercase rounded-xs", autoEscalate ? "bg-[#171914] text-[#C7F36B]" : "bg-[#E6E3D8] text-[#85877D]")}>
+                        {autoEscalate ? 'Active' : 'Disabled'}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-[#85877D] mt-0.5">Trigger human-in-the-loop review for disputed charges</p>
                   </div>
                   <input 
                     type="checkbox" 
                     checked={autoEscalate} 
-                    onChange={e => setAutoEscalate(e.target.checked)}
-                    className="h-4 w-4 accent-[#171914] cursor-pointer"
+                    onChange={e => handleToggleAutoEscalate(e.target.checked)}
+                    className="h-4 w-4 accent-[#171914] cursor-pointer shrink-0 ml-3"
                   />
                 </label>
 
-                <label className="flex items-center justify-between p-2 bg-white border border-[#E4E1D8] cursor-pointer hover:bg-[#F9F8F5]">
+                <label className={cn(
+                  "flex items-center justify-between p-2.5 border transition-all cursor-pointer rounded-xs",
+                  highValueAlerts ? "bg-white border-[#171914] shadow-xs" : "bg-[#FAF9F5] border-[#E4E1D8] opacity-75 hover:opacity-100"
+                )}>
                   <div>
-                    <p className="text-xs font-medium text-[#2B2D27]">High-Value Intervention Threshold Alerts</p>
-                    <p className="text-[10px] text-[#85877D]">Require explicit override confirmation for accounts &gt; ₹25,000</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs font-semibold text-[#2B2D27]">High-Value Intervention Threshold Alerts</p>
+                      <span className={cn("text-[8px] font-bold px-1.5 py-0.2 uppercase rounded-xs", highValueAlerts ? "bg-[#171914] text-[#C7F36B]" : "bg-[#E6E3D8] text-[#85877D]")}>
+                        {highValueAlerts ? 'Active (>₹25K)' : 'Disabled'}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-[#85877D] mt-0.5">Require explicit override confirmation for accounts &gt; ₹25,000</p>
                   </div>
                   <input 
                     type="checkbox" 
                     checked={highValueAlerts} 
-                    onChange={e => setHighValueAlerts(e.target.checked)}
-                    className="h-4 w-4 accent-[#171914] cursor-pointer"
+                    onChange={e => handleToggleHighValue(e.target.checked)}
+                    className="h-4 w-4 accent-[#171914] cursor-pointer shrink-0 ml-3"
                   />
                 </label>
 
-                <label className="flex items-center justify-between p-2 bg-white border border-[#E4E1D8] cursor-pointer hover:bg-[#F9F8F5]">
+                <label className={cn(
+                  "flex items-center justify-between p-2.5 border transition-all cursor-pointer rounded-xs",
+                  soundAlerts ? "bg-white border-[#171914] shadow-xs" : "bg-[#FAF9F5] border-[#E4E1D8] opacity-75 hover:opacity-100"
+                )}>
                   <div>
-                    <p className="text-xs font-medium text-[#2B2D27]">Audio Cue on AI Recovery Dispatches</p>
-                    <p className="text-[10px] text-[#85877D]">Play crisp terminal chime on batch completions</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs font-semibold text-[#2B2D27]">Audio Cue on AI Recovery Dispatches</p>
+                      <span className={cn("text-[8px] font-bold px-1.5 py-0.2 uppercase rounded-xs", soundAlerts ? "bg-[#171914] text-[#C7F36B]" : "bg-[#E6E3D8] text-[#85877D]")}>
+                        {soundAlerts ? 'Chime On' : 'Muted'}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-[#85877D] mt-0.5">Play crisp terminal chime on batch completions</p>
                   </div>
                   <input 
                     type="checkbox" 
                     checked={soundAlerts} 
-                    onChange={e => setSoundAlerts(e.target.checked)}
-                    className="h-4 w-4 accent-[#171914] cursor-pointer"
+                    onChange={e => handleToggleSound(e.target.checked)}
+                    className="h-4 w-4 accent-[#171914] cursor-pointer shrink-0 ml-3"
                   />
                 </label>
               </div>
@@ -684,12 +727,14 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
               </span>
               <div className="flex items-center gap-2">
                 <button
+                  type="button"
                   onClick={handleSignOut}
                   className="px-3 py-1.5 bg-transparent hover:bg-[#EBE8DF] text-[#71766A] hover:text-[#B91C1C] font-mono text-xs font-semibold uppercase tracking-wider border border-[#D8D5CB] cursor-pointer transition-colors"
                 >
-                  Sign Out
+                  Sign Out / Switch
                 </button>
                 <button
+                  type="button"
                   onClick={() => setShowOperatorModal(false)}
                   className="px-4 py-1.5 bg-[#171914] text-[#C7F36B] font-mono text-xs font-bold uppercase tracking-wider hover:bg-[#252820] cursor-pointer transition-colors"
                 >
@@ -701,68 +746,11 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
-      {/* Global Keyboard Shortcuts Modal */}
-      {showShortcutsModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#11130F]/80 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="relative w-full max-w-md bg-[#FAF9F5] border border-[#DEDBD1] text-[#2B2D27] shadow-2xl p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-[#E4E1D8] pb-3">
-              <div className="flex items-center gap-2">
-                <Keyboard size={18} className="text-[#6B8E21]" />
-                <h3 className="font-display text-base font-bold text-[#2B2D27]">
-                  Keyboard Shortcuts
-                </h3>
-              </div>
-              <button
-                onClick={() => setShowShortcutsModal(false)}
-                className="p-1 text-[#85867E] hover:text-[#2B2D27] cursor-pointer"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            <div className="space-y-2.5 font-mono text-xs">
-              <p className="text-[10px] uppercase font-bold text-[#85877D] tracking-wider mb-2">Navigation</p>
-              {[
-                { keys: ['g', 'o'], label: 'Go to Overview' },
-                { keys: ['g', 'q'], label: 'Go to Recovery Queue' },
-                { keys: ['g', 'r'], label: 'Go to Recovery Batches' },
-                { keys: ['g', 's'], label: 'Go to Developer Sandbox' },
-                { keys: ['g', 'a'], label: 'Go to Analytics & ROI' },
-                { keys: ['g', 'l'], label: 'Go to Audit Ledger' },
-              ].map(item => (
-                <div key={item.label} className="flex items-center justify-between py-1 border-b border-[#EBE8DF]">
-                  <span className="text-[#474941]">{item.label}</span>
-                  <div className="flex items-center gap-1">
-                    {item.keys.map(k => (
-                      <kbd key={k} className="px-1.5 py-0.5 bg-[#E8E5DB] text-[#2B2D27] border border-[#D8D5CB] text-[10px] font-bold uppercase">
-                        {k}
-                      </kbd>
-                    ))}
-                  </div>
-                </div>
-              ))}
-
-              <p className="text-[10px] uppercase font-bold text-[#85877D] tracking-wider pt-2 mb-2">Global Actions</p>
-              <div className="flex items-center justify-between py-1 border-b border-[#EBE8DF]">
-                <span className="text-[#474941]">Toggle this cheat sheet</span>
-                <kbd className="px-1.5 py-0.5 bg-[#E8E5DB] text-[#2B2D27] border border-[#D8D5CB] text-[10px] font-bold">?</kbd>
-              </div>
-              <div className="flex items-center justify-between py-1 border-b border-[#EBE8DF]">
-                <span className="text-[#474941]">Switch Operator / Session</span>
-                <kbd className="px-1.5 py-0.5 bg-[#E8E5DB] text-[#2B2D27] border border-[#D8D5CB] text-[10px] font-bold">Click Avatar</kbd>
-              </div>
-              <div className="flex items-center justify-between py-1">
-                <span className="text-[#474941]">Close drawer or modal</span>
-                <kbd className="px-1.5 py-0.5 bg-[#E8E5DB] text-[#2B2D27] border border-[#D8D5CB] text-[10px] font-bold">Esc</kbd>
-              </div>
-            </div>
-
-            <div className="pt-2 border-t border-[#E4E1D8] text-[11px] font-mono text-[#85867E] text-center">
-              Press any shortcut sequence to navigate instantaneously.
-            </div>
-          </div>
-        </div>
-      )}
+      {/* System Architecture Blueprint Modal */}
+      <ArchitectureModal 
+        isOpen={showArchitectureModal}
+        onClose={() => setShowArchitectureModal(false)}
+      />
     </div>
   );
 }

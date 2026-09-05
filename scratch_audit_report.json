@@ -1,0 +1,94 @@
+{
+  "tables": {
+    "customers": {
+      "status": "OK",
+      "count": 50,
+      "sample": [
+        "id",
+        "name",
+        "email",
+        "phone",
+        "created_at"
+      ]
+    },
+    "subscriptions": {
+      "status": "OK",
+      "count": 100,
+      "sample": [
+        "id",
+        "customer_id",
+        "plan_name",
+        "amount",
+        "currency",
+        "billing_cycle",
+        "status",
+        "current_period_start",
+        "current_period_end",
+        "payment_method",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    "payment_attempts": {
+      "status": "OK",
+      "count": 237,
+      "sample": [
+        "id",
+        "subscription_id",
+        "amount",
+        "status",
+        "failure_reason",
+        "failure_description",
+        "gateway_response",
+        "attempted_at"
+      ]
+    },
+    "recovery_actions": {
+      "status": "OK",
+      "count": 25,
+      "sample": [
+        "id",
+        "subscription_id",
+        "batch_id",
+        "action_type",
+        "action_detail",
+        "ai_reasoning",
+        "ai_confidence",
+        "outcome",
+        "amount_recovered",
+        "retry_count",
+        "created_at"
+      ]
+    },
+    "recovery_batches": {
+      "status": "OK",
+      "count": 1,
+      "sample": [
+        "id",
+        "started_at",
+        "completed_at",
+        "total_at_risk",
+        "total_recovered",
+        "total_unresolved",
+        "total_amount_at_risk",
+        "total_amount_recovered",
+        "status"
+      ]
+    }
+  },
+  "joins": {
+    "subscriptions_customers": {
+      "status": "OK",
+      "sampleCustomer": "Vikram Malhotra (Zepto Logistics)"
+    }
+  },
+  "schemaValidation": {},
+  "geminiAi": {
+    "status": "ERROR",
+    "error": "Cannot find module 'C:\\Users\\kunal\\OneDrive\\Desktop\\Coding\\coverup\\node_modules\\@google\\genai'\nRequire stack:\n- C:\\Users\\kunal\\.gemini\\antigravity\\brain\\81e0e44f-86da-4fc9-ba23-834224022c44\\scratch\\run_full_system_audit.js"
+  },
+  "pipelineSimulation": {},
+  "issuesFound": [
+    "Gemini AI connection error: Cannot find module 'C:\\Users\\kunal\\OneDrive\\Desktop\\Coding\\coverup\\node_modules\\@google\\genai'\nRequire stack:\n- C:\\Users\\kunal\\.gemini\\antigravity\\brain\\81e0e44f-86da-4fc9-ba23-834224022c44\\scratch\\run_full_system_audit.js"
+  ]
+}

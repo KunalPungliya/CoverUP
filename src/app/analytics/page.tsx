@@ -198,7 +198,7 @@ export default function AnalyticsPage() {
               <div className="space-y-3 pt-2">
                 {[
                   { channel: 'Smart Exponential Retries (Mastercard/Visa)', successRate: '78%', count: '42 cases', color: '#C7F36B' },
-                  { channel: '1-Click Secure Update Link (Email & In-App)', successRate: '64%', count: '28 cases', color: '#9DB7E3' },
+                  { channel: '1-Click Hosted Email Update Link', successRate: '64%', count: '28 cases', color: '#9DB7E3' },
                   { channel: 'Hinglish WhatsApp Nudge & Payment Link', successRate: '71%', count: '18 cases', color: '#E7C56C' },
                   { channel: 'Direct Finance Contact AR Chaser', successRate: '55%', count: '12 cases', color: '#D89187' },
                 ].map((strat) => (

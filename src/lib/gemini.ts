@@ -65,7 +65,7 @@ Respond with strict JSON matching the schema below.
 export async function getAiDecision(atRisk: AtRiskSubscription): Promise<AiDecision> {
   try {
     const model = genAI.getGenerativeModel({
-      model: process.env.GEMINI_MODEL || 'gemini-2.0-flash',
+      model: process.env.GEMINI_MODEL || process.env.GEMINI_MODEL || 'gemini-flash-latest',
     });
 
     const paymentMethodType = atRisk.subscription.payment_method?.type || 'card';

@@ -71,6 +71,17 @@ export function CustomerDrawer({ customerId, isOpen, onClose }: CustomerDrawerPr
   const [holdToast, setHoldToast] = useState<string | null>(null);
 
   useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
     if (!customerId || !isOpen) {
       setData(null);
       return;

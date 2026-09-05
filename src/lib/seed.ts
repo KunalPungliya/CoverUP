@@ -39,6 +39,26 @@ const CURATED_PROFILES: CuratedCustomerProfile[] = [
   { name: 'Shalini Nair', company: 'ClearTax Partners', emailDomain: 'cleartaxpartners.in' },
   { name: 'Amitabh Sen', company: 'VentureSprint Studio', emailDomain: 'venturesprint.io' },
   { name: 'Divya Mahajan', company: 'Zenith Fintech Group', emailDomain: 'zenithfintech.com' },
+  { name: 'Varun Grover', company: 'RazorFlow Systems', emailDomain: 'razorflow.tech' },
+  { name: 'Aakash Singhal', company: 'Credence AI Labs', emailDomain: 'credenceai.in' },
+  { name: 'Meghna Roy', company: 'PinePay Gateways', emailDomain: 'pinepay.io' },
+  { name: 'Naveen Reddy', company: 'CashDirect Hub', emailDomain: 'cashdirect.in' },
+  { name: 'Rupal Shah', company: 'BharatPe Enterprise', emailDomain: 'bharatpe-partner.com' },
+  { name: 'Gautam Bhatia', company: 'GrowwX Wealth Tech', emailDomain: 'growwx.in' },
+  { name: 'Sunita Menon', company: 'Zerodha Quant Suite', emailDomain: 'zerodhaquant.com' },
+  { name: 'Abhishek Roy', company: 'Meesho Logistics Node', emailDomain: 'meeshonode.in' },
+  { name: 'Shreya Das', company: 'Nykaa Beauty SaaS', emailDomain: 'nykaasaas.in' },
+  { name: 'Vivek Sharma', company: 'Shiprocket Express Fleet', emailDomain: 'shipfleet.in' },
+  { name: 'Alok Gupta', company: 'Delhivery CrossDock', emailDomain: 'delhiverydock.in' },
+  { name: 'Pallavi Rao', company: 'Zoho Desk Solutions', emailDomain: 'zohopartner.co' },
+  { name: 'Manoj Bajpai', company: 'Freshdesk Connect', emailDomain: 'freshconnect.in' },
+  { name: 'Kunal Singhal', company: 'Postman Cloud Dev', emailDomain: 'postmancloud.io' },
+  { name: 'Sneha Talwar', company: 'Hasura Enterprise Engine', emailDomain: 'hasuraenterprise.com' },
+  { name: 'Chirag Parekh', company: 'BrowserStack Grid Labs', emailDomain: 'browserstackgrid.in' },
+  { name: 'Harish Nair', company: 'Innovaccer Care Cloud', emailDomain: 'innovaccercare.in' },
+  { name: 'Sandhya Raman', company: 'Druva Cyber Resiliency', emailDomain: 'druvaresilience.in' },
+  { name: 'Rajeev Pillai', company: 'Licious ColdChain Pro', emailDomain: 'liciouscoldchain.in' },
+  { name: 'Kiran Desai', company: 'PolicyBazaar Corporate', emailDomain: 'pbcorporate.in' },
 ];
 
 function randomElement<T>(arr: readonly T[]): T {
@@ -62,14 +82,14 @@ function generatePhone(): string {
 
 function generateDetailedPaymentMethod(customerName: string): Record<string, any> {
   const rand = Math.random();
-  if (rand < 0.50) {
+  if (rand < 0.45) {
     const brands = [
-      { brand: 'Visa', bank: 'HDFC Bank', last4: '4512', exp: '11/27' },
-      { brand: 'Mastercard', bank: 'ICICI Bank', last4: '8821', exp: '04/28' },
+      { brand: 'Visa Corporate', bank: 'HDFC Bank', last4: '4512', exp: '11/27' },
+      { brand: 'Mastercard Platinum', bank: 'ICICI Bank', last4: '8821', exp: '04/28' },
       { brand: 'RuPay Platinum', bank: 'SBI Card', last4: '2049', exp: '08/26' },
       { brand: 'Amex Corporate', bank: 'American Express', last4: '3011', exp: '02/29' },
       { brand: 'Visa Signature', bank: 'Axis Bank', last4: '7734', exp: '09/27' },
-      { brand: 'Mastercard World', bank: 'Kotak Bank', last4: '1902', exp: '06/28' },
+      { brand: 'Mastercard World', bank: 'Kotak Mahindra', last4: '1902', exp: '06/28' },
     ];
     const card = randomElement(brands);
     return {
@@ -83,7 +103,7 @@ function generateDetailedPaymentMethod(customerName: string): Record<string, any
       vault: 'razorpay_token_vault',
     };
   } else if (rand < 0.80) {
-    const upiProviders = ['@okhdfcbank', '@okicici', '@ybl', '@paytm', '@oksbi'];
+    const upiProviders = ['@okhdfcbank', '@okicici', '@ybl', '@paytm', '@oksbi', '@axl'];
     const handle = customerName.toLowerCase().replace(/[^a-z]/g, '');
     const vpa = `${handle}.${randomInt(10, 99)}${randomElement(upiProviders)}`;
     return {
@@ -94,7 +114,7 @@ function generateDetailedPaymentMethod(customerName: string): Record<string, any
       autopay_limit: '₹25,000/cycle',
     };
   } else {
-    const banks = ['HDFC Bank', 'ICICI Bank', 'State Bank of India', 'Axis Bank', 'Kotak Mahindra'];
+    const banks = ['HDFC Bank', 'ICICI Bank', 'State Bank of India', 'Axis Bank', 'Kotak Mahindra Bank'];
     return {
       type: 'mandate',
       bank: randomElement(banks),
@@ -111,11 +131,11 @@ type FailureProfile = {
 };
 
 const FAILURE_PROFILES: FailureProfile[] = [
-  { reason: 'insufficient_funds', weight: 30 },
-  { reason: 'card_expired', weight: 25 },
-  { reason: 'bank_declined', weight: 15 },
+  { reason: 'insufficient_funds', weight: 32 },
+  { reason: 'card_expired', weight: 24 },
+  { reason: 'bank_declined', weight: 16 },
   { reason: 'authentication_required', weight: 12 },
-  { reason: 'network_error', weight: 10 },
+  { reason: 'network_error', weight: 8 },
   { reason: 'fraud_suspected', weight: 5 },
   { reason: 'account_closed', weight: 3 },
 ];
@@ -133,22 +153,22 @@ function weightedRandomFailure(): FailureReason {
   return 'insufficient_funds';
 }
 
-export async function seedDatabase(): Promise<{ customers: number; subscriptions: number; payments: number }> {
-  // Clear existing data cleanly
+export async function seedDatabase(customTotal = 100): Promise<{ customers: number; subscriptions: number; payments: number }> {
+  // 1. Clear existing data cleanly
   await supabase.from('recovery_actions').delete().neq('id', '00000000-0000-0000-0000-000000000000');
   await supabase.from('recovery_batches').delete().neq('id', '00000000-0000-0000-0000-000000000000');
   await supabase.from('payment_attempts').delete().neq('id', '00000000-0000-0000-0000-000000000000');
   await supabase.from('subscriptions').delete().neq('id', '00000000-0000-0000-0000-000000000000');
   await supabase.from('customers').delete().neq('id', '00000000-0000-0000-0000-000000000000');
 
-  // Curated, rich customer profiles
+  // 2. Insert 50 curated enterprise customer profiles
   const customersData = CURATED_PROFILES.map((profile, idx) => {
     const handle = profile.name.toLowerCase().replace(/[^a-z]/g, '.');
     return {
       name: `${profile.name} (${profile.company})`,
       email: `${handle}@${profile.emailDomain}`,
       phone: generatePhone(),
-      created_at: randomDate(randomInt(60, 300) + idx * 2),
+      created_at: randomDate(randomInt(60, 320) + idx * 2),
     };
   });
 
@@ -160,19 +180,19 @@ export async function seedDatabase(): Promise<{ customers: number; subscriptions
   if (custError) throw new Error(`Failed to seed customers: ${custError.message}`);
   if (!customers) throw new Error('No customers returned after insert');
 
-  // Curated 40 subscriptions (25 healthy, 15 at-risk)
-  const TOTAL_SUBSCRIPTIONS = 40;
-  const AT_RISK_COUNT = 15;
-  const HEALTHY_COUNT = TOTAL_SUBSCRIPTIONS - AT_RISK_COUNT;
+  // 3. Generate 100 enterprise subscriptions (70 healthy active, 30 at-risk)
+  const TOTAL_SUBSCRIPTIONS = customTotal;
+  const AT_RISK_COUNT = Math.round(TOTAL_SUBSCRIPTIONS * 0.30); // 30 at-risk
+  const HEALTHY_COUNT = TOTAL_SUBSCRIPTIONS - AT_RISK_COUNT; // 70 healthy
 
   const subscriptionsData = [];
 
-  // 1. Healthy active subscriptions
+  // Healthy active subscriptions
   for (let i = 0; i < HEALTHY_COUNT; i++) {
     const cust = customers[i % customers.length];
     const plan = PLANS[i % PLANS.length];
-    const createdDaysAgo = randomInt(40, 240);
-    const periodStart = randomDate(randomInt(2, 20));
+    const createdDaysAgo = randomInt(40, 300);
+    const periodStart = randomDate(randomInt(2, 22));
     const periodEnd = new Date(periodStart);
     periodEnd.setDate(periodEnd.getDate() + (plan.cycle === 'monthly' ? 30 : plan.cycle === 'quarterly' ? 90 : 365));
 
@@ -190,13 +210,13 @@ export async function seedDatabase(): Promise<{ customers: number; subscriptions
     });
   }
 
-  // 2. At-risk subscriptions (past_due & failed)
+  // At-risk subscriptions (past_due & failed)
   for (let i = 0; i < AT_RISK_COUNT; i++) {
     const cust = customers[(HEALTHY_COUNT + i) % customers.length];
-    const plan = PLANS[(i * 2 + 1) % PLANS.length];
-    const createdDaysAgo = randomInt(40, 240);
+    const plan = PLANS[(i * 3 + 1) % PLANS.length];
+    const createdDaysAgo = randomInt(40, 300);
     const failureDaysAgo = randomInt(1, 14);
-    const periodStart = randomDate(failureDaysAgo + randomInt(5, 12));
+    const periodStart = randomDate(failureDaysAgo + randomInt(5, 15));
     const periodEnd = new Date(periodStart);
     periodEnd.setDate(periodEnd.getDate() + (plan.cycle === 'monthly' ? 30 : plan.cycle === 'quarterly' ? 90 : 365));
 
@@ -235,7 +255,7 @@ export async function seedDatabase(): Promise<{ customers: number; subscriptions
   if (subError) throw new Error(`Failed to seed subscriptions: ${subError.message}`);
   if (!subscriptions) throw new Error('No subscriptions returned after insert');
 
-  // Generate realistic payment attempt history
+  // 4. Generate realistic payment attempt history
   const paymentAttemptsData = [];
 
   for (let i = 0; i < TOTAL_SUBSCRIPTIONS; i++) {
@@ -281,7 +301,7 @@ export async function seedDatabase(): Promise<{ customers: number; subscriptions
           status: 'captured',
           acquirer_data: { auth_code: String(randomInt(100000, 999999)) },
         },
-        attempted_at: randomDate(failureDaysAgo + randomInt(25, 45)),
+        attempted_at: randomDate(failureDaysAgo + randomInt(25, 55)),
       });
 
       const failCount = randomInt(1, 3);
@@ -307,9 +327,13 @@ export async function seedDatabase(): Promise<{ customers: number; subscriptions
     }
   }
 
-  // Insert payment attempts
-  const { error: payError } = await supabase.from('payment_attempts').insert(paymentAttemptsData);
-  if (payError) throw new Error(`Failed to seed payment attempts: ${payError.message}`);
+  // Insert payment attempts in chunks of 100
+  const CHUNK_SIZE = 100;
+  for (let i = 0; i < paymentAttemptsData.length; i += CHUNK_SIZE) {
+    const chunk = paymentAttemptsData.slice(i, i + CHUNK_SIZE);
+    const { error: payError } = await supabase.from('payment_attempts').insert(chunk);
+    if (payError) throw new Error(`Failed to seed payment attempts chunk: ${payError.message}`);
+  }
 
   return {
     customers: customers.length,
